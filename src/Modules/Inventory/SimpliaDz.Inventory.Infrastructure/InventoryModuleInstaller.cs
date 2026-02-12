@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.Inventory.Infrastructure.Data.Repositories;
+using SimpliaDz.Inventory.Infrastructure.Data.Seeders;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 
 namespace SimpliaDz.Inventory.Infrastructure;
@@ -50,6 +51,6 @@ public sealed class InventoryModuleInstaller : IModuleInstaller
         //     await db.SaveChangesAsync(cancellationToken);
         // }
 
-        await Task.CompletedTask;
+        await InventorySeeder.SeedAsync(db, cancellationToken);
     }
 }
