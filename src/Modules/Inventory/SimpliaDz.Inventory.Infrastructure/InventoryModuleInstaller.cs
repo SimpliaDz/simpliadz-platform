@@ -1,0 +1,55 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.Inventory.Infrastructure.Data;
+using SimpliaDz.Inventory.Infrastructure.Data.Repositories;
+using SimpliaDz.Inventory.UseCases.Products.Abstractions;
+
+namespace SimpliaDz.Inventory.Infrastructure;
+
+public sealed class InventoryModuleInstaller : IModuleInstaller
+{
+    public string ModuleName => "Inventory";
+
+    public void Register(IServiceCollection services, string connectionString)
+    {
+        services.AddDbContext<InventoryDbContext>(options =>
+            options.UseSqlServer(connectionString, sql =>
+            {
+                // Keep migrations inside the Inventory.Infrastructure assembly
+                sql.MigrationsAssembly(typeof(InventoryDbContext).Assembly.FullName);
+            }));
+
+        // Repository registrations (per-aggregate root)
+        services.AddScoped<IProductRepository, EfProductRepository>();
+    }
+
+    public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    {
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+        await db.Database.MigrateAsync(cancellationToken);
+    }
+
+    public async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    {
+        // IMPORTANT:
+        // - Idempotent
+        // - Safe to run multiple times
+        // - No assumptions about existing data
+
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+        // Example placeholder (we'll add real seeds later):
+        // if (!await db.Products.AnyAsync(cancellationToken))
+        // {
+        //     db.Products.Add(new Product("Sample"));
+        //     await db.SaveChangesAsync(cancellationToken);
+        // }
+
+        await Task.CompletedTask;
+    }
+}

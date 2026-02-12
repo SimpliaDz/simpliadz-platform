@@ -1,0 +1,19 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: simpliadz-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Password1"
+      MSSQL_PID: "Developer"
+      # Optional (logs/time)
+      TZ: "America/Montreal"
+    ports:
+      - "${MSSQL_PORT}:1433"
+    volumes:
+      - "${MSSQL_DATA_VOLUME}:/var/opt/mssql"
+    restart: unless-stopped
+
+volumes:
+  simpliadz_mssql_data:
+    name: "${MSSQL_DATA_VOLUME}"
