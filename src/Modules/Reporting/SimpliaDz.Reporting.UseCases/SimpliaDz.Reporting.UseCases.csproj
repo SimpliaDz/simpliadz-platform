@@ -1,7 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\SimpliaDz.Reporting.Core\SimpliaDz.Reporting.Core.csproj" />
+    <ProjectReference Include="..\..\..\SimpliaDz.SharedKernel\SimpliaDz.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="MediatR" Version="14.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

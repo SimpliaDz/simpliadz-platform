@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.Identity.Infrastructure.Data;
 using SimpliaDz.Identity.Infrastructure.Data.Entities;
+using SimpliaDz.Identity.Infrastructure.Auth;
+using SimpliaDz.Identity.UseCases.Auth.Abstractions;
+
 
 namespace SimpliaDz.Identity.Infrastructure;
 
@@ -26,6 +29,9 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
             })
             .AddRoles<AppRole>()
             .AddEntityFrameworkStores<IdentityDbContext>();
+
+        services.AddScoped<IIdentityAuthService, IdentityAuthService>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
     }
 
     public async Task MigrateAsync(IServiceProvider sp, CancellationToken ct)

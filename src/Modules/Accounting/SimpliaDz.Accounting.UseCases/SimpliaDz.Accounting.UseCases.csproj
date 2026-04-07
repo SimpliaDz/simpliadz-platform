@@ -1,7 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\SimpliaDz.Accounting.Core\SimpliaDz.Accounting.Core.csproj" />
+    <ProjectReference Include="..\..\..\SimpliaDz.SharedKernel\SimpliaDz.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
   </ItemGroup>
 

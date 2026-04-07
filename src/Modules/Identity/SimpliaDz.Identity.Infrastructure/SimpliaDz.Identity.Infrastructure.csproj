@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SimpliaDz.Identity.Core\SimpliaDz.Identity.Core.csproj" />
     <ProjectReference Include="..\..\..\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\SimpliaDz.Identity.UseCases\SimpliaDz.Identity.UseCases.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,5 +28,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+<!-- this is added to support SingInMannager link : https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore?view=aspnetcore-10.0&utm_source=chatgpt.com&tabs=visual-studio -->
+  <!-- <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup> -->
 
 </Project>
