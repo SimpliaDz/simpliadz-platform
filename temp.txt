@@ -1,5 +1,0 @@
-dotnet add src/Modules/Identity/SimpliaDz.Identity.UseCases reference src/SimpliaDz.BuildingBlocks/SimpliaDz.BuildingBlocks.csproj
-dotnet add src/Modules/Inventory/SimpliaDz.Inventory.UseCases reference src/SimpliaDz.BuildingBlocks/SimpliaDz.BuildingBlocks.csproj
-dotnet add src/Modules/Accounting/SimpliaDz.Accounting.UseCases reference src/SimpliaDz.BuildingBlocks/SimpliaDz.BuildingBlocks.csproj
-dotnet add src/Modules/Sales/SimpliaDz.Sales.UseCases reference src/SimpliaDz.BuildingBlocks/SimpliaDz.BuildingBlocks.csproj
-dotnet add src/Modules/Purchasing/SimpliaDz.Purchasing.UseCases reference src/SimpliaDz.BuildingBlocks/SimpliaDz.BuildingBlocks.csproj
