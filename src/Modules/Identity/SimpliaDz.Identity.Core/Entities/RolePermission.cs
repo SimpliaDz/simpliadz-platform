@@ -1,4 +1,4 @@
-namespace SimpliaDz.Identity.Infrastructure.Data.Entities;
+namespace SimpliaDz.Identity.Core.Entities;
 
 public sealed class RolePermission
 {

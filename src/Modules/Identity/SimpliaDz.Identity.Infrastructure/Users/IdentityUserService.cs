@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 using SimpliaDz.Identity.Contracts.Users;
 using SimpliaDz.Identity.Infrastructure.Data;
-using SimpliaDz.Identity.Infrastructure.Data.Entities;
+using SimpliaDz.Identity.Core.Entities;
 using SimpliaDz.Identity.UseCases.Users.Abstractions;
 
 namespace SimpliaDz.Identity.Infrastructure.Users;

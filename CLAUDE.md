@@ -51,7 +51,7 @@ dotnet ef migrations add <MigrationName> \
 | API Docs | Swashbuckle.AspNetCore | 10.1.2 |
 | Database | SQL Server 2022 (Docker) | — |
 
-All module projects follow the same dependency rules: `Core` has no NuGet deps; `UseCases` adds MediatR + FluentValidation; `Infrastructure` adds EF Core + SQL Server provider.
+All module projects follow the same dependency rules: `Core` has no NuGet packages (framework references allowed); `UseCases` adds MediatR + FluentValidation; `Infrastructure` adds EF Core + SQL Server + AspNetCore.App. Domain entities always live in `Core`, never in `Infrastructure`.
 
 ---
 
@@ -103,18 +103,23 @@ Currently active modules in `ModuleRegistry`: **Identity**, **Inventory**.
 ### Module Layers (every module)
 
 ```
-<Module>.Core            — Domain entities, value objects, domain exceptions
-                           No external NuGet dependencies.
+<Module>.Core            — Domain entities, value objects, domain exceptions.
+                           No NuGet package dependencies.
+                           Framework references (Microsoft.AspNetCore.App) are allowed when the
+                           domain model requires framework types (e.g. Identity module entities
+                           extend IdentityUser<Guid> / IdentityRole<Guid>).
 
 <Module>.UseCases        — MediatR commands/queries/handlers, FluentValidation validators,
                            repository/service interfaces (abstractions only, no EF).
-                           Depends on: MediatR, FluentValidation, BuildingBlocks.
+                           Depends on: MediatR, FluentValidation, BuildingBlocks, <Module>.Core.
 
-<Module>.Infrastructure  — EF Core DbContext, entity configurations (IEntityTypeConfiguration),
-                           migrations, repository implementations, seeders, IModuleInstaller.
-                           Depends on: EF Core + SqlServer, AspNetCore.App (Identity module only).
+<Module>.Infrastructure  — EF Core DbContext, entity type configurations (IEntityTypeConfiguration),
+                           migrations, repository/service implementations, seeders, IModuleInstaller.
+                           Depends on: EF Core + SqlServer, Microsoft.AspNetCore.App, <Module>.Core,
+                           <Module>.UseCases.
+                           Does NOT define domain entities — those live in Core.
 
-<Module>.Contracts       — Public request/response DTOs.
+<Module>.Contracts       — Public request/response DTOs shared with the API layer.
                            No dependencies. Consumed by API endpoints.
 ```
 
@@ -182,7 +187,7 @@ Dev credentials (seeded): `admin@dev.local` / `Admin123!`
 
 **DB Schema:** `identity`
 
-**Entities:**
+**Entities** (`Core/Entities/`):
 - `AppUser : IdentityUser<Guid>` — adds `FirstName`, `LastName`, `IsActive`
 - `AppRole : IdentityRole<Guid>` — adds `RolePermissions` nav property
 - `Permission` — `Id` (int), `Name`, `DisplayName`, `Category`

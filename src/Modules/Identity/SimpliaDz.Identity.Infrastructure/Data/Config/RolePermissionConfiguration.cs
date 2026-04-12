@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SimpliaDz.Identity.Infrastructure.Data.Entities;
+using SimpliaDz.Identity.Core.Entities;
 
 namespace SimpliaDz.Identity.Infrastructure.Data.Config;
 

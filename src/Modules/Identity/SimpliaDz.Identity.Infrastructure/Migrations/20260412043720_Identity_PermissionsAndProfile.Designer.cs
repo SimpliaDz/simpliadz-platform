@@ -129,7 +129,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", "identity");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.AppRole", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.AppRole", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -157,7 +157,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                     b.ToTable("AspNetRoles", "identity");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.AppUser", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -234,7 +234,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", "identity");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.Permission", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.Permission", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -265,7 +265,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                     b.ToTable("Permissions", "identity");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.RolePermission", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.RolePermission", b =>
                 {
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uniqueidentifier");
@@ -282,7 +282,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppRole", null)
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -291,7 +291,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppUser", null)
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -300,7 +300,7 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
                 {
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppUser", null)
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -309,13 +309,13 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
                 {
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppRole", null)
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppUser", null)
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -324,22 +324,22 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppUser", null)
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.RolePermission", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.RolePermission", b =>
                 {
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.Permission", "Permission")
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.Permission", "Permission")
                         .WithMany("RolePermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SimpliaDz.Identity.Infrastructure.Data.Entities.AppRole", "Role")
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppRole", "Role")
                         .WithMany("RolePermissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -350,12 +350,12 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.AppRole", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.AppRole", b =>
                 {
                     b.Navigation("RolePermissions");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Identity.Infrastructure.Data.Entities.Permission", b =>
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
                 });

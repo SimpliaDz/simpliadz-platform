@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using SimpliaDz.Identity.Infrastructure.Data.Entities;
+using SimpliaDz.Identity.Core.Entities;
 
 namespace SimpliaDz.Identity.Infrastructure.Data;
 

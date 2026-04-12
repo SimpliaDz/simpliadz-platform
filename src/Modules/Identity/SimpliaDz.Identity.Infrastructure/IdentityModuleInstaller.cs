@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.Identity.Infrastructure.Auth;
 using SimpliaDz.Identity.Infrastructure.Data;
-using SimpliaDz.Identity.Infrastructure.Data.Entities;
+using SimpliaDz.Identity.Core.Entities;
 using SimpliaDz.Identity.Infrastructure.Data.Seeders;
 using SimpliaDz.Identity.Infrastructure.Permissions;
 using SimpliaDz.Identity.Infrastructure.Roles;
