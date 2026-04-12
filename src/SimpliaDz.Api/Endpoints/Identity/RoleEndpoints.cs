@@ -1,0 +1,68 @@
+using MediatR;
+
+using Microsoft.AspNetCore.Mvc;
+
+using SimpliaDz.Identity.Contracts.Roles;
+using SimpliaDz.Identity.UseCases.Roles.Commands.AssignPermissionsToRole;
+using SimpliaDz.Identity.UseCases.Roles.Commands.CreateRole;
+using SimpliaDz.Identity.UseCases.Roles.Commands.RemovePermissionsFromRole;
+using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoleById;
+using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoles;
+
+namespace SimpliaDz.Api.Endpoints.Identity;
+
+public static class RoleEndpoints
+{
+    public static IEndpointRouteBuilder MapRoleEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/roles").WithTags("Roles");
+
+        group.MapGet("/", async (
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            var result = await sender.Send(new GetRolesQuery(), ct);
+            return Results.Ok(result);
+        }).RequireAuthorization("roles.view");
+
+        group.MapGet("/{id:guid}", async (
+            Guid id,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            var result = await sender.Send(new GetRoleByIdQuery(id), ct);
+            return Results.Ok(result);
+        }).RequireAuthorization("roles.view");
+
+        group.MapPost("/", async (
+            [FromBody] CreateRoleRequest request,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            var id = await sender.Send(new CreateRoleCommand(request.Name), ct);
+            return Results.Created($"/roles/{id}", new { id });
+        }).RequireAuthorization("roles.manage");
+
+        group.MapPost("/{id:guid}/permissions", async (
+            Guid id,
+            [FromBody] AssignPermissionsToRoleRequest request,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            await sender.Send(new AssignPermissionsToRoleCommand(id, request.Permissions), ct);
+            return Results.NoContent();
+        }).RequireAuthorization("roles.manage");
+
+        group.MapDelete("/{id:guid}/permissions", async (
+            Guid id,
+            [FromBody] RemovePermissionsFromRoleRequest request,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            await sender.Send(new RemovePermissionsFromRoleCommand(id, request.Permissions), ct);
+            return Results.NoContent();
+        }).RequireAuthorization("roles.manage");
+
+        return app;
+    }
+}

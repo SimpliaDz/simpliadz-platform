@@ -1,0 +1,25 @@
+using MediatR;
+
+using Microsoft.AspNetCore.Mvc;
+
+using SimpliaDz.Identity.UseCases.Permissions.Queries.GetPermissions;
+
+namespace SimpliaDz.Api.Endpoints.Identity;
+
+public static class PermissionEndpoints
+{
+    public static IEndpointRouteBuilder MapPermissionEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/permissions").WithTags("Permissions");
+
+        group.MapGet("/", async (
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            var result = await sender.Send(new GetPermissionsQuery(), ct);
+            return Results.Ok(result);
+        }).RequireAuthorization("permissions.view");
+
+        return app;
+    }
+}

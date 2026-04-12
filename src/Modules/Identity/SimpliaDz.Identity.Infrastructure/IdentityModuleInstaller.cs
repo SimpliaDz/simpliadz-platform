@@ -1,12 +1,19 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.Identity.Infrastructure.Auth;
 using SimpliaDz.Identity.Infrastructure.Data;
 using SimpliaDz.Identity.Infrastructure.Data.Entities;
-using SimpliaDz.Identity.Infrastructure.Auth;
+using SimpliaDz.Identity.Infrastructure.Data.Seeders;
+using SimpliaDz.Identity.Infrastructure.Permissions;
+using SimpliaDz.Identity.Infrastructure.Roles;
+using SimpliaDz.Identity.Infrastructure.Users;
 using SimpliaDz.Identity.UseCases.Auth.Abstractions;
-
+using SimpliaDz.Identity.UseCases.Permissions.Abstractions;
+using SimpliaDz.Identity.UseCases.Roles.Abstractions;
+using SimpliaDz.Identity.UseCases.Users.Abstractions;
 
 namespace SimpliaDz.Identity.Infrastructure;
 
@@ -20,18 +27,23 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
             options.UseSqlServer(connectionString, sql =>
                 sql.MigrationsAssembly(typeof(IdentityDbContext).Assembly.FullName)));
 
-        // We will register Identity services (UserManager, SignInManager, etc.)
-        // later in the API host. The migrator only needs the DbContext.
+        services.AddDataProtection();
+        
         services
             .AddIdentityCore<AppUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
             })
             .AddRoles<AppRole>()
-            .AddEntityFrameworkStores<IdentityDbContext>();
+            .AddEntityFrameworkStores<IdentityDbContext>()
+            .AddDefaultTokenProviders();
+            
 
         services.AddScoped<IIdentityAuthService, IdentityAuthService>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IIdentityUserService, IdentityUserService>();
+        services.AddScoped<IIdentityRoleService, IdentityRoleService>();
+        services.AddScoped<IPermissionService, PermissionService>();
     }
 
     public async Task MigrateAsync(IServiceProvider sp, CancellationToken ct)
@@ -44,42 +56,6 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
     public async Task SeedAsync(IServiceProvider sp, CancellationToken ct)
     {
         await using var scope = sp.CreateAsyncScope();
-        var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
-        var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-
-        const string adminRole = "Admin";
-        const string adminEmail = "admin@dev.local";
-        const string adminPassword = "Admin123!"; // dev only
-
-        // Role
-        if (!await roleMgr.RoleExistsAsync(adminRole))
-        {
-            await roleMgr.CreateAsync(new AppRole { Name = adminRole });
-        }
-
-        // User
-        var user = await userMgr.FindByEmailAsync(adminEmail);
-        if (user is null)
-        {
-            user = new AppUser
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true
-            };
-
-            var result = await userMgr.CreateAsync(user, adminPassword);
-            if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => $"{e.Code}:{e.Description}"));
-                throw new InvalidOperationException($"Failed to create admin user: {errors}");
-            }
-        }
-
-        // Assign role
-        if (!await userMgr.IsInRoleAsync(user, adminRole))
-        {
-            await userMgr.AddToRoleAsync(user, adminRole);
-        }
+        await IdentitySeeder.SeedAsync(scope.ServiceProvider, ct);
     }
 }

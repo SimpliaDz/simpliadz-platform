@@ -12,15 +12,15 @@ public sealed class IdentityDbContext
     {
     }
 
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        // Put ALL ASP.NET Identity tables under schema: identity
         builder.HasDefaultSchema("identity");
 
         base.OnModelCreating(builder);
 
-        // Later, we can configure table names if you want:
-        // builder.Entity<AppUser>().ToTable("Users");
-        // builder.Entity<AppRole>().ToTable("Roles");
+        builder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
     }
 }

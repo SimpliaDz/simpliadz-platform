@@ -29,9 +29,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-<!-- this is added to support SingInMannager link : https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore?view=aspnetcore-10.0&utm_source=chatgpt.com&tabs=visual-studio -->
-  <!-- <ItemGroup>
+  <!-- Required for ASP.NET Core Identity features (AddDefaultTokenProviders, DataProtectorTokenProvider, etc.) -->
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup> -->
+  </ItemGroup>
 
 </Project>

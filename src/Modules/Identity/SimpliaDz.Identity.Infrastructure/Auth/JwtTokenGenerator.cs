@@ -30,7 +30,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         ExpiresMinutes = int.TryParse(configuration["Jwt:ExpiresMinutes"], out var m) ? m : 60;
     }
 
-    public string GenerateToken(Guid userId, string email, string? userName, IList<string> roles)
+    public string GenerateToken(Guid userId, string email, string? userName, IList<string> roles, IList<string> permissions)
     {
         var claims = new List<Claim>
         {
@@ -41,6 +41,9 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
         foreach (var role in roles)
             claims.Add(new Claim(ClaimTypes.Role, role));
+
+        foreach (var permission in permissions)
+            claims.Add(new Claim("permission", permission));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_signingKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

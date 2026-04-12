@@ -1,13 +1,6 @@
-/*
-Purpose
-
-exception handling
-swagger setup
-authentication middleware
-authorization middleware
-*/
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using SimpliaDz.BuildingBlocks.Exceptions;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -27,22 +20,37 @@ public static class MiddlewareExtensions
             {
                 var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
 
-                if (exception is UnauthorizedAccessException uex)
+                switch (exception)
                 {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    await context.Response.WriteAsJsonAsync(new
-                    {
-                        Error = "Unauthorized",
-                        Message = uex.Message
-                    });
-                    return;
-                }
+                    case UnauthorizedAccessException uex:
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        await context.Response.WriteAsJsonAsync(new { Error = "Unauthorized", Message = uex.Message });
+                        return;
 
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    Error = "ServerError"
-                });
+                    case NotFoundException nfex:
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        await context.Response.WriteAsJsonAsync(new { Error = "NotFound", Message = nfex.Message });
+                        return;
+
+                    case ValidationException vex:
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        await context.Response.WriteAsJsonAsync(new
+                        {
+                            Error = "ValidationError",
+                            Errors = vex.Errors.Select(e => new { e.PropertyName, e.ErrorMessage })
+                        });
+                        return;
+
+                    case InvalidOperationException ioex:
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        await context.Response.WriteAsJsonAsync(new { Error = "BadRequest", Message = ioex.Message });
+                        return;
+
+                    default:
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                        await context.Response.WriteAsJsonAsync(new { Error = "ServerError" });
+                        return;
+                }
             });
         });
 

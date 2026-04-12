@@ -1,5 +1,7 @@
 using MediatR;
 
+using Microsoft.AspNetCore.Mvc;
+
 using SimpliaDz.Inventory.Contracts.Products;
 using SimpliaDz.Inventory.UseCases.Products.Commands.CreateProduct;
 
@@ -12,8 +14,8 @@ public static class ProductEndpoints
         var group = app.MapGroup("/products");
 
         group.MapPost("/", async (
-            CreateProductRequest request,
-            ISender sender,
+            [FromBody] CreateProductRequest request,
+            [FromServices] ISender sender,
             CancellationToken ct) =>
         {
             var id = await sender.Send(

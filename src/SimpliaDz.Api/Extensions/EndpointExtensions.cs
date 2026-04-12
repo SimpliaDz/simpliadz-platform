@@ -10,6 +10,9 @@ public static class EndpointExtensions
         app.MapGet("/", () => Results.Ok(new { status = "ok" }));
 
         app.MapAuthEndpoints();
+        app.MapUserEndpoints();
+        app.MapRoleEndpoints();
+        app.MapPermissionEndpoints();
         app.MapProductEndpoints();
 
         return app;

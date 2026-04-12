@@ -1,12 +1,3 @@
-/*
- Purpose
-
- app-level service registration
- module installer orchestration
- MediatR registration
- validators
- swagger
-*/
 using FluentValidation;
 using MediatR;
 
@@ -17,6 +8,15 @@ namespace SimpliaDz.Api.Extensions;
 
 public static class DependencyInjectionExtensions
 {
+    // Permissions used to register authorization policies.
+    private static readonly string[] AllPermissions =
+    [
+        "users.view", "users.create", "users.edit", "users.delete",
+        "roles.view", "roles.manage",
+        "permissions.view", "permissions.manage",
+        "products.view", "products.create", "products.edit", "products.delete",
+    ];
+
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -49,6 +49,16 @@ public static class DependencyInjectionExtensions
         services.AddValidatorsFromAssemblies(useCaseAssemblies);
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+        services.AddAuthorization(options =>
+        {
+            foreach (var permission in AllPermissions)
+            {
+                options.AddPolicy(permission, policy =>
+                    policy.RequireAuthenticatedUser()
+                          .RequireClaim("permission", permission));
+            }
+        });
 
         return services;
     }
