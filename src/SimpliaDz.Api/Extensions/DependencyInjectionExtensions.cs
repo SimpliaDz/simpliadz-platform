@@ -12,13 +12,14 @@ namespace SimpliaDz.Api.Extensions;
 public static class DependencyInjectionExtensions
 {
     // Permissions used to register authorization policies.
-    // TODO: create a separateFile where we can make all these permissions as constants ..
+    // TODO: create a separate file where we can make all these permissions constants.
     private static readonly string[] AllPermissions =
     [
         "users.view", "users.create", "users.edit", "users.delete",
         "roles.view", "roles.manage",
         "permissions.view", "permissions.manage",
         "products.view", "products.create", "products.edit", "products.delete",
+        "organization.view", "organization.manage"
     ];
 
     public static IServiceCollection AddApplicationServices(
@@ -43,7 +44,8 @@ public static class DependencyInjectionExtensions
         var useCaseAssemblies = new[]
         {
             typeof(SimpliaDz.Inventory.UseCases.AssemblyMarker).Assembly,
-            typeof(SimpliaDz.Identity.UseCases.AssemblyMarker).Assembly
+            typeof(SimpliaDz.Identity.UseCases.AssemblyMarker).Assembly,
+            typeof(SimpliaDz.Organization.UseCases.AssemblyMarker).Assembly
         };
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(useCaseAssemblies));

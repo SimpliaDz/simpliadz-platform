@@ -4,6 +4,7 @@ using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.Identity.Infrastructure;
 using SimpliaDz.Inventory.Infrastructure;
 using SimpliaDz.Notifications.Infrastructure;
+using SimpliaDz.Organization.Infrastructure;
 using SimpliaDz.Purchasing.Infrastructure;
 using SimpliaDz.Reporting.Infrastructure;
 using SimpliaDz.Sales.Infrastructure;
@@ -20,6 +21,7 @@ public static class ModuleCatalog
     [
         new IdentityModuleInstaller(),
         new InventoryModuleInstaller(),
+        new OrganizationModuleInstaller(),
         new SalesModuleInstaller(),
         new PurchasingModuleInstaller(),
         new AccountingModuleInstaller(),

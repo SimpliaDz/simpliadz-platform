@@ -1,5 +1,6 @@
 using SimpliaDz.Api.Endpoints.Identity;
 using SimpliaDz.Api.Endpoints.Inventory;
+using SimpliaDz.Api.Endpoints.Organization;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -14,6 +15,7 @@ public static class EndpointExtensions
         app.MapRoleEndpoints();
         app.MapPermissionEndpoints();
         app.MapProductEndpoints();
+        app.MapOrganizationEndpoints();
 
         return app;
     }

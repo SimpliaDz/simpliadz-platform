@@ -22,6 +22,8 @@ internal static class IdentitySeeder
         ("products.create",     "Create Products",      "Products"),
         ("products.edit",       "Edit Products",        "Products"),
         ("products.delete",     "Delete Products",      "Products"),
+        ("organization.view",   "View Organization",    "Organization"),
+        ("organization.manage", "Manage Organization",  "Organization"),
     ];
 
     public static async Task SeedAsync(
