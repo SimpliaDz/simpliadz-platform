@@ -6,14 +6,14 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "Password1"
       MSSQL_PID: "Developer"
-      # Optional (logs/time)
       TZ: "America/Montreal"
     ports:
-      - "${MSSQL_PORT}:1433"
+      - "${MSSQL_PORT:-1433}:1433"
+
     volumes:
-      - "${MSSQL_DATA_VOLUME}:/var/opt/mssql"
+      - simpliadz_mssql_data:/var/opt/mssql
+
     restart: unless-stopped
 
 volumes:
   simpliadz_mssql_data:
-    name: "${MSSQL_DATA_VOLUME}"
