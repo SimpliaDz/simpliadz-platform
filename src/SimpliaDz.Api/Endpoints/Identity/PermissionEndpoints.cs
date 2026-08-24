@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 using SimpliaDz.Identity.UseCases.Permissions.Queries.GetPermissions;
+using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -10,7 +11,9 @@ public static class PermissionEndpoints
 {
     public static IEndpointRouteBuilder MapPermissionEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/permissions").WithTags("Permissions");
+        var group = app.MapGroup("/permissions")
+            .WithTags("Permissions")
+            .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapGet("/", async (
             [FromServices] ISender sender,

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Reporting.Infrastructure.Data;
 
 namespace SimpliaDz.Reporting.Infrastructure;
@@ -12,8 +13,8 @@ public sealed class ReportingModuleInstaller : IModuleInstaller
 
     public void Register(IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<ReportingDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+        services.AddDbContext<ReportingDbContext>((sp, options) =>
+            options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(ReportingDbContext).Assembly.FullName);
             }));

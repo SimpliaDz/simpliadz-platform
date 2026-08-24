@@ -5,14 +5,7 @@ using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Resolution;
-using SimpliaDz.Inventory.Infrastructure;
-using SimpliaDz.Identity.Infrastructure;
-using SimpliaDz.Sales.Infrastructure;
-using SimpliaDz.Purchasing.Infrastructure;
-using SimpliaDz.Accounting.Infrastructure;
-using SimpliaDz.Notifications.Infrastructure;
-using SimpliaDz.Reporting.Infrastructure;
-using SimpliaDz.Audit.Infrastructure;
+using SimpliaDz.ModuleCatalog;
 
 var hostBuilder = Host.CreateDefaultBuilder(args)
     .UseContentRoot(AppContext.BaseDirectory)
@@ -25,14 +18,10 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
         services.AddTenancyFromConfiguration(ctx.Configuration);
         services.AddSingleton<ITenantResolver>(new CliTenantResolver(args));
 
-        services.AddSingleton<IModuleInstaller, InventoryModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, IdentityModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, SalesModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, PurchasingModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, AccountingModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, NotificationsModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, ReportingModuleInstaller>();
-        services.AddSingleton<IModuleInstaller, AuditModuleInstaller>();
+        foreach (var installer in ModuleCatalog.GetModules())
+        {
+            services.AddSingleton<IModuleInstaller>(installer);
+        }
 
         using var tempProvider = services.BuildServiceProvider();
         var tenant = tempProvider.GetRequiredService<ITenantContext>();

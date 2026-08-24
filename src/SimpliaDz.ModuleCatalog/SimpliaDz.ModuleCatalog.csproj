@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Modules\Identity\SimpliaDz.Identity.Infrastructure\SimpliaDz.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\SimpliaDz.Inventory.Infrastructure\SimpliaDz.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Sales\SimpliaDz.Sales.Infrastructure\SimpliaDz.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\SimpliaDz.Purchasing.Infrastructure\SimpliaDz.Purchasing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accounting\SimpliaDz.Accounting.Infrastructure\SimpliaDz.Accounting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\SimpliaDz.Notifications.Infrastructure\SimpliaDz.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Reporting\SimpliaDz.Reporting.Infrastructure\SimpliaDz.Reporting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Audit\SimpliaDz.Audit.Infrastructure\SimpliaDz.Audit.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

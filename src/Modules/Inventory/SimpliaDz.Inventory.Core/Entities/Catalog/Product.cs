@@ -130,5 +130,5 @@ public sealed class Product
         Touch();
     }
 
-    private void Touch() => UpdatedAt = DateTimeOffset.UtcNow; //ADD by user later ..
+    private void Touch() => UpdatedAt = DateTimeOffset.UtcNow; //AddedBy user later ..
 }

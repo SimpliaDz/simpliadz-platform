@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Identity.Infrastructure.Auth;
 using SimpliaDz.Identity.Infrastructure.Data;
 using SimpliaDz.Identity.Core.Entities;
@@ -23,8 +24,8 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
 
     public void Register(IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<IdentityDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+        services.AddDbContext<IdentityDbContext>((sp, options) =>
+            options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
                 sql.MigrationsAssembly(typeof(IdentityDbContext).Assembly.FullName)));
 
         services.AddDataProtection();

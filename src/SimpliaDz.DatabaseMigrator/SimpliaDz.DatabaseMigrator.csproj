@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Modules\Inventory\SimpliaDz.Inventory.Infrastructure\SimpliaDz.Inventory.Infrastructure.csproj" />
     <ProjectReference Include="..\SimpliaDz.SharedKernel\SimpliaDz.SharedKernel.csproj" />
     <ProjectReference Include="..\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\SimpliaDz.ModuleCatalog\SimpliaDz.ModuleCatalog.csproj" />
     <ProjectReference Include="..\Modules\Identity\SimpliaDz.Identity.Infrastructure\SimpliaDz.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Sales\SimpliaDz.Sales.Infrastructure\SimpliaDz.Sales.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Purchasing\SimpliaDz.Purchasing.Infrastructure\SimpliaDz.Purchasing.Infrastructure.csproj" />

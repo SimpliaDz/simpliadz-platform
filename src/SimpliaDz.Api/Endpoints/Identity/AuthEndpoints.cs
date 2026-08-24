@@ -9,6 +9,7 @@ using SimpliaDz.Identity.UseCases.Auth.Commands.ChangePassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ForgotPassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.Login;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ResetPassword;
+using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -16,7 +17,9 @@ public static class AuthEndpoints
 {
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/auth").WithTags("Auth");
+        var group = app.MapGroup("/auth")
+            .WithTags("Auth")
+            .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapPost("/login", async (
             [FromBody] LoginRequest request,

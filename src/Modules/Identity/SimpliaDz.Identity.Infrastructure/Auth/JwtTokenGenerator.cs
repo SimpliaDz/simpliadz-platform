@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 using SimpliaDz.Identity.UseCases.Auth.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 
 namespace SimpliaDz.Identity.Infrastructure.Auth;
 
@@ -14,11 +15,13 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     private readonly string _issuer;
     private readonly string _audience;
     private readonly string _signingKey;
+    private readonly ITenantContext _tenant;
 
     public int ExpiresMinutes { get; }
 
-    public JwtTokenGenerator(IConfiguration configuration)
+    public JwtTokenGenerator(IConfiguration configuration, ITenantContext tenant)
     {
+        _tenant = tenant;
         _issuer = configuration["Jwt:Issuer"] ?? "SimpliaDz";
         _audience = configuration["Jwt:Audience"] ?? "SimpliaDz";
         _signingKey = configuration["Jwt:SigningKey"]
@@ -36,7 +39,8 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         {
             new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Email, email),
-            new(ClaimTypes.Name, userName ?? email)
+            new(ClaimTypes.Name, userName ?? email),
+            new("tenant_id", _tenant.TenantId)
         };
 
         foreach (var role in roles)

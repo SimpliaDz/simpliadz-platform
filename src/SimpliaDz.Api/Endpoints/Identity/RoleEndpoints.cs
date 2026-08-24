@@ -8,6 +8,7 @@ using SimpliaDz.Identity.UseCases.Roles.Commands.CreateRole;
 using SimpliaDz.Identity.UseCases.Roles.Commands.RemovePermissionsFromRole;
 using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoleById;
 using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoles;
+using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -15,7 +16,9 @@ public static class RoleEndpoints
 {
     public static IEndpointRouteBuilder MapRoleEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/roles").WithTags("Roles");
+        var group = app.MapGroup("/roles")
+            .WithTags("Roles")
+            .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapGet("/", async (
             [FromServices] ISender sender,

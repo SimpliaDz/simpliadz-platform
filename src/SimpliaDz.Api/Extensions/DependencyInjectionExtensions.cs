@@ -2,13 +2,17 @@ using FluentValidation;
 using MediatR;
 
 using SimpliaDz.Api.Modules;
+using SimpliaDz.Api.Tenancy;
 using SimpliaDz.BuildingBlocks.Mediation;
+using SimpliaDz.BuildingBlocks.Tenancy;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 
 namespace SimpliaDz.Api.Extensions;
 
 public static class DependencyInjectionExtensions
 {
     // Permissions used to register authorization policies.
+    // TODO: create a separateFile where we can make all these permissions as constants ..
     private static readonly string[] AllPermissions =
     [
         "users.view", "users.create", "users.edit", "users.delete",
@@ -24,18 +28,16 @@ public static class DependencyInjectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
-        var connectionString = configuration["Tenancy:Tenants:dev:ConnectionString"];
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Missing Tenancy:Tenants:dev:ConnectionString in API appsettings.json");
-        }
+        services.AddHttpContextAccessor();
+        services.AddTenancyFromConfiguration(configuration);
+        services.AddSingleton<ITenantResolver, HttpTenantResolver>();
 
         var modules = ModuleRegistry.GetModules();
 
         foreach (var module in modules)
         {
-            module.Register(services, connectionString);
+            // DbContexts resolve their connection string from the request-scoped ITenantContext.
+            module.Register(services, string.Empty);
         }
 
         var useCaseAssemblies = new[]

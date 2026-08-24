@@ -1,6 +1,8 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using SimpliaDz.BuildingBlocks.Exceptions;
+using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -52,6 +54,24 @@ public static class MiddlewareExtensions
                         return;
                 }
             });
+        });
+
+        app.UseRouting();
+
+        // Resolve and validate the tenant before authentication or endpoint execution.
+        // The scoped context is then shared by authentication, EF Core, and handlers.
+        app.Use(async (context, next) =>
+        {
+            var tenant = context.RequestServices.GetRequiredService<ITenantContext>();
+            var module = context.GetEndpoint()?.Metadata.GetMetadata<ModuleEndpointMetadata>();
+
+            if (module is not null && !tenant.IsModuleEnabled(module.ModuleName))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            await next();
         });
 
         app.UseAuthentication();

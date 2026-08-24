@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Audit.Infrastructure.Data;
 
 namespace SimpliaDz.Audit.Infrastructure;
@@ -12,8 +13,8 @@ public sealed class AuditModuleInstaller : IModuleInstaller
 
     public void Register(IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<AuditDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+        services.AddDbContext<AuditDbContext>((sp, options) =>
+            options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(AuditDbContext).Assembly.FullName);
             }));

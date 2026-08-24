@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 using SimpliaDz.Api.Configuration;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -48,6 +49,23 @@ public static class AuthenticationExtensions
                     IssuerSigningKey = signingKey,
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromSeconds(30)
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = context =>
+                    {
+                        var tenant = context.HttpContext.RequestServices
+                            .GetRequiredService<ITenantContext>();
+                        var tokenTenantId = context.Principal?.FindFirst("tenant_id")?.Value;
+
+                        if (!string.Equals(tokenTenantId, tenant.TenantId, StringComparison.Ordinal))
+                        {
+                            context.Fail("The access token does not belong to the requested tenant.");
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

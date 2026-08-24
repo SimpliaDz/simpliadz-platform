@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Sales.Infrastructure.Data;
 
 namespace SimpliaDz.Sales.Infrastructure;
@@ -12,8 +13,8 @@ public sealed class SalesModuleInstaller : IModuleInstaller
 
     public void Register(IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<SalesDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+        services.AddDbContext<SalesDbContext>((sp, options) =>
+            options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(SalesDbContext).Assembly.FullName);
             }));

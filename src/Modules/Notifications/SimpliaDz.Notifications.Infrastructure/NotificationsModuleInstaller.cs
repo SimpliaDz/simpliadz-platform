@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Notifications.Infrastructure.Data;
 
 namespace SimpliaDz.Notifications.Infrastructure;
@@ -12,8 +13,8 @@ public sealed class NotificationsModuleInstaller : IModuleInstaller
 
     public void Register(IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<NotificationsDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+        services.AddDbContext<NotificationsDbContext>((sp, options) =>
+            options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(NotificationsDbContext).Assembly.FullName);
             }));

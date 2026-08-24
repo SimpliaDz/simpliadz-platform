@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using SimpliaDz.Inventory.Contracts.Products;
 using SimpliaDz.Inventory.UseCases.Products.Commands.CreateProduct;
+using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 
 namespace SimpliaDz.Api.Endpoints.Inventory;
 
@@ -11,7 +12,8 @@ public static class ProductEndpoints
 {
     public static IEndpointRouteBuilder MapProductEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/products");
+        var group = app.MapGroup("/products")
+            .WithMetadata(new ModuleEndpointMetadata("Inventory"));
 
         group.MapPost("/", async (
             [FromBody] CreateProductRequest request,
