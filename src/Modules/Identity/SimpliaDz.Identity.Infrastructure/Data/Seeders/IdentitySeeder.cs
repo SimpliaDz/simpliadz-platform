@@ -3,29 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SimpliaDz.Identity.Core.Entities;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Identity.Infrastructure.Data.Seeders;
 
 internal static class IdentitySeeder
 {
-    private static readonly (string Name, string DisplayName, string Category)[] PermissionCatalog =
-    [
-        ("users.view",          "View Users",           "Users"),
-        ("users.create",        "Create Users",         "Users"),
-        ("users.edit",          "Edit Users",           "Users"),
-        ("users.delete",        "Delete Users",         "Users"),
-        ("roles.view",          "View Roles",           "Roles"),
-        ("roles.manage",        "Manage Roles",         "Roles"),
-        ("permissions.view",    "View Permissions",     "Permissions"),
-        ("permissions.manage",  "Manage Permissions",   "Permissions"),
-        ("products.view",       "View Products",        "Products"),
-        ("products.create",     "Create Products",      "Products"),
-        ("products.edit",       "Edit Products",        "Products"),
-        ("products.delete",     "Delete Products",      "Products"),
-        ("organization.view",   "View Organization",    "Organization"),
-        ("organization.manage", "Manage Organization",  "Organization"),
-    ];
-
     public static async Task SeedAsync(
         IServiceProvider sp,
         CancellationToken ct)
@@ -42,7 +25,7 @@ internal static class IdentitySeeder
     private static async Task SeedPermissionsAsync(IdentityDbContext db, CancellationToken ct)
     {
         var existing = await db.Permissions.Select(p => p.Name).ToListAsync(ct);
-        var missing = PermissionCatalog.Where(p => !existing.Contains(p.Name)).ToList();
+        var missing = PermissionNames.Catalog.Where(p => !existing.Contains(p.Name)).ToList();
 
         if (missing.Count == 0) return;
 

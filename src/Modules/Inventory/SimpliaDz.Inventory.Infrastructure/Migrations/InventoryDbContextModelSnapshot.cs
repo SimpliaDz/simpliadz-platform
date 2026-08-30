@@ -182,9 +182,16 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Code")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -193,6 +200,13 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -205,10 +219,12 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
                     b.HasIndex("IsActive");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("Name");
 
-                    b.ToTable("Locations", "inventory");
+                    b.ToTable("Locations", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_Locations_Type", "[Type] IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockItem", b =>

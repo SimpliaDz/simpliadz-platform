@@ -20,18 +20,22 @@ internal static class InventorySeeder
 
     private static async Task SeedLocationsAsync(InventoryDbContext db, CancellationToken ct)
     {
-        await UpsertLocation(db, "Main Store", "MAIN", ct);
-        await UpsertLocation(db, "Warehouse", "WH", ct);
+        await UpsertLocation(db, "Main Store", "MAIN", LocationType.Store, ct);
+        await UpsertLocation(db, "Warehouse", "WH", LocationType.Warehouse, ct);
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task UpsertLocation(InventoryDbContext db, string name, string code, CancellationToken ct)
+    private static async Task UpsertLocation(
+        InventoryDbContext db,
+        string name,
+        string code,
+        LocationType type,
+        CancellationToken ct)
     {
         var existing = await db.Locations.FirstOrDefaultAsync(x => x.Code == code, ct);
         if (existing is not null) return;
 
-        var loc = new InventoryLocation(name);
-        loc.SetCode(code);
+        var loc = new InventoryLocation(name, code, type);
         db.Locations.Add(loc);
     }
 

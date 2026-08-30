@@ -4,6 +4,7 @@ using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.Organization.Contracts;
 using SimpliaDz.Organization.UseCases.Commands.UpdateOrganization;
 using SimpliaDz.Organization.UseCases.Queries.GetOrganization;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Organization;
 
@@ -19,7 +20,7 @@ public static class OrganizationEndpoints
         {
             var organization = await sender.Send(new GetOrganizationQuery(), ct);
             return Results.Ok(organization);
-        }).RequireAuthorization("organization.view");
+        }).RequireAuthorization(PermissionNames.Organization.View);
 
         group.MapPut("/", async (
             [FromBody] UpdateOrganizationRequest request,
@@ -39,7 +40,7 @@ public static class OrganizationEndpoints
                 ct);
 
             return Results.Ok(organization);
-        }).RequireAuthorization("organization.manage");
+        }).RequireAuthorization(PermissionNames.Organization.Manage);
 
         return app;
     }

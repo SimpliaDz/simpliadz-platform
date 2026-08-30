@@ -43,6 +43,11 @@ public static class MiddlewareExtensions
                         });
                         return;
 
+                    case ConflictException cex:
+                        context.Response.StatusCode = StatusCodes.Status409Conflict;
+                        await context.Response.WriteAsJsonAsync(new { Error = "Conflict", Message = cex.Message });
+                        return;
+
                     case InvalidOperationException ioex:
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
                         await context.Response.WriteAsJsonAsync(new { Error = "BadRequest", Message = ioex.Message });

@@ -176,8 +176,8 @@ Dev tenant: `dev` → `SimpliaDz_Dev` database on `localhost,1433`.
 - JWT Bearer tokens issued at `POST /auth/login`
 - `JwtOptions` (section `Jwt`): `Issuer`, `Audience`, `SigningKey` (min 32 chars), `ExpiresMinutes` (default 60)
 - JWT claims include: `NameIdentifier` (user ID), `Email`, `Role` (ASP.NET Identity roles), `permission` (custom claims, one per permission)
-- Authorization policies are defined per-permission string (e.g., `"users.view"`, `"roles.manage"`)
-- Endpoints call `.RequireAuthorization("permission.name")` — no `[Authorize]` attributes
+- Authorization policies come from the centralized `SharedKernel/Authorization/PermissionNames.cs` catalog.
+- Endpoints call `.RequireAuthorization(PermissionNames.<Area>.<Action>)` — no `[Authorize]` attributes and no repeated permission literals.
 
 Dev credentials (seeded): `admin@dev.local` / `Admin123!`
 
@@ -247,7 +247,7 @@ GET  /permissions                [permissions.view]
 - `ProductVariant` — `Id`, `ProductId`, `Sku` (value object), `RetailPrice`, `WholesalePrice`, `Barcode`, `Color`, `Size`
 - `Brand` — `Id`, `Name`
 - `ProductCategory` — `Id`, `Name`
-- `InventoryLocation` — `Id`, `Name`, `Code`, `IsActive`
+- `InventoryLocation` — `Id`, `Name`, `Code`, `Type` (`Store`/`Warehouse`), `Address`, `Phone`, `IsActive`, timestamps
 - `StockItem` — tracks `QuantityOnHand` per variant per location; methods: `ApplyDelta`, `SetQuantity`
 - `StockMovement` — ledger entries (Receipt, Issue, Adjustment) with reference info
 
@@ -257,16 +257,22 @@ GET  /permissions                [permissions.view]
 
 **Domain exceptions:** `DomainException`, `InsufficientStockException`, `InvalidProductNameException`, `InvalidSkuException`
 
-**Repository pattern:** `IProductRepository` (UseCases) → `EfProductRepository` (Infrastructure)
+**Repository pattern:** `IProductRepository`/`ILocationRepository` (UseCases) → EF implementations (Infrastructure)
 
 **Migrations:**
 - `Inventory_Foundation_Initial`
+- `Inventory_BusinessLocations`
 
 **Seeded data:** 2 locations, 4 brands, 4 categories, 4 products with variants and initial stock
 
 **Endpoints:**
 ```
-POST /products                   (no auth policy yet)
+POST /products                   [products.create]
+GET  /locations                  [locations.view]
+GET  /locations/{id}             [locations.view]
+POST /locations                  [locations.create]
+PUT  /locations/{id}             [locations.edit]
+PUT  /locations/{id}/deactivate  [locations.edit]
 ```
 
 ---

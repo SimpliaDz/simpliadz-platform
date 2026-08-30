@@ -9,6 +9,7 @@ using SimpliaDz.Identity.UseCases.Roles.Commands.RemovePermissionsFromRole;
 using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoleById;
 using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoles;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -26,7 +27,7 @@ public static class RoleEndpoints
         {
             var result = await sender.Send(new GetRolesQuery(), ct);
             return Results.Ok(result);
-        }).RequireAuthorization("roles.view");
+        }).RequireAuthorization(PermissionNames.Roles.View);
 
         group.MapGet("/{id:guid}", async (
             Guid id,
@@ -35,7 +36,7 @@ public static class RoleEndpoints
         {
             var result = await sender.Send(new GetRoleByIdQuery(id), ct);
             return Results.Ok(result);
-        }).RequireAuthorization("roles.view");
+        }).RequireAuthorization(PermissionNames.Roles.View);
 
         group.MapPost("/", async (
             [FromBody] CreateRoleRequest request,
@@ -44,7 +45,7 @@ public static class RoleEndpoints
         {
             var id = await sender.Send(new CreateRoleCommand(request.Name), ct);
             return Results.Created($"/roles/{id}", new { id });
-        }).RequireAuthorization("roles.manage");
+        }).RequireAuthorization(PermissionNames.Roles.Manage);
 
         group.MapPost("/{id:guid}/permissions", async (
             Guid id,
@@ -54,7 +55,7 @@ public static class RoleEndpoints
         {
             await sender.Send(new AssignPermissionsToRoleCommand(id, request.Permissions), ct);
             return Results.NoContent();
-        }).RequireAuthorization("roles.manage");
+        }).RequireAuthorization(PermissionNames.Roles.Manage);
 
         group.MapDelete("/{id:guid}/permissions", async (
             Guid id,
@@ -64,7 +65,7 @@ public static class RoleEndpoints
         {
             await sender.Send(new RemovePermissionsFromRoleCommand(id, request.Permissions), ct);
             return Results.NoContent();
-        }).RequireAuthorization("roles.manage");
+        }).RequireAuthorization(PermissionNames.Roles.Manage);
 
         return app;
     }

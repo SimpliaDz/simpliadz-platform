@@ -6,7 +6,10 @@ using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.Inventory.Infrastructure.Data.Repositories;
 using SimpliaDz.Inventory.Infrastructure.Data.Seeders;
+using SimpliaDz.Inventory.Infrastructure.Services;
+using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
+using SimpliaDz.Inventory.UseCases.Services;
 
 namespace SimpliaDz.Inventory.Infrastructure;
 
@@ -25,6 +28,8 @@ public sealed class InventoryModuleInstaller : IModuleInstaller
 
         // Repository registrations (per-aggregate root)
         services.AddScoped<IProductRepository, EfProductRepository>();
+        services.AddScoped<ILocationRepository, EfLocationRepository>();
+        services.AddScoped<IStockService, StockService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
