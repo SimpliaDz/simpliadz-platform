@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Identity.Contracts.Roles;
 using SimpliaDz.Identity.UseCases.Roles.Abstractions;
@@ -14,7 +14,7 @@ public sealed class GetRoleByIdHandler : IRequestHandler<GetRoleByIdQuery, RoleW
         _roleService = roleService;
     }
 
-    public async Task<RoleWithPermissionsResponse> Handle(GetRoleByIdQuery request, CancellationToken ct)
+    public async ValueTask<RoleWithPermissionsResponse> Handle(GetRoleByIdQuery request, CancellationToken ct)
     {
         var role = await _roleService.GetRoleByIdAsync(request.RoleId, ct);
         if (role is null)

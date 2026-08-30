@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.UseCases.Roles.Abstractions;
 
 namespace SimpliaDz.Identity.UseCases.Roles.Commands.CreateRole;
@@ -12,7 +12,7 @@ public sealed class CreateRoleHandler : IRequestHandler<CreateRoleCommand, Guid>
         _roleService = roleService;
     }
 
-    public async Task<Guid> Handle(CreateRoleCommand request, CancellationToken ct)
+    public async ValueTask<Guid> Handle(CreateRoleCommand request, CancellationToken ct)
     {
         return await _roleService.CreateRoleAsync(request.Name, ct);
     }

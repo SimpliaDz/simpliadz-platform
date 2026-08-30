@@ -2,6 +2,8 @@ namespace SimpliaDz.BuildingBlocks.Tenancy.Configuration;
 
 public sealed class TenancyOptions
 {
+    public string ActiveTenantId { get; init; } = "";
+
     public Dictionary<string, TenantOptions> Tenants { get; init; } =
         new(StringComparer.OrdinalIgnoreCase);
 }

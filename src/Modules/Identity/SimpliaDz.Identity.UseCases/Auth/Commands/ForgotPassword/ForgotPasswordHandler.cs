@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Auth;
 using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 
@@ -13,7 +13,7 @@ public sealed class ForgotPasswordHandler : IRequestHandler<ForgotPasswordComman
         _authService = authService;
     }
 
-    public async Task<ForgotPasswordResponse> Handle(ForgotPasswordCommand request, CancellationToken ct)
+    public async ValueTask<ForgotPasswordResponse> Handle(ForgotPasswordCommand request, CancellationToken ct)
     {
         // Always returns 200 to avoid user enumeration; token is for dev convenience.
         return await _authService.GeneratePasswordResetTokenAsync(request.Email, ct);

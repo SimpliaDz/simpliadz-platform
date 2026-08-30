@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Inventory.Contracts.Locations;
 using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
 
@@ -10,6 +10,6 @@ public sealed class GetLocationsHandler : IRequestHandler<GetLocationsQuery, IRe
 
     public GetLocationsHandler(ILocationRepository locations) => _locations = locations;
 
-    public async Task<IReadOnlyList<LocationResponse>> Handle(GetLocationsQuery request, CancellationToken ct) =>
+    public async ValueTask<IReadOnlyList<LocationResponse>> Handle(GetLocationsQuery request, CancellationToken ct) =>
         (await _locations.GetAllAsync(ct)).Select(location => location.ToResponse()).ToArray();
 }

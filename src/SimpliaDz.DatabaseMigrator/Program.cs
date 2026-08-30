@@ -12,6 +12,7 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg =>
     {
         cfg.AddJsonFile("appsettings.json", optional: false);
+        cfg.AddJsonFile("tenants.json", optional: false, reloadOnChange: false);
     })
     .ConfigureServices((ctx, services) =>
     {

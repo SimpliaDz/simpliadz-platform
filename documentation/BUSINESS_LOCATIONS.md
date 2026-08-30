@@ -20,7 +20,7 @@ The unique filtered index on `Code` is scoped naturally by the tenant-per-databa
 
 ## HTTP API
 
-All routes require an authenticated, tenant-bound token, the `X-Tenant-Id` header, and the Inventory module enabled for that tenant.
+All routes require an authenticated, tenant-bound token and the Inventory module enabled for the API instance's configured active tenant. Clients do not select a tenant with a request header.
 
 | Method | Route | Permission | Behavior |
 | --- | --- | --- | --- |

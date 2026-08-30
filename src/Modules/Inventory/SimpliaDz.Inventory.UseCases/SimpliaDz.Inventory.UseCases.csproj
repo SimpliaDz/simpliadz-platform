@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\SimpliaDz.Inventory.Core\SimpliaDz.Inventory.Core.csproj" />
@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="MediatR" Version="14.0.0" />
+    <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
   </ItemGroup>
 
   <PropertyGroup>

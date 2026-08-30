@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
 
@@ -10,12 +10,13 @@ public sealed class DeactivateLocationHandler : IRequestHandler<DeactivateLocati
 
     public DeactivateLocationHandler(ILocationRepository locations) => _locations = locations;
 
-    public async Task Handle(DeactivateLocationCommand request, CancellationToken ct)
+    public async ValueTask<Unit> Handle(DeactivateLocationCommand request, CancellationToken ct)
     {
         var location = await _locations.GetByIdAsync(request.Id, ct)
             ?? throw new NotFoundException("Location", request.Id);
 
         location.Deactivate();
         await _locations.SaveChangesAsync(ct);
+        return default;
     }
 }

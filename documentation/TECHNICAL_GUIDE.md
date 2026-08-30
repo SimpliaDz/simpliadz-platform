@@ -1,4 +1,4 @@
-﻿# SimpliaDz — Technical Guide
+# SimpliaDz — Technical Guide
 
 > **Purpose of this document:** explain, in plain language, how this solution is put together — so you (a human still learning this stack) and future Claude Code sessions make changes that fit the existing architecture instead of introducing new patterns.
 >
@@ -17,7 +17,7 @@
 5. [Walkthrough #1: Identity module, "CreateUser"](#5-walkthrough-1-identity-module-createuser-command)
 6. [Walkthrough #2: Inventory module, "CreateProduct"](#6-walkthrough-2-inventory-module-createproduct-command)
 7. [Repository pattern vs. Service pattern — which to use when](#7-repository-pattern-vs-service-pattern--which-to-use-when)
-8. [MediatR: how CQRS is wired up](#8-mediatr-how-cqrs-is-wired-up)
+8. [Mediator: how CQRS is wired up](#8-mediatr-how-cqrs-is-wired-up)
 9. [FluentValidation: how validation is wired up](#9-fluentvalidation-how-validation-is-wired-up)
 10. [Dependency Injection: who registers what, and when](#10-dependency-injection-who-registers-what-and-when)
 11. [Multi-tenancy: how it's supposed to work vs. how it works today](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today)
@@ -29,13 +29,13 @@
 
 ## 1. Big picture: what kind of app is this
 
-This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent **modules** (Identity, Inventory, Organization, and six not-yet-implemented ones), each structured using **Clean Architecture** layers, with **CQRS via MediatR** inside each module.
+This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent **modules** (Identity, Inventory, Organization, and six not-yet-implemented ones), each structured using **Clean Architecture** layers, with **CQRS via Mediator** inside each module.
 
 Why this combination, in plain terms:
 
 - **Modular monolith** (as opposed to microservices): all the code runs in one process and one deployment, but it's organized as if it *could* be split into services later. Each module owns its own database schema and never reaches into another module's tables directly. You get most of the maintainability benefits of microservices (isolation, clear boundaries) without the operational cost (network calls, distributed transactions, separate deployments) — a reasonable choice for a product that isn't yet at a scale that needs real microservices.
 - **Clean Architecture** inside each module: the code is arranged in layers where the "inner" layer (business rules) never depends on the "outer" layer (database, web framework). This means you can change the database or the web framework without rewriting business logic, and you can unit-test business logic without spinning up a real database.
-- **CQRS with MediatR**: instead of big "service" classes with a dozen methods, each individual use case (e.g. "create a user", "get a role by id") is its own small class (a `Command` or `Query` + its `Handler`). This keeps each use case easy to find, read, and test in isolation, and gives you one consistent place (a MediatR pipeline) to bolt on cross-cutting behavior like validation.
+- **CQRS with Mediator**: instead of big "service" classes with a dozen methods, each individual use case (e.g. "create a user", "get a role by id") is its own small class (a `Command` or `Query` + its `Handler`). This keeps each use case easy to find, read, and test in isolation, and gives you one consistent place (a Mediator pipeline) to bolt on cross-cutting behavior like validation.
 
 If you remember one thing from this section: **every module repeats the same four-layer shape, and every use case inside a module repeats the same three-file shape (request / handler / validator).** Once you've understood one module and one use case, you've understood the whole codebase's shape.
 
@@ -71,11 +71,11 @@ This is the actual web server. It doesn't contain business logic — its job is 
   app.Run();
   ```
 - `Modules/ModuleRegistry.cs` — a thin API wrapper over `SimpliaDz.ModuleCatalog`; the API registers all installed infrastructure at startup, then tenant middleware enables or rejects module endpoints per request (see [Section 3](#3-the-modular-monolith-how-modules-are-organized)).
-- `Extensions/DependencyInjectionExtensions.cs` — registers every module's services, MediatR, FluentValidation, and authorization policies.
+- `Extensions/DependencyInjectionExtensions.cs` — registers every module's services, Mediator, FluentValidation, and authorization policies.
 - `Extensions/AuthenticationExtensions.cs` — configures JWT Bearer authentication.
 - `Extensions/MiddlewareExtensions.cs` — configures the global exception handler, Swagger, and the auth middleware pipeline.
 - `Extensions/EndpointExtensions.cs` — maps every module's HTTP endpoint groups onto the app.
-- `Endpoints/Identity/*`, `Endpoints/Inventory/*`, `Endpoints/Organization/*` — the actual Minimal API route definitions (thin — they just call MediatR and return a result, see the walkthroughs below).
+- `Endpoints/Identity/*`, `Endpoints/Inventory/*`, `Endpoints/Organization/*` — the actual Minimal API route definitions (thin — they just call Mediator and return a result, see the walkthroughs below).
 - `Configuration/JwtOptions.cs` — strongly-typed JWT settings bound from `appsettings.json`.
 
 ### `SimpliaDz.BuildingBlocks` — shared cross-cutting plumbing
@@ -83,7 +83,7 @@ This is the actual web server. It doesn't contain business logic — its job is 
 Code every module can depend on, but which is **not** business logic:
 
 - `Exceptions/NotFoundException.cs` — a generic "entity not found" exception any module can throw; the API's global exception handler knows how to turn it into an HTTP 404.
-- `Mediation/ValidationBehavior.cs` — the MediatR pipeline step that runs FluentValidation before every handler (details in [Section 9](#9-fluentvalidation-how-validation-is-wired-up)).
+- `Mediation/ValidationBehavior.cs` — the Mediator pipeline step that runs FluentValidation before every handler (details in [Section 9](#9-fluentvalidation-how-validation-is-wired-up)).
 - `Modules/Abstractions/IModuleInstaller.cs` — the contract every module implements to plug itself into the host (details in [Section 3](#3-the-modular-monolith-how-modules-are-organized)).
 - `Tenancy/` — `ITenantContext`, `ITenantResolver`, `ITenantStore`, `TenancyOptions`, `ConfigurationTenantStore`, `TenantContext`, `CliTenantResolver` — the multi-tenancy abstractions (details in [Section 11](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today)).
 
@@ -134,7 +134,7 @@ Every module has exactly one class implementing this (e.g. `IdentityModuleInstal
 
 Each host then applies its tenant configuration:
 
-- The API registers all installed Infrastructure modules once at startup. For every request it resolves a tenant from `X-Tenant-Id`, creates its scoped `ITenantContext`, uses that context's connection string for EF Core, and returns 404 for an endpoint belonging to a module disabled for that tenant.
+- The API registers all installed Infrastructure modules once at startup. Its local configuration selects one active tenant for the API instance. Tenant-scoped requests use that context's connection string for EF Core and return 404 for an endpoint belonging to a disabled module; system endpoints do not resolve tenant state.
 - The migrator resolves the selected `--tenant`, then registers, migrates, and seeds only modules for which `tenant.IsModuleEnabled(installer.ModuleName)` is true.
 
 This removes installer-list drift. It does **not** make scaffolded modules functional: a module still needs handlers, endpoint mappings, and its UseCases assembly included in the API scans before it exposes behavior.
@@ -144,9 +144,9 @@ This removes installer-list drift. It does **not** make scaffolded modules funct
 1. Create the four projects: `SimpliaDz.<Module>.Core`, `.UseCases`, `.Infrastructure`, `.Contracts`.
 2. In `Infrastructure`, implement `IModuleInstaller`.
 3. Add the Infrastructure project reference and installer to `SimpliaDz.ModuleCatalog/ModuleCatalog.cs`.
-4. Enable the module for the relevant tenant(s) in each host's `appsettings.json` under `Tenancy:Tenants:<tenant>:Modules`.
+4. Enable the module for the relevant tenant(s) in the shared local `src/tenants.json` catalog under `Tenancy:Tenants:<tenant>:Modules`.
 5. Update `tests/SimpliaDz.ModuleCatalog.Tests` with the expected module name.
-6. Add its `UseCases` assembly to the MediatR/FluentValidation assembly-scan list in `DependencyInjectionExtensions.cs`.
+6. Add its `UseCases` assembly to the Mediator/FluentValidation assembly-scan list in `DependencyInjectionExtensions.cs`.
 7. Add its endpoint-mapping call in `EndpointExtensions.cs`.
 
 ---
@@ -156,7 +156,7 @@ This removes installer-list drift. It does **not** make scaffolded modules funct
 Every module (active or stub) is split into four projects, and the **dependency arrows only point inward**:
 
 ```
-   Api  ─────────────────────────────────────────────►  (calls into UseCases via MediatR)
+   Api  ─────────────────────────────────────────────►  (calls into UseCases via Mediator)
     │
     ▼
 Infrastructure ──► UseCases ──► Contracts
@@ -167,7 +167,7 @@ Infrastructure ──► UseCases ──► Contracts
 | Layer | What lives here | What it may depend on |
 |---|---|---|
 | **`<Module>.Core`** | Domain entities, value objects, domain exceptions. The actual business rules. | Nothing (no NuGet packages). Framework types are allowed only when the domain itself needs them — e.g. Identity's entities extend ASP.NET Core Identity's `IdentityUser<Guid>`. |
-| **`<Module>.UseCases`** | MediatR `Command`/`Query` + `Handler` + FluentValidation `Validator`, and the **interfaces** (repository or service abstractions) that handlers depend on. | MediatR, FluentValidation, `BuildingBlocks`, its own `Core`. **Never** EF Core — this layer must not know the database exists. |
+| **`<Module>.UseCases`** | Mediator `Command`/`Query` + `Handler` + FluentValidation `Validator`, and the **interfaces** (repository or service abstractions) that handlers depend on. | Mediator, FluentValidation, `BuildingBlocks`, its own `Core`. **Never** EF Core — this layer must not know the database exists. |
 | **`<Module>.Infrastructure`** | EF Core `DbContext`, entity configurations, migrations, the concrete classes that implement the `UseCases` interfaces, seeders, the `IModuleInstaller`. | EF Core, SQL Server, ASP.NET Core, its own `Core` + `UseCases`. |
 | **`<Module>.Contracts`** | Plain DTOs (request/response records) shared between the API layer and `UseCases`. | Nothing. |
 
@@ -187,7 +187,7 @@ public sealed record CreateUserRequest(
     string Email, string FirstName, string LastName, string Password, IList<string>? Roles = null);
 ```
 
-**2. API endpoint** (`src/SimpliaDz.Api/Endpoints/Identity/UserEndpoints.cs`) — binds the request, sends it through MediatR, returns the result. No business logic here:
+**2. API endpoint** (`src/SimpliaDz.Api/Endpoints/Identity/UserEndpoints.cs`) — binds the request, sends it through Mediator, returns the result. No business logic here:
 ```csharp
 group.MapPost("/", async ([FromBody] CreateUserRequest request, [FromServices] ISender sender, CancellationToken ct) =>
 {
@@ -352,7 +352,7 @@ b.Property(x => x.Name)
 ```
 This is the trick that lets `Product.Name` be a rich `ProductName` value object in C# while the database column stays a plain `nvarchar` — EF converts in both directions, and because it round-trips through the value object's own constructor, validation re-runs even when data is loaded back out of the database.
 
-**API endpoint** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `POST /products` sends `CreateProductCommand` through MediatR and requires `PermissionNames.Products.Create`.
+**API endpoint** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `POST /products` sends `CreateProductCommand` through Mediator and requires `PermissionNames.Products.Create`.
 
 Business locations extend the same Inventory module rather than introducing another module. `GET/POST/PUT /locations` and `PUT /locations/{id}/deactivate` expose the `InventoryLocation` aggregate. Codes are normalized and unique inside each tenant database, deactivation retains stock history, and `StockService` rejects inactive or unknown locations before receiving or adjusting stock. See `BUSINESS_LOCATIONS.md` for the complete contract.
 
@@ -369,18 +369,22 @@ You'll notice **Identity uses "services"** (`IIdentityUserService`, `IIdentityAu
 
 ---
 
-## 8. MediatR: how CQRS is wired up
+## 8. Mediator: how CQRS is wired up
 
 **Registration** (`src/SimpliaDz.Api/Extensions/DependencyInjectionExtensions.cs`):
 ```csharp
-var useCaseAssemblies = new[]
+services.AddMediator(options =>
 {
-    typeof(SimpliaDz.Inventory.UseCases.AssemblyMarker).Assembly,
-    typeof(SimpliaDz.Identity.UseCases.AssemblyMarker).Assembly
-};
-services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(useCaseAssemblies));
+    options.ServiceLifetime = ServiceLifetime.Scoped;
+    options.Assemblies =
+    [
+        typeof(SimpliaDz.Inventory.UseCases.AssemblyMarker),
+        typeof(SimpliaDz.Identity.UseCases.AssemblyMarker),
+        typeof(SimpliaDz.Organization.UseCases.AssemblyMarker)
+    ];
+});
 ```
-MediatR scans these assemblies for every `IRequestHandler<,>` implementation and registers them. The active Identity, Inventory, and Organization `UseCases` assemblies are scanned — a new module's handlers won't be found until its assembly is added to this array (see [Section 3](#3-the-modular-monolith-how-modules-are-organized), step 6).
+The MIT-licensed `Mediator.SourceGenerator` scans these referenced assemblies at compile time and generates the dispatcher and handler registrations. The active Identity, Inventory, and Organization `UseCases` assemblies are included — a new module's handlers won't be found until its marker type is added to this array (see [Section 3](#3-the-modular-monolith-how-modules-are-organized), step 6). UseCases and BuildingBlocks reference only `Mediator.Abstractions`; the source generator exists only in the API composition root.
 
 **The pattern per use case**, one folder per use case:
 ```
@@ -408,7 +412,7 @@ services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>
 
 ## 9. FluentValidation: how validation is wired up
 
-**Registration** — same two assemblies as MediatR:
+**Registration** — the same active use-case assemblies as Mediator:
 ```csharp
 services.AddValidatorsFromAssemblies(useCaseAssemblies);
 ```
@@ -416,7 +420,10 @@ This finds every `AbstractValidator<T>` and registers it as `IValidator<T>`.
 
 **How it actually runs** (`src/SimpliaDz.BuildingBlocks/Mediation/ValidationBehavior.cs`):
 ```csharp
-public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+public async ValueTask<TResponse> Handle(
+    TRequest request,
+    MessageHandlerDelegate<TRequest, TResponse> next,
+    CancellationToken ct)
 {
     if (_validators.Any())
     {
@@ -425,7 +432,7 @@ public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TRe
         var failures = results.SelectMany(r => r.Errors).ToList();
         if (failures.Count != 0) throw new ValidationException(failures);
     }
-    return await next();
+    return await next(request, ct);
 }
 ```
 All validators for a request run concurrently, their failures get merged into one exception. That exception type is caught centrally:
@@ -458,10 +465,10 @@ app.MapAppEndpoints();                                              // 4
 
 **Step 1 — `AddApplicationServices`** (`src/SimpliaDz.Api/Extensions/DependencyInjectionExtensions.cs`), in order:
 1. Swagger / `EndpointsApiExplorer`.
-2. Read the tenant configuration section; no tenant connection string is selected at startup. See [Section 11](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today).
-3. Register the HTTP tenancy services: configuration-backed tenant store, scoped tenant context, and `HttpTenantResolver`.
+2. Read the shared tenant catalog and validate the active tenant selected for this API instance. See [Section 11](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today).
+3. Register the configuration-backed tenant store, scoped tenant context, and `ConfigurationTenantResolver`.
 4. Get all installed modules from `ModuleRegistry`/`ModuleCatalog` and call `installer.Register(...)`. Each module's `DbContext` resolves `ITenantContext.ConnectionString` when the context is created for a request, rather than capturing a connection string at startup.
-5. `AddMediatR` + `AddValidatorsFromAssemblies` over the active modules' `UseCases` assemblies.
+5. `AddMediator` + `AddValidatorsFromAssemblies` over the active modules' `UseCases` assemblies.
 6. `AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>))`.
 7. `AddAuthorization(...)` — builds one policy per permission string.
 
@@ -472,13 +479,13 @@ app.MapAppEndpoints();                                              // 4
 |---|---|---|
 | `DbContext` (each module's) | Scoped (EF Core default via `AddDbContext`) | One instance per HTTP request / unit of work. |
 | Repositories / application services (`EfProductRepository`, `IdentityUserService`, ...) | Scoped | They hold a scoped `DbContext`, so they must match its lifetime. |
-| MediatR handlers | Transient (MediatR default) | Cheap, stateless, created per request. |
+| Mediator and handlers | Scoped (explicitly configured) | Handlers consume request-scoped repositories and `DbContext` instances. |
 | `IValidator<T>` | Transient (FluentValidation default) | Same reasoning. |
 | `IPipelineBehavior<,>` (`ValidationBehavior`) | Transient | Registered once as an open generic, applies to every request type. |
 | `ITenantStore` | Singleton | Config-backed, safe to share app-wide. |
 | `ITenantContext` | Scoped | Resolved once per scope from `ITenantResolver` + `ITenantStore`. |
 
-**Rule for new code:** register your module's own services **inside your module's `IModuleInstaller.Register(...)`**, not in `DependencyInjectionExtensions.cs`. That file should stay generic (loop over modules, wire MediatR/FluentValidation/authorization) and never accumulate module-specific `AddScoped` calls directly.
+**Rule for new code:** register your module's own services **inside your module's `IModuleInstaller.Register(...)`**, not in `DependencyInjectionExtensions.cs`. That file should stay generic (loop over modules, wire Mediator/FluentValidation/authorization) and never accumulate module-specific `AddScoped` calls directly.
 
 ---
 
@@ -490,9 +497,10 @@ public interface ITenantResolver { string ResolveTenantId(); }
 public interface ITenantStore    { TenantDescriptor GetTenant(string tenantId); }
 public interface ITenantContext  { string TenantId; string Name; string ConnectionString; bool IsModuleEnabled(string moduleName); }
 ```
-Config shape (`appsettings.json`):
+Local config shape (`src/tenants.json`):
 ```json
 "Tenancy": {
+  "ActiveTenantId": "dev",
   "Tenants": {
     "dev": {
       "Name": "Development",
@@ -515,14 +523,14 @@ This is genuinely tenant-aware: a different tenant with a different `Modules` ma
 
 **How the running web API works now:**
 
-1. Every API request must send exactly one `X-Tenant-Id` header, for example `X-Tenant-Id: dev`.
-2. `HttpTenantResolver` reads this header. `AddTenancyFromConfiguration` uses it to create one scoped `ITenantContext` from the configured tenant descriptor.
-3. Middleware resolves that context before authentication and endpoints execute. Unknown tenants or missing/multiple headers fail as a 400 response.
-4. Each module's `AddDbContext` registration obtains `ITenantContext.ConnectionString` when EF Core creates the context, so the same API process can serve separate tenant databases.
-5. Endpoint groups carry `ModuleEndpointMetadata` (`Identity` or `Inventory` today). The middleware returns 404 when the resolved tenant has that module disabled.
-6. Login issues a JWT containing a `tenant_id` claim. JWT validation compares it with the request tenant, preventing a token issued for one tenant from being used with another tenant header.
+1. `ConfigurationTenantResolver` reads `Tenancy:ActiveTenantId`. The API validates that descriptor during startup, so a bad ID, name, or connection string fails before requests are accepted.
+2. Clients do not provide a tenant header and cannot choose another configured database. One API process represents one active tenant environment.
+3. Tenant endpoint groups carry both `TenantRequiredMetadata` and `ModuleEndpointMetadata`. Middleware resolves `ITenantContext` only for those endpoints and returns 404 when their module is disabled.
+4. Each module's `AddDbContext` registration obtains `ITenantContext.ConnectionString` when EF Core creates the context.
+5. Root, health, and Swagger endpoints are system-scoped and do not carry tenant metadata.
+6. Login issues a JWT containing a `tenant_id` claim. JWT validation compares it with the configured API tenant on tenant endpoints, preventing a token issued by one tenant environment from being used by another.
 
-This fixes request-level tenant selection for the HTTP API. The chosen transport is a header because it is easy to use with the existing single-host local deployment. A future subdomain or custom-domain strategy can replace only `HttpTenantResolver`; the rest of the tenant context and database behavior remains unchanged.
+For local testing, `src/tenants.json` can hold several descriptors. Change `ActiveTenantId` or set the `Tenancy__ActiveTenantId` environment variable to run the API as another tenant. The migrator always uses its explicit `--tenant` argument. See `documentation/LOCAL_TENANCY.md` for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
 
 ---
 
@@ -530,7 +538,7 @@ This fixes request-level tenant selection for the HTTP API. The chosen transport
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts now use `SimpliaDz.ModuleCatalog`, and the API resolves tenant flags per request. Audit, Sales, Purchasing, Accounting, Notifications, and Reporting still consist mostly of scaffolding; enabling one only registers its infrastructure. It remains unreachable until its use cases and endpoints are implemented and mapped. The API and migrator each keep their own host configuration, so their enabled-module flags can still differ intentionally or accidentally (the checked-in `dev` settings currently differ for Audit).
+1. **Scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Purchasing, Accounting, Notifications, and Reporting still consist mostly of scaffolding; enabling one only registers its infrastructure. It remains unreachable until its use cases and endpoints are implemented and mapped.
 2. **The permission catalog is defined twice, by hand, with no shared source of truth:**
    - `IdentitySeeder.PermissionCatalog` (`src/Modules/Identity/SimpliaDz.Identity.Infrastructure/Data/Seeders/IdentitySeeder.cs`) — the list that gets inserted into the database.
    - `DependencyInjectionExtensions.AllPermissions` (`src/SimpliaDz.Api/Extensions/DependencyInjectionExtensions.cs`) — the list that becomes authorization policies.
@@ -561,10 +569,10 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - **Pick repository or service shape per module, not per whim**: aggregate-root persistence with plain EF Core → repository named after the aggregate; wrapping an existing framework subsystem (like ASP.NET Identity) → service interface named after the capability. See [Section 7](#7-repository-pattern-vs-service-pattern--which-to-use-when).
 - **Domain rules and invariants live in `Core` entities/value objects**, not in validators and not in handlers. A validator checks *shape* of input (is the email well-formed, is the string non-empty); an entity/value-object constructor or method enforces *business* rules (can't go below zero stock, can't have a duplicate SKU on the same product).
 - **Value objects for anything with format rules** (see `ProductName`, `Sku`) — a `readonly record struct` with validation in the constructor, mapped to a plain column via `HasConversion` in the EF configuration.
-- **Endpoints stay thin**: bind the request, `sender.Send(...)`, map the result to an HTTP response. No business logic, no direct repository/service calls, no manual validation — that's what the MediatR pipeline + `ValidationBehavior` already does.
+- **Endpoints stay thin**: bind the request, `sender.Send(...)`, map the result to an HTTP response. No business logic, no direct repository/service calls, no manual validation — that's what the Mediator pipeline + `ValidationBehavior` already does.
 - **New exception types need a home in the global exception handler** (`MiddlewareExtensions.cs`) or they'll fall through to a generic 500 — don't add a new domain exception without checking whether it needs a status-code mapping.
 - **Module-specific DI registrations belong in that module's `IModuleInstaller.Register(...)`**, never added ad hoc to `DependencyInjectionExtensions.cs`.
-- **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in each host's `appsettings.json`. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
+- **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in `src/tenants.json`. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
 - **Every write endpoint that isn't a public entry point (login, register) should carry `.RequireAuthorization(PermissionNames.<Area>.<Action>)`**. Add new constants to `PermissionNames.All` and add their display metadata to `IdentitySeeder`.
 - **Don't create cross-module `ProjectReference`s or `using` statements.** If two modules need to share something, it goes in `SimpliaDz.SharedKernel`, not by referencing one module from another. As of today there is no cross-module communication mechanism (no events, no shared contracts bus) — when a real cross-module workflow is needed (e.g. Sales needing Inventory stock levels), that mechanism will need to be designed; it doesn't exist yet.
 
@@ -577,7 +585,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Inventory module: create a product (with brand/category assignment and variants), seeded reference data (locations, brands, categories, 4 products/8 variants, partial initial stock).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
 - Inventory module: create a product, manage/deactivate business locations, seeded reference data, and location-validated stock receipt/adjustment services.
-- Cross-cutting: MediatR + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
+- Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
 **Modules that exist (with real code):** Identity, Inventory, Organization.
 
@@ -585,7 +593,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 
 **Partially implemented / worth knowing about:**
 - Inventory: product management still only exposes `CreateProduct`; stock receipt/adjustment logic is implemented but has no API workflow yet.
-- Multi-tenancy: API requests resolve tenants from `X-Tenant-Id`, select their own database connection string, enforce module flags, and bind JWTs to their issuing tenant. There is not yet an alternative subdomain/custom-domain tenant transport.
+- Multi-tenancy: each API instance selects one configured tenant database, enforces that tenant's module flags, leaves system endpoints tenant-free, and binds JWTs to their issuing tenant. Local JSON is temporary infrastructure; automated provisioning and a control-plane store do not exist yet.
 - Permission names, display labels, categories, and policy registration are centralized in `PermissionNames`.
 
 **Logical next steps** (in a sensible order, not a mandate):

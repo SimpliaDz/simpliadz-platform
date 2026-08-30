@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 
 namespace SimpliaDz.Identity.UseCases.Users.Commands.DeactivateUser;
 

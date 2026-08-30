@@ -1,19 +1,19 @@
 using FluentValidation;
-using MediatR;
+using Mediator;
 
 namespace SimpliaDz.BuildingBlocks.Mediation;
 
 public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : notnull
+    where TRequest : IMessage
 {
     private readonly IEnumerable<IValidator<TRequest>> _validators;
 
     public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
         => _validators = validators;
 
-    public async Task<TResponse> Handle(
+    public async ValueTask<TResponse> Handle(
         TRequest request,
-        RequestHandlerDelegate<TResponse> next,
+        MessageHandlerDelegate<TRequest, TResponse> next,
         CancellationToken cancellationToken)
     {
         if (_validators.Any())
@@ -32,6 +32,6 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
                 throw new ValidationException(failures);
         }
 
-        return await next();
+        return await next(request, cancellationToken);
     }
 }

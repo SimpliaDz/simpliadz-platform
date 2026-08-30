@@ -9,6 +9,8 @@ public static class EndpointExtensions
     public static IEndpointRouteBuilder MapAppEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/", () => Results.Ok(new { status = "ok" }));
+        app.MapHealthChecks("/health/live");
+        app.MapHealthChecks("/health/ready");
 
         app.MapAuthEndpoints();
         app.MapUserEndpoints();

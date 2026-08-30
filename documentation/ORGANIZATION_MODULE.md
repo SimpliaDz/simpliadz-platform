@@ -8,11 +8,7 @@ The Organization module stores the business profile for the current tenant. It i
 
 Each tenant uses its own configured database connection. The Organization module stores one profile row in that tenant database, using the fixed profile ID `00000000-0000-0000-0000-000000000001`. The same ID may exist in every tenant database without sharing data.
 
-Every request must include the tenant header:
-
-```http
-X-Tenant-Id: dev
-```
+The API instance selects its tenant from `src/tenants.json`; callers do not provide a tenant header. For local examples, the active tenant is `dev`.
 
 The module must also be enabled under `Tenancy:Tenants:<tenant>:Modules:Organization`.
 
@@ -40,7 +36,6 @@ It is mapped to `organization.Organizations`. Currency codes are stored as three
 
 ```http
 GET /organization
-X-Tenant-Id: dev
 Authorization: Bearer <token>
 ```
 
@@ -52,7 +47,6 @@ The endpoint returns `200 OK` with the profile, or `404 Not Found` when the tena
 
 ```http
 PUT /organization
-X-Tenant-Id: dev
 Authorization: Bearer <token>
 Content-Type: application/json
 

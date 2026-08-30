@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 
 namespace SimpliaDz.Identity.UseCases.Auth.Commands.ResetPassword;
@@ -12,8 +12,9 @@ public sealed class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand>
         _authService = authService;
     }
 
-    public async Task Handle(ResetPasswordCommand request, CancellationToken ct)
+    public async ValueTask<Unit> Handle(ResetPasswordCommand request, CancellationToken ct)
     {
         await _authService.ResetPasswordAsync(request.Email, request.ResetToken, request.NewPassword, ct);
+        return default;
     }
 }

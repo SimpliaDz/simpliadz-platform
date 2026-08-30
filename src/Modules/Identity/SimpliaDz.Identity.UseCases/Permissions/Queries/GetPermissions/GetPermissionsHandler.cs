@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Permissions;
 using SimpliaDz.Identity.UseCases.Permissions.Abstractions;
 
@@ -13,7 +13,7 @@ public sealed class GetPermissionsHandler : IRequestHandler<GetPermissionsQuery,
         _permissionService = permissionService;
     }
 
-    public async Task<IReadOnlyList<PermissionResponse>> Handle(GetPermissionsQuery request, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<PermissionResponse>> Handle(GetPermissionsQuery request, CancellationToken ct)
     {
         return await _permissionService.GetAllAsync(ct);
     }

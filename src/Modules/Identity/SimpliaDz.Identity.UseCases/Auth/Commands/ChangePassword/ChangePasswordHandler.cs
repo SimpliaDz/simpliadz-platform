@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 
 namespace SimpliaDz.Identity.UseCases.Auth.Commands.ChangePassword;
@@ -12,8 +12,9 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordComman
         _authService = authService;
     }
 
-    public async Task Handle(ChangePasswordCommand request, CancellationToken ct)
+    public async ValueTask<Unit> Handle(ChangePasswordCommand request, CancellationToken ct)
     {
         await _authService.ChangePasswordAsync(request.UserId, request.CurrentPassword, request.NewPassword, ct);
+        return default;
     }
 }

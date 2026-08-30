@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 
@@ -13,7 +13,7 @@ public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand,
         _products = products;
     }
 
-    public async Task<Guid> Handle(CreateProductCommand request, CancellationToken ct)
+    public async ValueTask<Guid> Handle(CreateProductCommand request, CancellationToken ct)
     {
         // Optional uniqueness rule for Code (if provided)
         if (!string.IsNullOrWhiteSpace(request.Code))

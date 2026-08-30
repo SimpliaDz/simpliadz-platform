@@ -1,6 +1,14 @@
 @SimpliaDz.Api_HostAddress = http://localhost:5278
 
-GET {{SimpliaDz.Api_HostAddress}}/weatherforecast/
+GET {{SimpliaDz.Api_HostAddress}}/health/live
 Accept: application/json
 
 ###
+
+POST {{SimpliaDz.Api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@dev.local",
+  "password": "Admin123!"
+}

@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SimpliaDz.ModuleCatalog\SimpliaDz.ModuleCatalog.csproj" />
+    <ProjectReference Include="..\..\src\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
   </ItemGroup>
 
 </Project>

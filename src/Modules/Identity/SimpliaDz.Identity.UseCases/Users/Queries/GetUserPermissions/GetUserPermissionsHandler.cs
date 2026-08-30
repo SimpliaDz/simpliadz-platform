@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Identity.Contracts.Users;
 using SimpliaDz.Identity.UseCases.Users.Abstractions;
@@ -14,7 +14,7 @@ public sealed class GetUserPermissionsHandler : IRequestHandler<GetUserPermissio
         _userService = userService;
     }
 
-    public async Task<UserPermissionsResponse> Handle(GetUserPermissionsQuery request, CancellationToken ct)
+    public async ValueTask<UserPermissionsResponse> Handle(GetUserPermissionsQuery request, CancellationToken ct)
     {
         var user = await _userService.GetUserByIdAsync(request.UserId, ct);
         if (user is null)

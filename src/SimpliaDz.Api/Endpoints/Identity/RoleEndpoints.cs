@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +9,7 @@ using SimpliaDz.Identity.UseCases.Roles.Commands.RemovePermissionsFromRole;
 using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoleById;
 using SimpliaDz.Identity.UseCases.Roles.Queries.GetRoles;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
@@ -19,6 +20,7 @@ public static class RoleEndpoints
     {
         var group = app.MapGroup("/roles")
             .WithTags("Roles")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapGet("/", async (

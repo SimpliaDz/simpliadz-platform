@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 
 namespace SimpliaDz.Api.Extensions;
@@ -64,11 +65,20 @@ public static class MiddlewareExtensions
         app.UseRouting();
 
         // Resolve and validate the tenant before authentication or endpoint execution.
-        // The scoped context is then shared by authentication, EF Core, and handlers.
+        // System endpoints without TenantRequiredMetadata do not touch tenant state.
         app.Use(async (context, next) =>
         {
+            var endpoint = context.GetEndpoint();
+            var tenantRequired = endpoint?.Metadata.GetMetadata<TenantRequiredMetadata>() is not null;
+
+            if (!tenantRequired)
+            {
+                await next();
+                return;
+            }
+
             var tenant = context.RequestServices.GetRequiredService<ITenantContext>();
-            var module = context.GetEndpoint()?.Metadata.GetMetadata<ModuleEndpointMetadata>();
+            var module = endpoint!.Metadata.GetMetadata<ModuleEndpointMetadata>();
 
             if (module is not null && !tenant.IsModuleEnabled(module.ModuleName))
             {

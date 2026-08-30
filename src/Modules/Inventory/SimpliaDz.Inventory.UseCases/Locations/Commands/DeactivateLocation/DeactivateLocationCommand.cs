@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 
 namespace SimpliaDz.Inventory.UseCases.Locations.Commands.DeactivateLocation;
 

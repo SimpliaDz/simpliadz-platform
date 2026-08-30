@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Identity.UseCases.Roles.Abstractions;
 
@@ -13,12 +13,13 @@ public sealed class RemovePermissionsFromRoleHandler : IRequestHandler<RemovePer
         _roleService = roleService;
     }
 
-    public async Task Handle(RemovePermissionsFromRoleCommand request, CancellationToken ct)
+    public async ValueTask<Unit> Handle(RemovePermissionsFromRoleCommand request, CancellationToken ct)
     {
         var role = await _roleService.GetRoleByIdAsync(request.RoleId, ct);
         if (role is null)
             throw new NotFoundException("Role", request.RoleId);
 
         await _roleService.RemovePermissionsAsync(request.RoleId, request.Permissions, ct);
+        return default;
     }
 }

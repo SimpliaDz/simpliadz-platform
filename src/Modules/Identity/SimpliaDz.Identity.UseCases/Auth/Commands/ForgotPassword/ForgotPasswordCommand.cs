@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Auth;
 
 namespace SimpliaDz.Identity.UseCases.Auth.Commands.ForgotPassword;

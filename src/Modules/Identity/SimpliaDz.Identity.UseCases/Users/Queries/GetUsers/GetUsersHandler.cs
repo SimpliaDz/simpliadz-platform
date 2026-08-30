@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Users;
 using SimpliaDz.Identity.UseCases.Users.Abstractions;
 
@@ -13,7 +13,7 @@ public sealed class GetUsersHandler : IRequestHandler<GetUsersQuery, IReadOnlyLi
         _userService = userService;
     }
 
-    public async Task<IReadOnlyList<UserResponse>> Handle(GetUsersQuery request, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<UserResponse>> Handle(GetUsersQuery request, CancellationToken ct)
     {
         return await _userService.GetUsersAsync(ct);
     }

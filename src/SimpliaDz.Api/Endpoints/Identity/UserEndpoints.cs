@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,6 +12,7 @@ using SimpliaDz.Identity.UseCases.Users.Queries.GetUserById;
 using SimpliaDz.Identity.UseCases.Users.Queries.GetUserPermissions;
 using SimpliaDz.Identity.UseCases.Users.Queries.GetUsers;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
@@ -22,6 +23,7 @@ public static class UserEndpoints
     {
         var group = app.MapGroup("/users")
             .WithTags("Users")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapGet("/", async (

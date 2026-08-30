@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Organization.Contracts;
 using SimpliaDz.Organization.UseCases.Abstractions;
 using OrganizationEntity = SimpliaDz.Organization.Core.Entities.Organization;
@@ -12,7 +12,7 @@ public sealed class UpdateOrganizationHandler : IRequestHandler<UpdateOrganizati
     public UpdateOrganizationHandler(IOrganizationRepository organizations) =>
         _organizations = organizations;
 
-    public async Task<OrganizationResponse> Handle(UpdateOrganizationCommand request, CancellationToken ct)
+    public async ValueTask<OrganizationResponse> Handle(UpdateOrganizationCommand request, CancellationToken ct)
     {
         var organization = await _organizations.GetAsync(ct);
 

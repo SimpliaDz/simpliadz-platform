@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Inventory.Contracts.Locations;
 
 namespace SimpliaDz.Inventory.UseCases.Locations.Queries.GetLocations;

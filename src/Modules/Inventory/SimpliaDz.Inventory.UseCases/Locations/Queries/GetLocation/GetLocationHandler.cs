@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Contracts.Locations;
 using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
@@ -11,7 +11,7 @@ public sealed class GetLocationHandler : IRequestHandler<GetLocationQuery, Locat
 
     public GetLocationHandler(ILocationRepository locations) => _locations = locations;
 
-    public async Task<LocationResponse> Handle(GetLocationQuery request, CancellationToken ct)
+    public async ValueTask<LocationResponse> Handle(GetLocationQuery request, CancellationToken ct)
     {
         var location = await _locations.GetByIdAsync(request.Id, ct)
             ?? throw new NotFoundException("Location", request.Id);

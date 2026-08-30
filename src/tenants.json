@@ -1,0 +1,38 @@
+{
+  "Tenancy": {
+    "ActiveTenantId": "dev",
+
+    "Tenants": {
+      "dev": {
+        "Name": "Development Business",
+        "ConnectionString": "Server=localhost,1433;Database=SimpliaDz_Dev;User Id=sa;Password=Password1;TrustServerCertificate=True;",
+        "Modules": {
+          "Identity": true,
+          "Inventory": true,
+          "Organization": true,
+          "Sales": false,
+          "Purchasing": false,
+          "Accounting": false,
+          "Notifications": false,
+          "Reporting": false,
+          "Audit": false
+        }
+      },
+      "demo": {
+        "Name": "Demo Business",
+        "ConnectionString": "Server=localhost,1433;Database=SimpliaDz_Demo;User Id=sa;Password=Password1;TrustServerCertificate=True;",
+        "Modules": {
+          "Identity": true,
+          "Inventory": true,
+          "Organization": true,
+          "Sales": false,
+          "Purchasing": false,
+          "Accounting": false,
+          "Notifications": false,
+          "Reporting": false,
+          "Audit": false
+        }
+      }
+    }
+  }
+}

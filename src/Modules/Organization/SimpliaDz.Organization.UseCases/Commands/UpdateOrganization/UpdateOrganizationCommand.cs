@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Organization.Contracts;
 
 namespace SimpliaDz.Organization.UseCases.Commands.UpdateOrganization;

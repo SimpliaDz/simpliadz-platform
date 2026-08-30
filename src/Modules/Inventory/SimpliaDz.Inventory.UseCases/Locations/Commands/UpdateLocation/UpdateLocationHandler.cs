@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Contracts.Locations;
 using SimpliaDz.Inventory.Core.Entities.Stock;
@@ -12,7 +12,7 @@ public sealed class UpdateLocationHandler : IRequestHandler<UpdateLocationComman
 
     public UpdateLocationHandler(ILocationRepository locations) => _locations = locations;
 
-    public async Task<LocationResponse> Handle(UpdateLocationCommand request, CancellationToken ct)
+    public async ValueTask<LocationResponse> Handle(UpdateLocationCommand request, CancellationToken ct)
     {
         var location = await _locations.GetByIdAsync(request.Id, ct)
             ?? throw new NotFoundException("Location", request.Id);

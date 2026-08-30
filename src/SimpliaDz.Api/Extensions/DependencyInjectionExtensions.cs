@@ -1,11 +1,11 @@
 using FluentValidation;
-using MediatR;
+using Mediator;
 
 using SimpliaDz.Api.Modules;
-using SimpliaDz.Api.Tenancy;
 using SimpliaDz.BuildingBlocks.Mediation;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy.Resolution;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Extensions;
@@ -19,9 +19,9 @@ public static class DependencyInjectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
-        services.AddHttpContextAccessor();
         services.AddTenancyFromConfiguration(configuration);
-        services.AddSingleton<ITenantResolver, HttpTenantResolver>();
+        services.AddSingleton<ITenantResolver, ConfigurationTenantResolver>();
+        services.AddHealthChecks();
 
         var modules = ModuleRegistry.GetModules();
 
@@ -38,7 +38,17 @@ public static class DependencyInjectionExtensions
             typeof(SimpliaDz.Organization.UseCases.AssemblyMarker).Assembly
         };
 
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(useCaseAssemblies));
+        services.AddMediator(options =>
+        {
+            // Handlers depend on request-scoped repositories and DbContexts.
+            options.ServiceLifetime = ServiceLifetime.Scoped;
+            options.Assemblies =
+            [
+                typeof(SimpliaDz.Inventory.UseCases.AssemblyMarker),
+                typeof(SimpliaDz.Identity.UseCases.AssemblyMarker),
+                typeof(SimpliaDz.Organization.UseCases.AssemblyMarker)
+            ];
+        });
 
         services.AddValidatorsFromAssemblies(useCaseAssemblies);
 

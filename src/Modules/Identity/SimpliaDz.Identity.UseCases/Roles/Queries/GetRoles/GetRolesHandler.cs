@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Roles;
 using SimpliaDz.Identity.UseCases.Roles.Abstractions;
 
@@ -13,7 +13,7 @@ public sealed class GetRolesHandler : IRequestHandler<GetRolesQuery, IReadOnlyLi
         _roleService = roleService;
     }
 
-    public async Task<IReadOnlyList<RoleResponse>> Handle(GetRolesQuery request, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<RoleResponse>> Handle(GetRolesQuery request, CancellationToken ct)
     {
         return await _roleService.GetRolesAsync(ct);
     }

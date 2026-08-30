@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.UseCases.Users.Abstractions;
 
 namespace SimpliaDz.Identity.UseCases.Users.Commands.CreateUser;
@@ -12,7 +12,7 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, Guid>
         _userService = userService;
     }
 
-    public async Task<Guid> Handle(CreateUserCommand request, CancellationToken ct)
+    public async ValueTask<Guid> Handle(CreateUserCommand request, CancellationToken ct)
     {
         return await _userService.CreateUserAsync(
             request.Email,

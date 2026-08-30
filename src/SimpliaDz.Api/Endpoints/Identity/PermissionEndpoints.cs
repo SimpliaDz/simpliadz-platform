@@ -1,9 +1,10 @@
-using MediatR;
+using Mediator;
 
 using Microsoft.AspNetCore.Mvc;
 
 using SimpliaDz.Identity.UseCases.Permissions.Queries.GetPermissions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
@@ -14,6 +15,7 @@ public static class PermissionEndpoints
     {
         var group = app.MapGroup("/permissions")
             .WithTags("Permissions")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapGet("/", async (

@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Auth;
 using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 
@@ -13,7 +13,7 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
         _authService = authService;
     }
 
-    public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken ct)
+    public async ValueTask<LoginResponse> Handle(LoginCommand request, CancellationToken ct)
     {
         var result = await _authService.LoginAsync(request.Email, request.Password, ct);
 

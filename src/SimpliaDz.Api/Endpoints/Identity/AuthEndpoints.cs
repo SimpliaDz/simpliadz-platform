@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-using MediatR;
+using Mediator;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +10,7 @@ using SimpliaDz.Identity.UseCases.Auth.Commands.ForgotPassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.Login;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ResetPassword;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -19,6 +20,7 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/auth")
             .WithTags("Auth")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Identity"));
 
         group.MapPost("/login", async (

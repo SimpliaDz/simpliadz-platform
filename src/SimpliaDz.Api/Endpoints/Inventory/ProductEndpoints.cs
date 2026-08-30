@@ -1,10 +1,11 @@
-using MediatR;
+using Mediator;
 
 using Microsoft.AspNetCore.Mvc;
 
 using SimpliaDz.Inventory.Contracts.Products;
 using SimpliaDz.Inventory.UseCases.Products.Commands.CreateProduct;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Inventory;
@@ -14,6 +15,7 @@ public static class ProductEndpoints
     public static IEndpointRouteBuilder MapProductEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/products")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Inventory"));
 
         group.MapPost("/", async (

@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Contracts.Locations;
 using SimpliaDz.Inventory.Core.Entities.Stock;
@@ -12,7 +12,7 @@ public sealed class CreateLocationHandler : IRequestHandler<CreateLocationComman
 
     public CreateLocationHandler(ILocationRepository locations) => _locations = locations;
 
-    public async Task<LocationResponse> Handle(CreateLocationCommand request, CancellationToken ct)
+    public async ValueTask<LocationResponse> Handle(CreateLocationCommand request, CancellationToken ct)
     {
         var normalizedCode = NormalizeCode(request.Code);
         if (normalizedCode is not null && await _locations.ExistsByCodeAsync(normalizedCode, null, ct))

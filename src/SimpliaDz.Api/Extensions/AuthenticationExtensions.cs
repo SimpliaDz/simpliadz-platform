@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 using SimpliaDz.Api.Configuration;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 
 namespace SimpliaDz.Api.Extensions;
@@ -55,6 +56,12 @@ public static class AuthenticationExtensions
                 {
                     OnTokenValidated = context =>
                     {
+                        if (context.HttpContext.GetEndpoint()?.Metadata
+                                .GetMetadata<TenantRequiredMetadata>() is null)
+                        {
+                            return Task.CompletedTask;
+                        }
+
                         var tenant = context.HttpContext.RequestServices
                             .GetRequiredService<ITenantContext>();
                         var tokenTenantId = context.Principal?.FindFirst("tenant_id")?.Value;

@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Organization.Contracts;
 using SimpliaDz.Organization.UseCases.Abstractions;
@@ -13,7 +13,7 @@ public sealed class GetOrganizationHandler : IRequestHandler<GetOrganizationQuer
     public GetOrganizationHandler(IOrganizationRepository organizations) =>
         _organizations = organizations;
 
-    public async Task<OrganizationResponse> Handle(GetOrganizationQuery request, CancellationToken ct)
+    public async ValueTask<OrganizationResponse> Handle(GetOrganizationQuery request, CancellationToken ct)
     {
         var organization = await _organizations.GetAsync(ct)
             ?? throw new NotFoundException("Organization", OrganizationEntity.ProfileId);

@@ -57,7 +57,7 @@ public sealed class LocationTests
 
         await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
             new CreateLocationCommand("Another", "store-1", "Store", null, null),
-            CancellationToken.None));
+            CancellationToken.None).AsTask());
     }
 
     [Fact]

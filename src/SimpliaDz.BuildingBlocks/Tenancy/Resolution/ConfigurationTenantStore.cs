@@ -15,6 +15,12 @@ public sealed class ConfigurationTenantStore : ITenantStore
         if (!_options.Tenants.TryGetValue(tenantId, out var t))
             throw new InvalidOperationException($"Unknown tenant '{tenantId}'.");
 
+        if (string.IsNullOrWhiteSpace(t.Name))
+            throw new InvalidOperationException($"Tenant '{tenantId}' must have a name.");
+
+        if (string.IsNullOrWhiteSpace(t.ConnectionString))
+            throw new InvalidOperationException($"Tenant '{tenantId}' must have a connection string.");
+
         return new TenantDescriptor(
             TenantId: tenantId,
             Name: t.Name,

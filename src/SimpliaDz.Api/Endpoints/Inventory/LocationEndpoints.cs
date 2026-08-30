@@ -1,6 +1,7 @@
-using MediatR;
+using Mediator;
 using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.Contracts.Locations;
 using SimpliaDz.Inventory.UseCases.Locations.Commands.CreateLocation;
 using SimpliaDz.Inventory.UseCases.Locations.Commands.DeactivateLocation;
@@ -17,6 +18,7 @@ public static class LocationEndpoints
     {
         var group = app.MapGroup("/locations")
             .WithTags("Locations")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Inventory"));
 
         group.MapGet("/", async ([FromServices] ISender sender, CancellationToken ct) =>

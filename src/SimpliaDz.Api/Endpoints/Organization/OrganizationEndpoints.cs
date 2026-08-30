@@ -1,6 +1,7 @@
-using MediatR;
+using Mediator;
 using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Organization.Contracts;
 using SimpliaDz.Organization.UseCases.Commands.UpdateOrganization;
 using SimpliaDz.Organization.UseCases.Queries.GetOrganization;
@@ -14,6 +15,7 @@ public static class OrganizationEndpoints
     {
         var group = app.MapGroup("/organization")
             .WithTags("Organization")
+            .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Organization"));
 
         group.MapGet("/", async ([FromServices] ISender sender, CancellationToken ct) =>

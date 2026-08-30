@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using SimpliaDz.Identity.Contracts.Users;
 
 namespace SimpliaDz.Identity.UseCases.Users.Queries.GetUserPermissions;
