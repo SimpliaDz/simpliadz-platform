@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.Inventory.Contracts.Products;
 using SimpliaDz.Inventory.UseCases.Products.Commands.CreateProduct;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Inventory;
 
@@ -30,7 +31,7 @@ public static class ProductEndpoints
                 ct);
 
             return Results.Created($"/products/{id}", new CreateProductResponse(id));
-        });
+        }).RequireAuthorization(PermissionNames.Products.Create);
 
         return app;
     }

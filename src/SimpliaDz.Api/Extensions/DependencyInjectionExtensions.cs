@@ -6,22 +6,12 @@ using SimpliaDz.Api.Tenancy;
 using SimpliaDz.BuildingBlocks.Mediation;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Extensions;
 
 public static class DependencyInjectionExtensions
 {
-    // Permissions used to register authorization policies.
-    // TODO: create a separate file where we can make all these permissions constants.
-    private static readonly string[] AllPermissions =
-    [
-        "users.view", "users.create", "users.edit", "users.delete",
-        "roles.view", "roles.manage",
-        "permissions.view", "permissions.manage",
-        "products.view", "products.create", "products.edit", "products.delete",
-        "organization.view", "organization.manage"
-    ];
-
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -56,7 +46,7 @@ public static class DependencyInjectionExtensions
 
         services.AddAuthorization(options =>
         {
-            foreach (var permission in AllPermissions)
+            foreach (var permission in PermissionNames.All)
             {
                 options.AddPolicy(permission, policy =>
                     policy.RequireAuthenticatedUser()

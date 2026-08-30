@@ -194,9 +194,9 @@ group.MapPost("/", async ([FromBody] CreateUserRequest request, [FromServices] I
     var id = await sender.Send(
         new CreateUserCommand(request.Email, request.FirstName, request.LastName, request.Password, request.Roles), ct);
     return Results.Created($"/users/{id}", new { id });
-}).RequireAuthorization("users.create");
+}).RequireAuthorization(PermissionNames.Users.Create);
 ```
-`RequireAuthorization("users.create")` — the policy name *is* the permission string. See [Section 11's sibling topic] — actually see the permission-policy explanation later in this section.
+`PermissionNames.Users.Create` resolves to `users.create`; that value is both the policy name and the exact JWT claim value it checks for.
 
 **3. UseCases** — the command, handler, and validator (`src/Modules/Identity/SimpliaDz.Identity.UseCases/Users/Commands/CreateUser/`):
 ```csharp
@@ -269,7 +269,7 @@ public sealed class IdentityDbContext : IdentityDbContext<AppUser, AppRole, Guid
 Schema `identity`. Two migrations exist: `Identity_Initial` (base ASP.NET Identity tables) and `Identity_PermissionsAndProfile` (adds `Permissions`/`RolePermissions` tables and the `FirstName`/`LastName`/`IsActive` profile fields).
 
 **Permission-based authorization, end to end:**
-1. Permissions are seeded into the database by `IdentitySeeder` (12 rows: `users.view`, `users.create`, `users.edit`, `users.delete`, `roles.view`, `roles.manage`, `permissions.view`, `permissions.manage`, `products.view`, `products.create`, `products.edit`, `products.delete`) and an `Admin` role is granted all of them.
+1. Permission names are constants in `SharedKernel/Authorization/PermissionNames.cs`. `IdentitySeeder` seeds their display metadata and grants all permissions to the `Admin` role. The catalog includes users, roles, permissions, products, and business-location permissions.
 2. On login, `JwtTokenGenerator` puts one JWT claim per effective permission into the token:
    ```csharp
    foreach (var permission in permissions)
@@ -277,10 +277,10 @@ Schema `identity`. Two migrations exist: `Identity_Initial` (base ASP.NET Identi
    ```
 3. At startup, `DependencyInjectionExtensions.cs` turns every permission string into its own ASP.NET Core authorization **policy**, named after the permission itself:
    ```csharp
-   foreach (var permission in AllPermissions)
+   foreach (var permission in PermissionNames.All)
        options.AddPolicy(permission, policy => policy.RequireAuthenticatedUser().RequireClaim("permission", permission));
    ```
-4. Endpoints call `.RequireAuthorization("users.create")` — the string is both the policy name and the exact claim value it checks for.
+4. Endpoints call `.RequireAuthorization(PermissionNames.Users.Create)` — the constant value is both the policy name and the exact claim value it checks for.
 
 Dev-seeded admin login: `admin@dev.local` / `Admin123!` (see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap) for a note on this).
 
@@ -352,7 +352,9 @@ b.Property(x => x.Name)
 ```
 This is the trick that lets `Product.Name` be a rich `ProductName` value object in C# while the database column stays a plain `nvarchar` — EF converts in both directions, and because it round-trips through the value object's own constructor, validation re-runs even when data is loaded back out of the database.
 
-**API endpoint** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `POST /products` — sends `CreateProductCommand` through MediatR. **Has no `.RequireAuthorization(...)` call** — this is a known, documented gap (see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap)), not an oversight to copy.
+**API endpoint** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `POST /products` sends `CreateProductCommand` through MediatR and requires `PermissionNames.Products.Create`.
+
+Business locations extend the same Inventory module rather than introducing another module. `GET/POST/PUT /locations` and `PUT /locations/{id}/deactivate` expose the `InventoryLocation` aggregate. Codes are normalized and unique inside each tenant database, deactivation retains stock history, and `StockService` rejects inactive or unknown locations before receiving or adjusting stock. See `BUSINESS_LOCATIONS.md` for the complete contract.
 
 ---
 
@@ -540,6 +542,11 @@ Called out explicitly so you don't copy these patterns by accident, and so you k
 7. **Dev admin credentials are committed in plaintext** in `IdentitySeeder.cs` (`admin@dev.local` / `Admin123!`), and `SeedAsync` runs unconditionally with no environment guard. Fine for local dev; don't let this seeder run unguarded against anything but a local/dev database.
 8. **Test coverage is still minimal.** Catalog and Organization domain/use-case tests exist, but there are still no tests for Identity, Inventory, authorization, tenant middleware, migrations, or API endpoints.
 9. **Small, low-risk uncommitted config tweaks** are currently sitting in the working tree (`docker-compose.yml` timezone/volume/port-default changes, a `global.json` SDK bump to `10.0.400`, and a new `"amin"` dev tenant added to `SimpliaDz.DatabaseMigrator/appsettings.json`) — not a code issue, just worth knowing they're uncommitted if you're about to `git status`/`git diff` and wonder what's there.
+2. **`AddAuthorization()` is called twice** — once with the permission-policy loop in `DependencyInjectionExtensions.cs`, once bare (no options) in `AuthenticationExtensions.AddJwtAuthentication`. Harmless (ASP.NET Core stacks the configuration), but redundant; the second call could be removed.
+3. **Inventory's `ProductVariant` has no CRUD beyond create.** `IProductRepository` already defines `UpdateAsync`/`DeleteAsync`/`GetByIdAsync`, but only a `CreateProduct` command/handler/endpoint exists — no update, delete, get, or list use case, and `ProductEndpoints.cs` only maps `POST /products`. The repository is ahead of the use-case layer here.
+4. **Stock operations have an implementation but no HTTP workflow yet.** `StockService` now enforces active locations and active variants for receipt/adjustment operations, but no stock endpoint currently invokes it.
+5. **Dev admin credentials are committed in plaintext** in `IdentitySeeder.cs` (`admin@dev.local` / `Admin123!`), and `SeedAsync` runs unconditionally with no environment guard. Fine for local dev; don't let this seeder run unguarded against anything but a local/dev database.
+6. **Test coverage is still partial.** Module-catalog and Inventory location behavior are covered; Identity and API-level authorization still need integration coverage.
 
 None of these are "wrong" in the sense of breaking the architecture — they're normal signs of a codebase that's mid-build. They're listed here so a future change (yours or Claude's) fixes or extends them deliberately rather than assuming they're finished.
 
@@ -558,7 +565,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - **New exception types need a home in the global exception handler** (`MiddlewareExtensions.cs`) or they'll fall through to a generic 500 — don't add a new domain exception without checking whether it needs a status-code mapping.
 - **Module-specific DI registrations belong in that module's `IModuleInstaller.Register(...)`**, never added ad hoc to `DependencyInjectionExtensions.cs`.
 - **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in each host's `appsettings.json`. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
-- **Every write endpoint that isn't a public entry point (login, register) should carry `.RequireAuthorization("<permission>")`** — and if it's a new permission, add it to *both* permission lists (see gap #3 above) until that's consolidated.
+- **Every write endpoint that isn't a public entry point (login, register) should carry `.RequireAuthorization(PermissionNames.<Area>.<Action>)`**. Add new constants to `PermissionNames.All` and add their display metadata to `IdentitySeeder`.
 - **Don't create cross-module `ProjectReference`s or `using` statements.** If two modules need to share something, it goes in `SimpliaDz.SharedKernel`, not by referencing one module from another. As of today there is no cross-module communication mechanism (no events, no shared contracts bus) — when a real cross-module workflow is needed (e.g. Sales needing Inventory stock levels), that mechanism will need to be designed; it doesn't exist yet.
 
 ---
@@ -569,6 +576,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Identity module: login (JWT issuance), user CRUD-ish operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, change/forgot/reset password.
 - Inventory module: create a product (with brand/category assignment and variants), seeded reference data (locations, brands, categories, 4 products/8 variants, partial initial stock).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
+- Inventory module: create a product, manage/deactivate business locations, seeded reference data, and location-validated stock receipt/adjustment services.
 - Cross-cutting: MediatR + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
 **Modules that exist (with real code):** Identity, Inventory, Organization.
@@ -576,12 +584,11 @@ Distilled from the patterns above — follow these to stay consistent with the r
 **Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Sales, Purchasing, Accounting, Notifications, Reporting.
 
 **Partially implemented / worth knowing about:**
-- Inventory: only `CreateProduct` exists; no update/delete/get/list use cases despite the repository already supporting them; no stock-movement workflow wired up (`IStockService` is unimplemented); `POST /products` has no authorization policy yet.
+- Inventory: product management still only exposes `CreateProduct`; stock receipt/adjustment logic is implemented but has no API workflow yet.
 - Multi-tenancy: API requests resolve tenants from `X-Tenant-Id`, select their own database connection string, enforce module flags, and bind JWTs to their issuing tenant. There is not yet an alternative subdomain/custom-domain tenant transport.
-- Permission catalog: maintained by hand in two separate places.
+- Permission names, display labels, categories, and policy registration are centralized in `PermissionNames`.
 
 **Logical next steps** (in a sensible order, not a mandate):
 1. Decide whether the six stub modules should be built out one at a time, or trimmed from the solution until they're needed — right now they add scaffolding weight with zero function.
-2. Round out Inventory with the missing product use cases (get/list/update/delete) and an authorization policy on `POST /products`, then decide how/if `IStockService` gets implemented and wired into a real workflow.
-3. Consolidate the permission catalog into a single shared source (e.g. a constants class in `BuildingBlocks` or `Identity.Contracts`) referenced by both the seeder and the policy registration.
-4. Extend the new test project beyond catalog coverage, starting with Identity and Inventory use cases and API authorization behavior.
+2. Round out Inventory with the missing product use cases (get/list/update/delete), then expose the stock service through deliberate receipt/adjustment workflows.
+3. Extend test coverage with Identity and API-level authorization/integration tests.

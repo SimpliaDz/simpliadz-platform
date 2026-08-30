@@ -12,6 +12,7 @@ using SimpliaDz.Identity.UseCases.Users.Queries.GetUserById;
 using SimpliaDz.Identity.UseCases.Users.Queries.GetUserPermissions;
 using SimpliaDz.Identity.UseCases.Users.Queries.GetUsers;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -29,7 +30,7 @@ public static class UserEndpoints
         {
             var result = await sender.Send(new GetUsersQuery(), ct);
             return Results.Ok(result);
-        }).RequireAuthorization("users.view");
+        }).RequireAuthorization(PermissionNames.Users.View);
 
         group.MapGet("/{id:guid}", async (
             Guid id,
@@ -38,7 +39,7 @@ public static class UserEndpoints
         {
             var result = await sender.Send(new GetUserByIdQuery(id), ct);
             return Results.Ok(result);
-        }).RequireAuthorization("users.view");
+        }).RequireAuthorization(PermissionNames.Users.View);
 
         group.MapPost("/", async (
             [FromBody] CreateUserRequest request,
@@ -49,7 +50,7 @@ public static class UserEndpoints
                 new CreateUserCommand(request.Email, request.FirstName, request.LastName, request.Password, request.Roles),
                 ct);
             return Results.Created($"/users/{id}", new { id });
-        }).RequireAuthorization("users.create");
+        }).RequireAuthorization(PermissionNames.Users.Create);
 
         group.MapPost("/{id:guid}/roles", async (
             Guid id,
@@ -59,7 +60,7 @@ public static class UserEndpoints
         {
             await sender.Send(new AssignRolesToUserCommand(id, request.Roles), ct);
             return Results.NoContent();
-        }).RequireAuthorization("users.edit");
+        }).RequireAuthorization(PermissionNames.Users.Edit);
 
         group.MapDelete("/{id:guid}/roles", async (
             Guid id,
@@ -69,7 +70,7 @@ public static class UserEndpoints
         {
             await sender.Send(new RemoveRolesFromUserCommand(id, request.Roles), ct);
             return Results.NoContent();
-        }).RequireAuthorization("users.edit");
+        }).RequireAuthorization(PermissionNames.Users.Edit);
 
         group.MapPut("/{id:guid}/activate", async (
             Guid id,
@@ -78,7 +79,7 @@ public static class UserEndpoints
         {
             await sender.Send(new ActivateUserCommand(id), ct);
             return Results.NoContent();
-        }).RequireAuthorization("users.edit");
+        }).RequireAuthorization(PermissionNames.Users.Edit);
 
         group.MapPut("/{id:guid}/deactivate", async (
             Guid id,
@@ -87,7 +88,7 @@ public static class UserEndpoints
         {
             await sender.Send(new DeactivateUserCommand(id), ct);
             return Results.NoContent();
-        }).RequireAuthorization("users.edit");
+        }).RequireAuthorization(PermissionNames.Users.Edit);
 
         group.MapGet("/{id:guid}/permissions", async (
             Guid id,
@@ -96,7 +97,7 @@ public static class UserEndpoints
         {
             var result = await sender.Send(new GetUserPermissionsQuery(id), ct);
             return Results.Ok(result);
-        }).RequireAuthorization("users.view");
+        }).RequireAuthorization(PermissionNames.Users.View);
 
         return app;
     }
