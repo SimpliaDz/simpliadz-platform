@@ -29,7 +29,7 @@
 
 ## 1. Big picture: what kind of app is this
 
-This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent **modules** (Identity, Inventory, and six not-yet-implemented ones), each structured using **Clean Architecture** layers, with **CQRS via MediatR** inside each module.
+This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent **modules** (Identity, Inventory, Organization, and six not-yet-implemented ones), each structured using **Clean Architecture** layers, with **CQRS via MediatR** inside each module.
 
 Why this combination, in plain terms:
 
@@ -75,7 +75,7 @@ This is the actual web server. It doesn't contain business logic — its job is 
 - `Extensions/AuthenticationExtensions.cs` — configures JWT Bearer authentication.
 - `Extensions/MiddlewareExtensions.cs` — configures the global exception handler, Swagger, and the auth middleware pipeline.
 - `Extensions/EndpointExtensions.cs` — maps every module's HTTP endpoint groups onto the app.
-- `Endpoints/Identity/*`, `Endpoints/Inventory/*` — the actual Minimal API route definitions (thin — they just call MediatR and return a result, see the walkthroughs below).
+- `Endpoints/Identity/*`, `Endpoints/Inventory/*`, `Endpoints/Organization/*` — the actual Minimal API route definitions (thin — they just call MediatR and return a result, see the walkthroughs below).
 - `Configuration/JwtOptions.cs` — strongly-typed JWT settings bound from `appsettings.json`.
 
 ### `SimpliaDz.BuildingBlocks` — shared cross-cutting plumbing
@@ -101,7 +101,7 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Two modules (**Identity**, **Inventory**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap).
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Three modules (**Identity**, **Inventory**, **Organization**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Organization Module](ORGANIZATION_MODULE.md) for the organization profile API and rules.
 
 ### `tests/`
 
@@ -130,7 +130,7 @@ Every module has exactly one class implementing this (e.g. `IdentityModuleInstal
 
 **Where modules get listed — one shared catalog:**
 
-`SimpliaDz.ModuleCatalog/ModuleCatalog.cs` is the one place that constructs all eight installed installers (Identity, Inventory, Sales, Purchasing, Accounting, Notifications, Reporting, Audit). The API's `ModuleRegistry` delegates to this catalog, and the migrator registers its `IModuleInstaller` instances from the same catalog.
+`SimpliaDz.ModuleCatalog/ModuleCatalog.cs` is the one place that constructs all nine installed installers (Identity, Inventory, Organization, Sales, Purchasing, Accounting, Notifications, Reporting, Audit). The API's `ModuleRegistry` delegates to this catalog, and the migrator registers its `IModuleInstaller` instances from the same catalog.
 
 Each host then applies its tenant configuration:
 
@@ -378,7 +378,7 @@ var useCaseAssemblies = new[]
 };
 services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(useCaseAssemblies));
 ```
-MediatR scans these assemblies for every `IRequestHandler<,>` implementation and registers them. **Only the two active modules' `UseCases` assemblies are scanned** — a new module's handlers won't be found until its assembly is added to this array (see [Section 3](#3-the-modular-monolith-how-modules-are-organized), step 6).
+MediatR scans these assemblies for every `IRequestHandler<,>` implementation and registers them. The active Identity, Inventory, and Organization `UseCases` assemblies are scanned — a new module's handlers won't be found until its assembly is added to this array (see [Section 3](#3-the-modular-monolith-how-modules-are-organized), step 6).
 
 **The pattern per use case**, one folder per use case:
 ```
@@ -538,7 +538,7 @@ Called out explicitly so you don't copy these patterns by accident, and so you k
 5. **`POST /products` has no authorization policy** — every Identity endpoint requires a permission claim, but this one doesn't yet. This is a known, called-out gap (also noted in `CLAUDE.md`), not something to copy for new endpoints — new write endpoints should have a `.RequireAuthorization("<permission>")` call.
 6. **`IStockService` is a defined-but-dead abstraction** (`src/Modules/Inventory/SimpliaDz.Inventory.UseCases/Services/IStockService.cs`) — declared, never implemented, never registered in `InventoryModuleInstaller`. `StockItem`/`StockMovement` exist in `Core` and are only actually touched by the seeder today.
 7. **Dev admin credentials are committed in plaintext** in `IdentitySeeder.cs` (`admin@dev.local` / `Admin123!`), and `SeedAsync` runs unconditionally with no environment guard. Fine for local dev; don't let this seeder run unguarded against anything but a local/dev database.
-8. **Test coverage is still minimal.** `tests/SimpliaDz.ModuleCatalog.Tests` now protects the installed-module list, but there are still no tests for Identity, Inventory, authorization, tenancy, migrations, or API endpoints.
+8. **Test coverage is still minimal.** Catalog and Organization domain/use-case tests exist, but there are still no tests for Identity, Inventory, authorization, tenant middleware, migrations, or API endpoints.
 9. **Small, low-risk uncommitted config tweaks** are currently sitting in the working tree (`docker-compose.yml` timezone/volume/port-default changes, a `global.json` SDK bump to `10.0.400`, and a new `"amin"` dev tenant added to `SimpliaDz.DatabaseMigrator/appsettings.json`) — not a code issue, just worth knowing they're uncommitted if you're about to `git status`/`git diff` and wonder what's there.
 
 None of these are "wrong" in the sense of breaking the architecture — they're normal signs of a codebase that's mid-build. They're listed here so a future change (yours or Claude's) fixes or extends them deliberately rather than assuming they're finished.
@@ -568,9 +568,10 @@ Distilled from the patterns above — follow these to stay consistent with the r
 **Working today:**
 - Identity module: login (JWT issuance), user CRUD-ish operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, change/forgot/reset password.
 - Inventory module: create a product (with brand/category assignment and variants), seeded reference data (locations, brands, categories, 4 products/8 variants, partial initial stock).
+- Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
 - Cross-cutting: MediatR + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
-**Modules that exist (with real code):** Identity, Inventory.
+**Modules that exist (with real code):** Identity, Inventory, Organization.
 
 **Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Sales, Purchasing, Accounting, Notifications, Reporting.
 

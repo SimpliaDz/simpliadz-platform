@@ -16,6 +16,7 @@ public sealed class ModuleCatalogTests
         [
             "Identity",
             "Inventory",
+            "Organization",
             "Sales",
             "Purchasing",
             "Accounting",
