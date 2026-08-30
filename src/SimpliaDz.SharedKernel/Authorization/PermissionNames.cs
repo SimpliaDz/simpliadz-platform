@@ -39,6 +39,12 @@ public static class PermissionNames
         public const string Edit = "locations.edit";
     }
 
+    public static class Organization
+    {
+        public const string View = "organization.view";
+        public const string Manage = "organization.manage";
+    }
+
     public static IReadOnlyList<PermissionDefinition> Catalog { get; } =
     [
         new(Users.View,         "View Users",         "Users"),
@@ -55,7 +61,9 @@ public static class PermissionNames
         new(Products.Delete,    "Delete Products",    "Products"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
-        new(Locations.Edit,     "Edit Locations",     "Locations")
+        new(Locations.Edit,     "Edit Locations",     "Locations"),
+        new(Organization.View,   "View Organization",   "Organization"),
+        new(Organization.Manage, "Manage Organization", "Organization")
     ];
 
     public static IReadOnlyList<string> All { get; } = Catalog.Select(definition => definition.Name).ToArray();
