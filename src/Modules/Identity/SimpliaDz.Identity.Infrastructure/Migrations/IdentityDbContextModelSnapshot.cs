@@ -262,6 +262,49 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                     b.ToTable("Permissions", "identity");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "ExpiresAtUtc");
+
+                    b.ToTable("RefreshTokens", "identity");
+                });
+
             modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.RolePermission", b =>
                 {
                     b.Property<Guid>("RoleId")
@@ -328,6 +371,17 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("SimpliaDz.Identity.Core.Entities.AppUser", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.RolePermission", b =>
                 {
                     b.HasOne("SimpliaDz.Identity.Core.Entities.Permission", "Permission")
@@ -350,6 +404,11 @@ namespace SimpliaDz.Identity.Infrastructure.Migrations
             modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.AppRole", b =>
                 {
                     b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.AppUser", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("SimpliaDz.Identity.Core.Entities.Permission", b =>

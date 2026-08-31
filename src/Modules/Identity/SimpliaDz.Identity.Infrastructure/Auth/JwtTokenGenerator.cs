@@ -33,13 +33,15 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         ExpiresMinutes = int.TryParse(configuration["Jwt:ExpiresMinutes"], out var m) ? m : 60;
     }
 
-    public string GenerateToken(Guid userId, string email, string? userName, IList<string> roles, IList<string> permissions)
+    public string GenerateToken(Guid userId, string email, string? userName, string securityStamp, IList<string> roles, IList<string> permissions)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Email, email),
             new(ClaimTypes.Name, userName ?? email),
+            new("security_stamp", securityStamp),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("tenant_id", _tenant.TenantId)
         };
 

@@ -12,3 +12,22 @@ Content-Type: application/json
   "email": "admin@dev.local",
   "password": "Admin123!"
 }
+
+###
+
+# Paste the refreshToken returned by login.
+POST {{SimpliaDz.Api_HostAddress}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+POST {{SimpliaDz.Api_HostAddress}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}

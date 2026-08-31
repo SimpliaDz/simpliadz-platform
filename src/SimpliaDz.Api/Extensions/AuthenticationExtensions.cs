@@ -3,8 +3,8 @@ Purpose
 
 JWT configuration
 AddAuthentication
-AddAuthorization
 */
+using System.Security.Claims;
 using System.Text;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using SimpliaDz.Api.Configuration;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -34,6 +35,9 @@ public static class AuthenticationExtensions
                 "Jwt:SigningKey is missing or too short (min 32 chars).");
         }
 
+        if (jwtOptions.ExpiresMinutes <= 0 || jwtOptions.RefreshTokenExpiresDays <= 0)
+            throw new InvalidOperationException("JWT expiration settings must be greater than zero.");
+
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
 
         services
@@ -54,12 +58,12 @@ public static class AuthenticationExtensions
 
                 options.Events = new JwtBearerEvents
                 {
-                    OnTokenValidated = context =>
+                    OnTokenValidated = async context =>
                     {
                         if (context.HttpContext.GetEndpoint()?.Metadata
                                 .GetMetadata<TenantRequiredMetadata>() is null)
                         {
-                            return Task.CompletedTask;
+                            return;
                         }
 
                         var tenant = context.HttpContext.RequestServices
@@ -69,14 +73,26 @@ public static class AuthenticationExtensions
                         if (!string.Equals(tokenTenantId, tenant.TenantId, StringComparison.Ordinal))
                         {
                             context.Fail("The access token does not belong to the requested tenant.");
+                            return;
                         }
 
-                        return Task.CompletedTask;
+                        var userIdValue = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                        var securityStamp = context.Principal?.FindFirst("security_stamp")?.Value;
+
+                        if (!Guid.TryParse(userIdValue, out var userId) || string.IsNullOrEmpty(securityStamp))
+                        {
+                            context.Fail("The access token is missing required session claims.");
+                            return;
+                        }
+
+                        var validator = context.HttpContext.RequestServices
+                            .GetRequiredService<IIdentityAccessTokenValidator>();
+
+                        if (!await validator.IsValidAsync(userId, securityStamp, context.HttpContext.RequestAborted))
+                            context.Fail("The access token is no longer valid.");
                     }
                 };
             });
-
-        services.AddAuthorization();
 
         return services;
     }

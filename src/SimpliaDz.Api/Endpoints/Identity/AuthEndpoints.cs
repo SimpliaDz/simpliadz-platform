@@ -8,6 +8,8 @@ using SimpliaDz.Identity.Contracts.Auth;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ChangePassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ForgotPassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.Login;
+using SimpliaDz.Identity.UseCases.Auth.Commands.Logout;
+using SimpliaDz.Identity.UseCases.Auth.Commands.RefreshToken;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ResetPassword;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
@@ -30,6 +32,26 @@ public static class AuthEndpoints
         {
             var result = await sender.Send(new LoginCommand(request.Email, request.Password), ct);
             return Results.Ok(result);
+        });
+
+        group.MapPost("/refresh", async (
+            [FromBody] RefreshTokenRequest request,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            var result = await sender.Send(new RefreshTokenCommand(request.RefreshToken), ct);
+            return Results.Ok(result);
+        });
+
+        // This endpoint intentionally does not require a valid access token: a client
+        // must still be able to revoke its refresh token after the access token expires.
+        group.MapPost("/logout", async (
+            [FromBody] LogoutRequest request,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            await sender.Send(new LogoutCommand(request.RefreshToken), ct);
+            return Results.NoContent();
         });
 
         group.MapGet("/me", (ClaimsPrincipal principal) =>

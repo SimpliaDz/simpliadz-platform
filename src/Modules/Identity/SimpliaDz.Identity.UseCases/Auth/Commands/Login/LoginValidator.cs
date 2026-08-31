@@ -8,9 +8,11 @@ public sealed class LoginValidator : AbstractValidator<LoginCommand>
     {
         RuleFor(x => x.Email)
             .NotEmpty()
+            .MaximumLength(256)
             .EmailAddress();
 
         RuleFor(x => x.Password)
-            .NotEmpty();
+            .NotEmpty()
+            .MaximumLength(128);
     }
 }

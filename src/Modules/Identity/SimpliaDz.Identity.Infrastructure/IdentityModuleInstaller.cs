@@ -34,13 +34,18 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
             .AddIdentityCore<AppUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddRoles<AppRole>()
             .AddEntityFrameworkStores<IdentityDbContext>()
             .AddDefaultTokenProviders();
             
 
-        services.AddScoped<IIdentityAuthService, IdentityAuthService>();
+        services.AddScoped<IdentityAuthService>();
+        services.AddScoped<IIdentityAuthService>(sp => sp.GetRequiredService<IdentityAuthService>());
+        services.AddScoped<IIdentityAccessTokenValidator>(sp => sp.GetRequiredService<IdentityAuthService>());
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IIdentityUserService, IdentityUserService>();
         services.AddScoped<IIdentityRoleService, IdentityRoleService>();

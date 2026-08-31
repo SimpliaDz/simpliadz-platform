@@ -87,6 +87,8 @@ internal sealed class IdentityUserService : IIdentityUserService
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             throw new InvalidOperationException($"Failed to assign roles: {errors}");
         }
+
+        await InvalidateSessionsAsync(user, ct);
     }
 
     public async Task RemoveRolesAsync(Guid userId, IList<string> roles, CancellationToken ct)
@@ -100,6 +102,8 @@ internal sealed class IdentityUserService : IIdentityUserService
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             throw new InvalidOperationException($"Failed to remove roles: {errors}");
         }
+
+        await InvalidateSessionsAsync(user, ct);
     }
 
     public async Task ActivateAsync(Guid userId, CancellationToken ct)
@@ -108,7 +112,9 @@ internal sealed class IdentityUserService : IIdentityUserService
             ?? throw new InvalidOperationException("User not found.");
 
         user.IsActive = true;
-        await _userManager.UpdateAsync(user);
+        var result = await _userManager.UpdateAsync(user);
+        EnsureSucceeded(result, "activate user");
+        await InvalidateSessionsAsync(user, ct);
     }
 
     public async Task DeactivateAsync(Guid userId, CancellationToken ct)
@@ -117,7 +123,9 @@ internal sealed class IdentityUserService : IIdentityUserService
             ?? throw new InvalidOperationException("User not found.");
 
         user.IsActive = false;
-        await _userManager.UpdateAsync(user);
+        var result = await _userManager.UpdateAsync(user);
+        EnsureSucceeded(result, "deactivate user");
+        await InvalidateSessionsAsync(user, ct);
     }
 
     public async Task<IReadOnlyList<string>> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct)
@@ -136,4 +144,24 @@ internal sealed class IdentityUserService : IIdentityUserService
 
     private static UserResponse Map(AppUser user, IList<string> roles) =>
         new(user.Id, user.Email ?? string.Empty, user.FirstName, user.LastName, user.IsActive, user.EmailConfirmed, roles.ToArray());
+
+    private async Task InvalidateSessionsAsync(AppUser user, CancellationToken ct)
+    {
+        var stampResult = await _userManager.UpdateSecurityStampAsync(user);
+        EnsureSucceeded(stampResult, "invalidate user sessions");
+
+        var utcNow = DateTime.UtcNow;
+        await _db.RefreshTokens
+            .Where(x => x.UserId == user.Id && x.RevokedAtUtc == null && x.ExpiresAtUtc > utcNow)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.RevokedAtUtc, utcNow), ct);
+    }
+
+    private static void EnsureSucceeded(IdentityResult result, string operation)
+    {
+        if (result.Succeeded)
+            return;
+
+        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+        throw new InvalidOperationException($"Failed to {operation}: {errors}");
+    }
 }

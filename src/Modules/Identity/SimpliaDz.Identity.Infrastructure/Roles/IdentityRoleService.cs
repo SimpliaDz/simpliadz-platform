@@ -70,6 +70,12 @@ internal sealed class IdentityRoleService : IIdentityRoleService
             .Where(p => permissions.Contains(p.Name))
             .ToListAsync(ct);
 
+        var requestedPermissions = permissions.Distinct(StringComparer.Ordinal).ToArray();
+        var foundPermissions = permissionEntities.Select(x => x.Name).ToHashSet(StringComparer.Ordinal);
+        var unknownPermissions = requestedPermissions.Where(x => !foundPermissions.Contains(x)).ToArray();
+        if (unknownPermissions.Length > 0)
+            throw new InvalidOperationException($"Unknown permissions: {string.Join(", ", unknownPermissions)}.");
+
         var existingPermissionIds = role.RolePermissions.Select(rp => rp.PermissionId).ToHashSet();
 
         foreach (var permission in permissionEntities)
@@ -85,6 +91,7 @@ internal sealed class IdentityRoleService : IIdentityRoleService
         }
 
         await _db.SaveChangesAsync(ct);
+        await InvalidateRoleSessionsAsync(roleId, ct);
     }
 
     public async Task RemovePermissionsAsync(Guid roleId, IList<string> permissions, CancellationToken ct)
@@ -96,5 +103,29 @@ internal sealed class IdentityRoleService : IIdentityRoleService
 
         _db.RolePermissions.RemoveRange(toRemove);
         await _db.SaveChangesAsync(ct);
+        await InvalidateRoleSessionsAsync(roleId, ct);
+    }
+
+    private async Task InvalidateRoleSessionsAsync(Guid roleId, CancellationToken ct)
+    {
+        var userIds = await _db.UserRoles
+            .Where(x => x.RoleId == roleId)
+            .Select(x => x.UserId)
+            .ToListAsync(ct);
+
+        if (userIds.Count == 0)
+            return;
+
+        var newSecurityStamp = Guid.NewGuid().ToString();
+        await _db.Users
+            .Where(x => userIds.Contains(x.Id))
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(x => x.SecurityStamp, newSecurityStamp),
+                ct);
+
+        var utcNow = DateTime.UtcNow;
+        await _db.RefreshTokens
+            .Where(x => userIds.Contains(x.UserId) && x.RevokedAtUtc == null && x.ExpiresAtUtc > utcNow)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.RevokedAtUtc, utcNow), ct);
     }
 }

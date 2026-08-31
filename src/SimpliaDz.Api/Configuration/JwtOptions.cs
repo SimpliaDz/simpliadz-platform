@@ -14,4 +14,5 @@ public sealed class JwtOptions
     public string Audience { get; init; } = "SimpliaDz";
     public string SigningKey { get; init; } = string.Empty;
     public int ExpiresMinutes { get; init; } = 60;
+    public int RefreshTokenExpiresDays { get; init; } = 14;
 }
