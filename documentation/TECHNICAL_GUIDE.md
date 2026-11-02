@@ -367,6 +367,8 @@ Generic product attributes live in Inventory as `ProductAttribute` and `Attribut
 
 New product variants link to multiple attribute values through `VariantAttributeValues`. A unique product and combination key prevents duplicate selections regardless of value order. SKU and barcode lookup and deactivation are exposed through `/variants`; stock continues to reference variant IDs. See [Product Variants](PRODUCT_VARIANTS.md).
 
+Retail and wholesale prices can be managed in tenant price lists. The price list migration copies existing variant prices into default DZD lists, and the API resolves a variant's price through a list. See [Price Lists](PRICE_LISTS.md).
+
 ---
 
 ## 7. Repository pattern vs. Service pattern — which to use when

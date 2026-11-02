@@ -14,9 +14,30 @@ internal static class InventorySeeder
         await SeedCategoriesAsync(db, ct);
         await SeedAttributesAsync(db, ct);
         await SeedProductsAsync(db, ct);
+        await SeedVariantPricesAsync(db, ct);
 
         // optional but very useful for testing
         await SeedInitialStockAsync(db, ct);
+    }
+
+    private static async Task SeedVariantPricesAsync(InventoryDbContext db, CancellationToken ct)
+    {
+        var lists = await db.PriceLists.Include(x => x.Items)
+            .Where(x => x.CurrencyCode == "DZD" && (x.Name == "Retail" || x.Name == "Wholesale"))
+            .ToListAsync(ct);
+        var variants = await db.ProductVariants.ToListAsync(ct);
+
+        foreach (var list in lists)
+        foreach (var variant in variants)
+        {
+            if (list.Items.Any(x => x.ProductVariantId == variant.Id)) continue;
+            var price = list.Type == PriceListType.Retail
+                ? variant.RetailPrice
+                : variant.WholesalePrice;
+            if (price.HasValue) list.SetPrice(variant.Id, price.Value);
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task SeedAttributesAsync(InventoryDbContext db, CancellationToken ct)

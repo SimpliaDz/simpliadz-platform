@@ -11,6 +11,7 @@ using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
 using SimpliaDz.Inventory.UseCases.Categories.Abstractions;
 using SimpliaDz.Inventory.UseCases.Brands.Abstractions;
 using SimpliaDz.Inventory.UseCases.Attributes.Abstractions;
+using SimpliaDz.Inventory.UseCases.Prices.Abstractions;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 using SimpliaDz.Inventory.UseCases.Services;
 
@@ -34,6 +35,7 @@ public sealed class InventoryModuleInstaller : IModuleInstaller
         services.AddScoped<ICategoryRepository, EfCategoryRepository>();
         services.AddScoped<IBrandRepository, EfBrandRepository>();
         services.AddScoped<IAttributeRepository, EfAttributeRepository>();
+        services.AddScoped<IPriceListRepository, EfPriceListRepository>();
         services.AddScoped<ILocationRepository, EfLocationRepository>();
         services.AddScoped<IStockService, StockService>();
     }

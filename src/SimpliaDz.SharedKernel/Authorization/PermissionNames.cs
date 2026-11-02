@@ -65,6 +65,12 @@ public static class PermissionNames
         public const string Edit = "variants.edit";
     }
 
+    public static class PriceLists
+    {
+        public const string View = "price-lists.view";
+        public const string Manage = "price-lists.manage";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -95,6 +101,8 @@ public static class PermissionNames
         new(Variants.View,      "View Variants",      "Variants"),
         new(Variants.Create,    "Create Variants",    "Variants"),
         new(Variants.Edit,      "Edit Variants",      "Variants"),
+        new(PriceLists.View,    "View Price Lists",   "Price Lists"),
+        new(PriceLists.Manage,  "Manage Price Lists", "Price Lists"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

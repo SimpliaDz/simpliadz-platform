@@ -77,6 +77,60 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("Brands", "inventory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.PriceList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name", "CurrencyCode")
+                        .IsUnique();
+
+                    b.ToTable("PriceLists", "inventory");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.PriceListItem", b =>
+                {
+                    b.Property<Guid>("PriceListId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("PriceListId", "ProductVariantId");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.ToTable("PriceListItems", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_PriceListItems_Price", "[Price] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -409,6 +463,25 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("Attribute");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.PriceListItem", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.PriceList", "PriceList")
+                        .WithMany("Items")
+                        .HasForeignKey("PriceListId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PriceList");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
                 {
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.Brand", "Brand")
@@ -502,6 +575,11 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("Location");
 
                     b.Navigation("Variant");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.PriceList", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
