@@ -53,7 +53,7 @@ src/
 └── Modules/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
     ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
-    ├── Purchasing/                # ACTIVE — suppliers and purchase orders.
+    ├── Purchasing/                # ACTIVE — suppliers, purchase orders, goods receipts.
     └── Audit | Sales | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
 tests/                              # Module-catalog, Organization, Inventory, and Purchasing tests.
 ```
@@ -552,7 +552,7 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Purchasing exposes suppliers and purchase orders; receiving remains future work.
+1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Purchasing exposes suppliers, purchase orders, and goods receipts.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, and transfers are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
@@ -588,7 +588,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories and brands; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md), [Product Categories](PRODUCT_CATEGORIES.md), and [Brands](BRANDS.md).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
 - Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt, adjustment, opening stock, and transfer workflows.
-- Purchasing module: create, update, search, retrieve, and deactivate suppliers; create, place, list, and cancel purchase orders without changing stock. See [Suppliers](SUPPLIERS.md) and [Purchase Orders](PURCHASE_ORDERS.md).
+- Purchasing module: manage suppliers; create, place, list, and cancel purchase orders without changing stock; post partial or complete goods receipts atomically with stock movements. See [Suppliers](SUPPLIERS.md), [Purchase Orders](PURCHASE_ORDERS.md), and [Goods Receipts](GOODS_RECEIPTS.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
 **Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing.
@@ -596,11 +596,11 @@ Distilled from the patterns above — follow these to stay consistent with the r
 **Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Sales, Accounting, Notifications, Reporting.
 
 **Partially implemented / worth knowing about:**
-- Purchasing records purchase orders and ordered quantities. A future receipt workflow must update received quantities and inventory movements in one transaction.
+- Purchasing goods receipts update received quantities and Inventory movements in one SQL Server transaction. The optional SQL Server integration test verifies partial/full receipt, duplicate prevention, and rollback after a forced stock write failure; set `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` to run it.
 - Multi-tenancy: each API instance selects one configured tenant database, enforces that tenant's module flags, leaves system endpoints tenant-free, and binds JWTs to their issuing tenant. Local JSON is temporary infrastructure; automated provisioning and a control-plane store do not exist yet.
 - Permission names, display labels, categories, and policy registration are centralized in `PermissionNames`.
 
 **Logical next steps** (in a sensible order, not a mandate):
 1. Build out the five remaining stub modules as their business workflows become needed.
-2. Add a Purchasing receipt workflow that advances purchase orders and records inventory movements atomically.
+2. Extend SQL Server integration coverage with simultaneous goods receipts for the same purchase order.
 3. Extend test coverage with Identity and API-level authorization/integration tests.

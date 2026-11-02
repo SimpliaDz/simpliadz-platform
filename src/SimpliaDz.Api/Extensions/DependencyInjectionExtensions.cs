@@ -33,6 +33,7 @@ public static class DependencyInjectionExtensions
         }
 
         services.AddScoped<IInventoryReferenceValidator, InventoryReferenceValidator>();
+        services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
 
         var useCaseAssemblies = new[]
         {

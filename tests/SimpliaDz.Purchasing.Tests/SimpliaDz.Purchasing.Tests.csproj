@@ -16,5 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Purchasing\SimpliaDz.Purchasing.Core\SimpliaDz.Purchasing.Core.csproj" />
     <ProjectReference Include="..\..\src\Modules\Purchasing\SimpliaDz.Purchasing.Infrastructure\SimpliaDz.Purchasing.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SimpliaDz.Api\SimpliaDz.Api.csproj" />
   </ItemGroup>
 </Project>

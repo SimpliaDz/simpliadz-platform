@@ -75,8 +75,7 @@ public sealed class PurchaseOrder
         Touch();
     }
 
-    // Called by the future purchase-receipt workflow in the same transaction as stock receipt.
-    // There is deliberately no direct HTTP route that changes received quantity.
+    // Called by goods receipt processing in the same transaction as inventory changes.
     public void RecordReceipt(Guid lineId, int quantity)
     {
         if (Status is not (PurchaseOrderStatus.Ordered or PurchaseOrderStatus.PartiallyReceived))

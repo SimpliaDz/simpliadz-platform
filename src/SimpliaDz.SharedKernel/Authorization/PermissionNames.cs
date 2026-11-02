@@ -89,6 +89,12 @@ public static class PermissionNames
         public const string Manage = "purchase-orders.manage";
     }
 
+    public static class GoodsReceipts
+    {
+        public const string View = "goods-receipts.view";
+        public const string Manage = "goods-receipts.manage";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -127,6 +133,8 @@ public static class PermissionNames
         new(Suppliers.Manage,   "Manage Suppliers",  "Suppliers"),
         new(PurchaseOrders.View, "View Purchase Orders", "Purchase Orders"),
         new(PurchaseOrders.Manage, "Manage Purchase Orders", "Purchase Orders"),
+        new(GoodsReceipts.View, "View Goods Receipts", "Goods Receipts"),
+        new(GoodsReceipts.Manage, "Receive Goods", "Goods Receipts"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

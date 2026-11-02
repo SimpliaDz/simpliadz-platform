@@ -23,6 +23,74 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PurchaseOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReceivedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("PurchaseOrderId", "ReceivedAt");
+
+                    b.ToTable("GoodsReceipts", "purchasing");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceiptLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GoodsReceiptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PurchaseOrderLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("QuantityReceived")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("PurchaseOrderLineId");
+
+                    b.HasIndex("GoodsReceiptId", "PurchaseOrderLineId")
+                        .IsUnique();
+
+                    b.ToTable("GoodsReceiptLines", "purchasing", t =>
+                        {
+                            t.HasCheckConstraint("CK_GoodsReceiptLines_QuantityReceived_Positive", "[QuantityReceived] > 0");
+
+                            t.HasCheckConstraint("CK_GoodsReceiptLines_UnitCost_NonNegative", "[UnitCost] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -173,6 +241,36 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
                     b.ToTable("Suppliers", "purchasing");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceipt", b =>
+                {
+                    b.HasOne("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", "PurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceiptLine", b =>
+                {
+                    b.HasOne("SimpliaDz.Purchasing.Core.Entities.GoodsReceipt", "GoodsReceipt")
+                        .WithMany("Lines")
+                        .HasForeignKey("GoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Purchasing.Core.Entities.PurchaseOrderLine", "PurchaseOrderLine")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoodsReceipt");
+
+                    b.Navigation("PurchaseOrderLine");
+                });
+
             modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", b =>
                 {
                     b.HasOne("SimpliaDz.Purchasing.Core.Entities.Supplier", "Supplier")
@@ -193,6 +291,11 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceipt", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", b =>
