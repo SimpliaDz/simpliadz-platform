@@ -44,7 +44,8 @@ public sealed class StockMovement
         if (locationId == Guid.Empty) throw new ArgumentException("Location is required.", nameof(locationId));
         if (!Enum.IsDefined(movementType))
             throw new ArgumentOutOfRangeException(nameof(movementType));
-        if (quantityDelta == 0) throw new ArgumentException("Quantity delta cannot be zero.", nameof(quantityDelta));
+        if (quantityDelta == 0 && movementType != StockMovementType.OpeningBalance)
+            throw new ArgumentException("Quantity delta cannot be zero for this movement type.", nameof(quantityDelta));
         if (RequiresPositiveDelta(movementType) && quantityDelta < 0)
             throw new ArgumentException("This movement type must increase stock.", nameof(quantityDelta));
         if (RequiresNegativeDelta(movementType) && quantityDelta > 0)

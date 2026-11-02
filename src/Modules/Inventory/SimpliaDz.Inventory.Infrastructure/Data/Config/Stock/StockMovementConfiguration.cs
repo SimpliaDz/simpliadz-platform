@@ -9,7 +9,8 @@ internal sealed class StockMovementConfiguration : IEntityTypeConfiguration<Stoc
     public void Configure(EntityTypeBuilder<StockMovement> b)
     {
         b.ToTable("StockMovements", table =>
-            table.HasCheckConstraint("CK_StockMovements_QuantityDelta_NonZero", "[QuantityDelta] <> 0"));
+            table.HasCheckConstraint("CK_StockMovements_QuantityDelta_Valid",
+                "([Type] = 7 AND [QuantityDelta] >= 0) OR ([Type] <> 7 AND [QuantityDelta] <> 0)"));
 
         b.HasKey(x => x.Id);
 
@@ -46,6 +47,10 @@ internal sealed class StockMovementConfiguration : IEntityTypeConfiguration<Stoc
         // Useful indexes for history queries
         b.HasIndex(x => x.OccurredAt);
         b.HasIndex(x => new { x.VariantId, x.LocationId, x.OccurredAt });
+        b.HasIndex(x => new { x.VariantId, x.LocationId })
+            .IsUnique()
+            .HasDatabaseName("IX_StockMovements_OpeningBalance_Once")
+            .HasFilter("[Type] = 7");
         b.HasIndex(x => x.MovementType).HasDatabaseName("IX_StockMovements_Type");
         b.HasIndex(x => x.Reference).HasFilter("[Reference] IS NOT NULL");
         b.HasIndex(x => new { x.ReferenceType, x.ReferenceId })

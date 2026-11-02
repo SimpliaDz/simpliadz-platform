@@ -464,11 +464,16 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .HasDatabaseName("IX_StockMovements_SourceDocumentType_SourceDocumentId")
                         .HasFilter("[SourceDocumentType] IS NOT NULL AND [SourceDocumentId] IS NOT NULL");
 
+                    b.HasIndex("VariantId", "LocationId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StockMovements_OpeningBalance_Once")
+                        .HasFilter("[Type] = 7");
+
                     b.HasIndex("VariantId", "LocationId", "OccurredAt");
 
                     b.ToTable("StockMovements", "inventory", t =>
                         {
-                            t.HasCheckConstraint("CK_StockMovements_QuantityDelta_NonZero", "[QuantityDelta] <> 0");
+                            t.HasCheckConstraint("CK_StockMovements_QuantityDelta_Valid", "([Type] = 7 AND [QuantityDelta] >= 0) OR ([Type] <> 7 AND [QuantityDelta] <> 0)");
                         });
                 });
 

@@ -65,6 +65,51 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
             m.ReferenceId, m.Reason, m.OccurredAt, m.CreatedBy)).ToList();
     }
 
+    public async Task<OpeningStockResult> OpenAsync(Guid variantId, Guid locationId, int quantity,
+        string? reason, string createdBy, CancellationToken ct)
+    {
+        if (quantity < 0)
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Opening quantity cannot be negative.");
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            try
+            {
+                await EnsureActivePairAsync(variantId, locationId, ct);
+                if (await db.StockBalances.AnyAsync(b =>
+                        b.VariantId == variantId && b.LocationId == locationId, ct) ||
+                    await db.StockMovements.AnyAsync(m =>
+                        m.VariantId == variantId && m.LocationId == locationId, ct))
+                    throw new ConflictException("Opening stock already exists or stock history has begun for this variant and location.");
+
+                var balance = new StockBalance(variantId, locationId);
+                if (quantity > 0) balance.ApplyDelta(quantity);
+                var movement = new StockMovement(variantId, locationId,
+                    StockMovementType.OpeningBalance, quantity, createdBy, reason: reason);
+                db.StockBalances.Add(balance);
+                db.StockMovements.Add(movement);
+                await db.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+                return new OpeningStockResult(variantId, locationId, quantity,
+                    movement.Id, movement.OccurredAt, movement.CreatedBy);
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+            {
+                await transaction.RollbackAsync(ct);
+                db.ChangeTracker.Clear();
+                throw new ConflictException("Opening stock already exists for this variant and location.");
+            }
+            catch (Exception exception) when (attempt < 4 && IsRetryable(exception))
+            {
+                await transaction.RollbackAsync(ct);
+                db.ChangeTracker.Clear();
+            }
+        }
+
+        throw new ConflictException("Opening stock could not be completed due to concurrent updates.");
+    }
+
     public Task ReceiveAsync(Guid variantId, Guid locationId, int quantity, string? reference,
         string? reason, string? referenceType, Guid? referenceId, string createdBy, CancellationToken ct)
     {
@@ -99,10 +144,7 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
             await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
             try
             {
-                if (!await db.Locations.AnyAsync(l => l.Id == locationId && l.IsActive, ct))
-                    throw new NotFoundException("Active location", locationId);
-                if (!await db.ProductVariants.AnyAsync(v => v.Id == variantId && v.IsActive, ct))
-                    throw new NotFoundException("Active product variant", variantId);
+                await EnsureActivePairAsync(variantId, locationId, ct);
 
                 var balance = await db.StockBalances.FirstOrDefaultAsync(
                     b => b.VariantId == variantId && b.LocationId == locationId, ct);
@@ -135,4 +177,12 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
         exception is DbUpdateConcurrencyException ||
         exception is DbUpdateException { InnerException: SqlException { Number: 1205 or 2601 or 2627 } } ||
         exception is SqlException { Number: 1205 };
+
+    private async Task EnsureActivePairAsync(Guid variantId, Guid locationId, CancellationToken ct)
+    {
+        if (!await db.Locations.AnyAsync(l => l.Id == locationId && l.IsActive, ct))
+            throw new NotFoundException("Active location", locationId);
+        if (!await db.ProductVariants.AnyAsync(v => v.Id == variantId && v.IsActive, ct))
+            throw new NotFoundException("Active product variant", variantId);
+    }
 }

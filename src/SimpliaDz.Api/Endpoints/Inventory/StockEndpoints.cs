@@ -48,6 +48,19 @@ public static class StockEndpoints
                 selectedPage, selectedSize, ct));
         }).RequireAuthorization(PermissionNames.Stock.View);
 
+        group.MapPost("/opening", async ([FromBody] OpenStockRequest request,
+            ClaimsPrincipal principal, [FromServices] IStockService stock, CancellationToken ct) =>
+        {
+            var errors = ValidateIds(request.ProductVariantId, request.LocationId);
+            if (request.Quantity < 0) errors["quantity"] = ["Quantity cannot be negative."];
+            if (request.Reason?.Length > 500) errors["reason"] = ["Reason cannot exceed 500 characters."];
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+            var result = await stock.OpenAsync(request.ProductVariantId, request.LocationId,
+                request.Quantity, request.Reason, RequireActor(principal), ct);
+            return Results.Created($"/stock/variants/{result.ProductVariantId}", result);
+        }).RequireAuthorization(PermissionNames.Stock.Manage);
+
         group.MapPost("/receipts", async ([FromBody] ReceiveStockRequest request,
             ClaimsPrincipal principal, [FromServices] IStockService stock, CancellationToken ct) =>
         {
@@ -103,5 +116,7 @@ public static class StockEndpoints
 public sealed record ReceiveStockRequest(Guid ProductVariantId, Guid LocationId, int Quantity,
     string? Reference, string? Note, string? ReferenceType = null, Guid? ReferenceId = null,
     string? Reason = null);
+public sealed record OpenStockRequest(Guid ProductVariantId, Guid LocationId, int Quantity,
+    string? Reason);
 public sealed record AdjustStockRequest(Guid ProductVariantId, Guid LocationId, int QuantityOnHand,
     string? Note, string? Reason = null);

@@ -79,7 +79,17 @@ public sealed class InventoryDbContext : DbContext
                 ? 0
                 : entry.OriginalValues.GetValue<int>(nameof(StockBalance.QuantityOnHand));
             var delta = (long)entry.Entity.QuantityOnHand - before;
-            if (delta == 0 && entry.State == EntityState.Added) continue;
+            if (delta == 0 && entry.State == EntityState.Added)
+            {
+                var zeroOpening = movements.Count(m =>
+                    m.VariantId == entry.Entity.VariantId &&
+                    m.LocationId == entry.Entity.LocationId &&
+                    m.MovementType == StockMovementType.OpeningBalance &&
+                    m.QuantityDelta == 0);
+                if (zeroOpening != 1)
+                    throw new InvalidOperationException("A zero stock balance requires an opening movement.");
+                continue;
+            }
 
             var movementDelta = movements
                 .Where(m => m.VariantId == entry.Entity.VariantId && m.LocationId == entry.Entity.LocationId)
