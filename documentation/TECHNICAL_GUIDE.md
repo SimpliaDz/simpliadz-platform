@@ -53,8 +53,9 @@ src/
 └── Modules/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
     ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
-    └── Audit | Sales | Purchasing | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
-tests/                              # Module-catalog, Organization, and Inventory tests.
+    ├── Purchasing/                # ACTIVE — supplier management; purchase documents still pending.
+    └── Audit | Sales | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
+tests/                              # Module-catalog, Organization, Inventory, and Purchasing tests.
 ```
 
 ### `SimpliaDz.Api` — the host
@@ -101,11 +102,11 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Three modules (**Identity**, **Inventory**, **Organization**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Organization Module](ORGANIZATION_MODULE.md), [Product Catalog](PRODUCT_CATALOG.md), [Product Categories](PRODUCT_CATEGORIES.md), and [Brands](BRANDS.md) for feature-specific contracts and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Four modules (**Identity**, **Inventory**, **Organization**, **Purchasing**) have real code. Five (**Audit, Sales, Accounting, Notifications, Reporting**) remain scaffolds — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Suppliers](SUPPLIERS.md) and the feature-specific module guides for contracts and rules.
 
 ### `tests/`
 
-Contains a single empty placeholder file. No test project exists yet — there is currently no automated test coverage anywhere in the solution.
+Contains module-level test projects, including Purchasing supplier tests.
 
 ---
 
@@ -551,8 +552,8 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Purchasing, Accounting, Notifications, and Reporting still consist mostly of scaffolding; enabling one only registers its infrastructure. It remains unreachable until its use cases and endpoints are implemented and mapped.
-2. **Inventory stock operations still have no HTTP workflow.** Product-catalog and business-location management are complete, while stock receipt/adjustment services exist only at the application-service layer.
+1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Purchasing now exposes suppliers; purchase documents remain future work.
+2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, and transfers are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
 5. **Automated coverage is still partial.** Module-catalog, Organization, Inventory location, Inventory product, and Inventory category tests exist. The Identity session lifecycle has been exercised against the local API and SQL Server, but repeatable Identity/API integration tests should still be added to CI.
@@ -571,7 +572,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - **Pick repository or service shape per module, not per whim**: aggregate-root persistence with plain EF Core → repository named after the aggregate; wrapping an existing framework subsystem (like ASP.NET Identity) → service interface named after the capability. See [Section 7](#7-repository-pattern-vs-service-pattern--which-to-use-when).
 - **Domain rules and invariants live in `Core` entities/value objects**, not in validators and not in handlers. A validator checks *shape* of input (is the email well-formed, is the string non-empty); an entity/value-object constructor or method enforces *business* rules (can't go below zero stock, can't have a duplicate SKU on the same product).
 - **Value objects for anything with format rules** (see `ProductName`, `Sku`) — a `readonly record struct` with validation in the constructor, mapped to a plain column via `HasConversion` in the EF configuration.
-- **Endpoints stay thin**: bind the request, `sender.Send(...)`, map the result to an HTTP response. No business logic, no direct repository/service calls, no manual validation — that's what the Mediator pipeline + `ValidationBehavior` already does.
+- **Endpoints stay thin**: bind and validate request shape, call a module use case through Mediator or a module service, then map the result to an HTTP response. Business rules stay in the module rather than in the route.
 - **New exception types need a home in the global exception handler** (`MiddlewareExtensions.cs`) or they'll fall through to a generic 500 — don't add a new domain exception without checking whether it needs a status-code mapping.
 - **Module-specific DI registrations belong in that module's `IModuleInstaller.Register(...)`**, never added ad hoc to `DependencyInjectionExtensions.cs`.
 - **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in `src/tenants.json`. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
@@ -586,19 +587,20 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Identity module: login, rotating refresh tokens, logout/session revocation, account lockout, user operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, and change/forgot/reset password. See [Authentication and session lifecycle](AUTHENTICATION.md).
 - Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories and brands; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md), [Product Categories](PRODUCT_CATEGORIES.md), and [Brands](BRANDS.md).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
-- Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt/adjustment services.
+- Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt, adjustment, opening stock, and transfer workflows.
+- Purchasing module: create, update, search, retrieve, and deactivate suppliers. See [Suppliers](SUPPLIERS.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
-**Modules that exist (with real code):** Identity, Inventory, Organization.
+**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing.
 
-**Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Sales, Purchasing, Accounting, Notifications, Reporting.
+**Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Sales, Accounting, Notifications, Reporting.
 
 **Partially implemented / worth knowing about:**
-- Inventory: product management still only exposes `CreateProduct`; stock receipt/adjustment logic is implemented but has no API workflow yet.
+- Purchasing currently exposes suppliers. Purchase documents and their historical supplier links are future work.
 - Multi-tenancy: each API instance selects one configured tenant database, enforces that tenant's module flags, leaves system endpoints tenant-free, and binds JWTs to their issuing tenant. Local JSON is temporary infrastructure; automated provisioning and a control-plane store do not exist yet.
 - Permission names, display labels, categories, and policy registration are centralized in `PermissionNames`.
 
 **Logical next steps** (in a sensible order, not a mandate):
-1. Decide whether the six stub modules should be built out one at a time, or trimmed from the solution until they're needed — right now they add scaffolding weight with zero function.
-2. Round out Inventory with the missing product use cases (get/list/update/delete), then expose the stock service through deliberate receipt/adjustment workflows.
+1. Build out the five remaining stub modules as their business workflows become needed.
+2. Add Purchasing purchase documents with a restrictive supplier foreign key so deactivated suppliers remain linked to historical purchases.
 3. Extend test coverage with Identity and API-level authorization/integration tests.

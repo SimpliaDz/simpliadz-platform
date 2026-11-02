@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Purchasing.Infrastructure.Data;
+using SimpliaDz.Purchasing.Infrastructure.Services;
+using SimpliaDz.Purchasing.UseCases.Services;
 
 namespace SimpliaDz.Purchasing.Infrastructure;
 
@@ -17,7 +19,9 @@ public sealed class PurchasingModuleInstaller : IModuleInstaller
             options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(PurchasingDbContext).Assembly.FullName);
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", "purchasing");
             }));
+        services.AddScoped<ISupplierService, SupplierService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)

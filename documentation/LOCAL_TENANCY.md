@@ -18,7 +18,8 @@ between the two executable projects.
         "Modules": {
           "Identity": true,
           "Inventory": true,
-          "Organization": true
+          "Organization": true,
+          "Purchasing": true
         }
       }
     }

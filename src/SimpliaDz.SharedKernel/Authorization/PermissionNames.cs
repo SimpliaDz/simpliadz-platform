@@ -77,6 +77,12 @@ public static class PermissionNames
         public const string Manage = "stock.manage";
     }
 
+    public static class Suppliers
+    {
+        public const string View = "suppliers.view";
+        public const string Manage = "suppliers.manage";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -111,6 +117,8 @@ public static class PermissionNames
         new(PriceLists.Manage,  "Manage Price Lists", "Price Lists"),
         new(Stock.View,         "View Stock",        "Stock"),
         new(Stock.Manage,       "Manage Stock",      "Stock"),
+        new(Suppliers.View,     "View Suppliers",    "Suppliers"),
+        new(Suppliers.Manage,   "Manage Suppliers",  "Suppliers"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

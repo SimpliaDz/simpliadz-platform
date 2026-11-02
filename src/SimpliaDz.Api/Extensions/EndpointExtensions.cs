@@ -1,6 +1,7 @@
 using SimpliaDz.Api.Endpoints.Identity;
 using SimpliaDz.Api.Endpoints.Inventory;
 using SimpliaDz.Api.Endpoints.Organization;
+using SimpliaDz.Api.Endpoints.Purchasing;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -26,6 +27,7 @@ public static class EndpointExtensions
         app.MapStockEndpoints();
         app.MapStockTransferEndpoints();
         app.MapOrganizationEndpoints();
+        app.MapSupplierEndpoints();
 
         return app;
     }

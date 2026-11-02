@@ -39,6 +39,8 @@
     <ProjectReference Include="..\SimpliaDz.ModuleCatalog\SimpliaDz.ModuleCatalog.csproj" />
     <ProjectReference Include="..\Modules\Identity\SimpliaDz.Identity.Infrastructure\SimpliaDz.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Identity\SimpliaDz.Identity.UseCases\SimpliaDz.Identity.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\SimpliaDz.Purchasing.UseCases\SimpliaDz.Purchasing.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\SimpliaDz.Purchasing.Infrastructure\SimpliaDz.Purchasing.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Organization\SimpliaDz.Organization.Contracts\SimpliaDz.Organization.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Organization\SimpliaDz.Organization.UseCases\SimpliaDz.Organization.UseCases.csproj" />
   </ItemGroup>
