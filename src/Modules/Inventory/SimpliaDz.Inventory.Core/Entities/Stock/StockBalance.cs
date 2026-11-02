@@ -3,7 +3,7 @@ using SimpliaDz.Inventory.Core.Exceptions;
 
 namespace SimpliaDz.Inventory.Core.Entities.Stock;
 
-public sealed class StockItem
+public sealed class StockBalance
 {
     public Guid Id { get; private set; } = Guid.NewGuid();
     public Guid VariantId { get; private set; }
@@ -13,36 +13,24 @@ public sealed class StockItem
     public int QuantityOnHand { get; private set; }
     public int? ReorderPoint { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
+    public byte[] RowVersion { get; private set; } = [];
 
 
-    private StockItem() { }
+    private StockBalance() { }
 
-    public StockItem(Guid variantId, Guid locationId, int initialQty = 0)
+    public StockBalance(Guid variantId, Guid locationId)
     {
-        if (initialQty < 0)
-            throw new ArgumentOutOfRangeException(nameof(initialQty), "Initial quantity cannot be negative.");
-
         VariantId = variantId;
         LocationId = locationId;
-        QuantityOnHand = initialQty;
     }
 
 
 
     public void ApplyDelta(int delta)
     {
-        var newQty = QuantityOnHand + delta;
+        var newQty = checked(QuantityOnHand + delta);
         if (newQty < 0)
             throw new InsufficientStockException();
-
-        QuantityOnHand = newQty;
-        Touch();
-    }
-
-    public void SetQuantity(int newQty)
-    {
-        if (newQty < 0)
-            throw new ArgumentOutOfRangeException(nameof(newQty), "Quantity cannot be negative.");
 
         QuantityOnHand = newQty;
         Touch();

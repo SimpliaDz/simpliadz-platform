@@ -23,6 +23,7 @@ public static class EndpointExtensions
         app.MapVariantEndpoints();
         app.MapPriceListEndpoints();
         app.MapLocationEndpoints();
+        app.MapStockEndpoints();
         app.MapOrganizationEndpoints();
 
         return app;

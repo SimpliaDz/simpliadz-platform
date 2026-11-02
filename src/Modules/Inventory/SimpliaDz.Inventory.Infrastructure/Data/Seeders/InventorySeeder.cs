@@ -294,46 +294,29 @@ internal static class InventorySeeder
     {
         if (qty <= 0) return;
 
-        // Snapshot row
-        var stockItem = await db.StockItems
-            .FirstOrDefaultAsync(s => s.VariantId == variantId && s.LocationId == locationId, ct);
-
-        if (stockItem is null)
-        {
-            stockItem = new StockItem(variantId, locationId, initialQty: qty);
-            db.StockItems.Add(stockItem);
-        }
-        else if (stockItem.QuantityOnHand == 0)
-        {
-            // keep idempotent-ish: only seed if empty
-            stockItem.SetQuantity(qty);
-        }
-        else
-        {
-            return; // already has stock, don't keep adding
-        }
-
-        // Ledger row (optional but recommended)
+        // Seed only an untouched pair. A zero balance with movement history must stay zero.
         var hasSeedMove = await db.StockMovements.AnyAsync(m =>
             m.VariantId == variantId &&
             m.LocationId == locationId &&
             m.Reference == reference &&
             m.Type == StockMovementType.Receipt, ct);
+        if (hasSeedMove) return;
 
-        if (!hasSeedMove)
-        {
-            db.StockMovements.Add(new StockMovement(
-                variantId: variantId,
-                locationId: locationId,
-                type: StockMovementType.Receipt,
-                quantityDelta: qty,
-                reference: reference,
-                note: "Initial seed stock",
-                sourceDocumentType: "Seeder",
-                sourceDocumentId: null,
-                sourceLineNumber: null
-            ));
-        }
+        var balance = await db.StockBalances
+            .FirstOrDefaultAsync(s => s.VariantId == variantId && s.LocationId == locationId, ct);
+        if (balance is not null) return;
+
+        balance = new StockBalance(variantId, locationId);
+        balance.ApplyDelta(qty);
+        db.StockBalances.Add(balance);
+        db.StockMovements.Add(new StockMovement(
+            variantId: variantId,
+            locationId: locationId,
+            type: StockMovementType.Receipt,
+            quantityDelta: qty,
+            reference: reference,
+            note: "Initial seed stock",
+            sourceDocumentType: "Seeder"));
     }
 
     private readonly record struct VariantSeed(

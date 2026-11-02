@@ -356,7 +356,7 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockItem", b =>
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockBalance", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -370,6 +370,12 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
                     b.Property<int?>("ReorderPoint")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -539,7 +545,7 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("Variant");
                 });
 
-            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockItem", b =>
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockBalance", b =>
                 {
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Stock.InventoryLocation", "Location")
                         .WithMany()

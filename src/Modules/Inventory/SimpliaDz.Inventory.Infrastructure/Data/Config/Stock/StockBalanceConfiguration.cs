@@ -4,10 +4,11 @@ using SimpliaDz.Inventory.Core.Entities.Stock;
 
 namespace SimpliaDz.Inventory.Infrastructure.Data.Config.Stock;
 
-internal sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
+internal sealed class StockBalanceConfiguration : IEntityTypeConfiguration<StockBalance>
 {
-    public void Configure(EntityTypeBuilder<StockItem> b)
+    public void Configure(EntityTypeBuilder<StockBalance> b)
     {
+        // Keep the existing table and data; only add a concurrency token.
         b.ToTable("StockItems", t =>
         {
             t.HasCheckConstraint("CK_StockItems_QuantityOnHand_NonNegative", "[QuantityOnHand] >= 0");
@@ -19,6 +20,7 @@ internal sealed class StockItemConfiguration : IEntityTypeConfiguration<StockIte
         b.Property(x => x.QuantityOnHand).IsRequired();
         b.Property(x => x.ReorderPoint);
         b.Property(x => x.UpdatedAt).IsRequired();
+        b.Property(x => x.RowVersion).IsRowVersion();
 
         b.HasOne(x => x.Variant)
             .WithMany()
