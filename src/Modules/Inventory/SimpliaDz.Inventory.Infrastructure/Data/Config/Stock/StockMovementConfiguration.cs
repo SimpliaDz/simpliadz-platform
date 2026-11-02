@@ -8,7 +8,8 @@ internal sealed class StockMovementConfiguration : IEntityTypeConfiguration<Stoc
 {
     public void Configure(EntityTypeBuilder<StockMovement> b)
     {
-        b.ToTable("StockMovements");
+        b.ToTable("StockMovements", table =>
+            table.HasCheckConstraint("CK_StockMovements_QuantityDelta_NonZero", "[QuantityDelta] <> 0"));
 
         b.HasKey(x => x.Id);
 
@@ -18,19 +19,18 @@ internal sealed class StockMovementConfiguration : IEntityTypeConfiguration<Stoc
         b.Property(x => x.QuantityDelta)
             .IsRequired();
 
-        // Store enum as int (default)
-        b.Property(x => x.Type)
-            .IsRequired();
+        // Preserve the historical column names and enum values.
+        b.Property(x => x.MovementType).HasColumnName("Type").IsRequired();
 
         b.Property(x => x.Reference)
             .HasMaxLength(50);
 
-        b.Property(x => x.Note)
-            .HasMaxLength(500);
+        b.Property(x => x.Reason).HasColumnName("Note").HasMaxLength(500);
 
-        b.Property(x => x.SourceDocumentType).HasMaxLength(100);
-        b.Property(x => x.SourceDocumentId);
+        b.Property(x => x.ReferenceType).HasColumnName("SourceDocumentType").HasMaxLength(100);
+        b.Property(x => x.ReferenceId).HasColumnName("SourceDocumentId");
         b.Property(x => x.SourceLineNumber);
+        b.Property(x => x.CreatedBy).HasMaxLength(100).IsRequired();
 
 
         b.HasOne(x => x.Variant)
@@ -46,9 +46,10 @@ internal sealed class StockMovementConfiguration : IEntityTypeConfiguration<Stoc
         // Useful indexes for history queries
         b.HasIndex(x => x.OccurredAt);
         b.HasIndex(x => new { x.VariantId, x.LocationId, x.OccurredAt });
-        b.HasIndex(x => x.Type);
+        b.HasIndex(x => x.MovementType).HasDatabaseName("IX_StockMovements_Type");
         b.HasIndex(x => x.Reference).HasFilter("[Reference] IS NOT NULL");
-        b.HasIndex(x => new { x.SourceDocumentType, x.SourceDocumentId })
+        b.HasIndex(x => new { x.ReferenceType, x.ReferenceId })
+            .HasDatabaseName("IX_StockMovements_SourceDocumentType_SourceDocumentId")
             .HasFilter("[SourceDocumentType] IS NOT NULL AND [SourceDocumentId] IS NOT NULL");
     }
 }

@@ -406,12 +406,17 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<int>("MovementType")
+                        .HasColumnType("int")
+                        .HasColumnName("Type");
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("datetimeoffset");
@@ -419,21 +424,25 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Property<int>("QuantityDelta")
                         .HasColumnType("int");
 
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Note");
+
                     b.Property<string>("Reference")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid?>("SourceDocumentId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("SourceDocumentId");
 
-                    b.Property<string>("SourceDocumentType")
+                    b.Property<string>("ReferenceType")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("SourceDocumentType");
 
                     b.Property<int?>("SourceLineNumber")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.Property<Guid>("VariantId")
@@ -443,19 +452,24 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
                     b.HasIndex("LocationId");
 
+                    b.HasIndex("MovementType")
+                        .HasDatabaseName("IX_StockMovements_Type");
+
                     b.HasIndex("OccurredAt");
 
                     b.HasIndex("Reference")
                         .HasFilter("[Reference] IS NOT NULL");
 
-                    b.HasIndex("Type");
-
-                    b.HasIndex("SourceDocumentType", "SourceDocumentId")
+                    b.HasIndex("ReferenceType", "ReferenceId")
+                        .HasDatabaseName("IX_StockMovements_SourceDocumentType_SourceDocumentId")
                         .HasFilter("[SourceDocumentType] IS NOT NULL AND [SourceDocumentId] IS NOT NULL");
 
                     b.HasIndex("VariantId", "LocationId", "OccurredAt");
 
-                    b.ToTable("StockMovements", "inventory");
+                    b.ToTable("StockMovements", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_StockMovements_QuantityDelta_NonZero", "[QuantityDelta] <> 0");
+                        });
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.AttributeValue", b =>

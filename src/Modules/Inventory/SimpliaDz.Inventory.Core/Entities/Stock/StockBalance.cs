@@ -36,14 +36,6 @@ public sealed class StockBalance
         Touch();
     }
 
-    public void SetReorderPoint(int? reorderPoint)
-    {
-        if (reorderPoint is < 0) throw new ArgumentOutOfRangeException(nameof(reorderPoint));
-        ReorderPoint = reorderPoint;
-
-        Touch();
-    }
-
     private void Touch() => UpdatedAt = DateTimeOffset.UtcNow;
 
 }

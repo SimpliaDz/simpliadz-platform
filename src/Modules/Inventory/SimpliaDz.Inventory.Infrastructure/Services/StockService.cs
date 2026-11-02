@@ -44,25 +44,53 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
             .SumAsync(b => (int?)b.QuantityOnHand, ct) ?? 0;
     }
 
+    public async Task<IReadOnlyList<StockMovementDto>> GetMovementsAsync(Guid? variantId,
+        Guid? locationId, int page, int pageSize, CancellationToken ct)
+    {
+        if (page < 1 || pageSize is < 1 or > 100)
+            throw new ArgumentOutOfRangeException(nameof(page), "Page must be positive and page size must be 1 to 100.");
+
+        var query = db.StockMovements.AsNoTracking().AsQueryable();
+        if (variantId.HasValue) query = query.Where(m => m.VariantId == variantId.Value);
+        if (locationId.HasValue) query = query.Where(m => m.LocationId == locationId.Value);
+
+        var rows = await query.OrderByDescending(m => m.OccurredAt)
+            .ThenByDescending(m => m.Id)
+            .Skip(checked((page - 1) * pageSize))
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return rows.Select(m => new StockMovementDto(m.Id, m.VariantId, m.LocationId,
+            m.QuantityDelta, m.MovementType.ToString(), m.Reference, m.ReferenceType,
+            m.ReferenceId, m.Reason, m.OccurredAt, m.CreatedBy)).ToList();
+    }
+
     public Task ReceiveAsync(Guid variantId, Guid locationId, int quantity, string? reference,
-        string? note, CancellationToken ct)
+        string? reason, string? referenceType, Guid? referenceId, string createdBy, CancellationToken ct)
     {
         if (quantity <= 0)
             throw new ArgumentOutOfRangeException(nameof(quantity), "Received quantity must be greater than zero.");
 
-        return ChangeAsync(variantId, locationId, quantity, null, StockMovementType.Receipt, reference, note, ct);
+        return ChangeAsync(variantId, locationId, quantity, null, StockMovementType.PurchaseReceipt,
+            reference, reason, referenceType, referenceId, createdBy, ct);
     }
 
-    public Task AdjustToAsync(Guid variantId, Guid locationId, int newQuantity, string? note, CancellationToken ct)
+    public Task AdjustToAsync(Guid variantId, Guid locationId, int newQuantity, string reason,
+        string createdBy, CancellationToken ct)
     {
         if (newQuantity < 0)
             throw new ArgumentOutOfRangeException(nameof(newQuantity), "Quantity cannot be negative.");
 
-        return ChangeAsync(variantId, locationId, null, newQuantity, StockMovementType.Adjustment, null, note, ct);
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Adjustment reason is required.", nameof(reason));
+
+        return ChangeAsync(variantId, locationId, null, newQuantity, StockMovementType.Adjustment,
+            null, reason, null, null, createdBy, ct);
     }
 
     private async Task ChangeAsync(Guid variantId, Guid locationId, int? receiptQuantity,
-        int? targetQuantity, StockMovementType type, string? reference, string? note, CancellationToken ct)
+        int? targetQuantity, StockMovementType type, string? reference, string? reason,
+        string? referenceType, Guid? referenceId, string createdBy, CancellationToken ct)
     {
         // Serializable protects the read/create path. RowVersion detects competing writes;
         // retry the whole operation so its movement always matches the committed delta.
@@ -89,7 +117,8 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
                 }
 
                 balance.ApplyDelta(delta);
-                db.StockMovements.Add(new StockMovement(variantId, locationId, type, delta, reference, note));
+                db.StockMovements.Add(new StockMovement(variantId, locationId, type, delta,
+                    createdBy, reference, reason, referenceType, referenceId));
                 await db.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
                 return;

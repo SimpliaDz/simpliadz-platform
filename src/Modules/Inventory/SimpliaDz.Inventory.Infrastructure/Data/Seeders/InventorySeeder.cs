@@ -299,7 +299,8 @@ internal static class InventorySeeder
             m.VariantId == variantId &&
             m.LocationId == locationId &&
             m.Reference == reference &&
-            m.Type == StockMovementType.Receipt, ct);
+            (m.MovementType == StockMovementType.OpeningBalance ||
+             m.MovementType == StockMovementType.Receipt), ct);
         if (hasSeedMove) return;
 
         var balance = await db.StockBalances
@@ -312,11 +313,11 @@ internal static class InventorySeeder
         db.StockMovements.Add(new StockMovement(
             variantId: variantId,
             locationId: locationId,
-            type: StockMovementType.Receipt,
+            movementType: StockMovementType.OpeningBalance,
             quantityDelta: qty,
+            createdBy: "system",
             reference: reference,
-            note: "Initial seed stock",
-            sourceDocumentType: "Seeder"));
+            reason: "Initial seed stock"));
     }
 
     private readonly record struct VariantSeed(
