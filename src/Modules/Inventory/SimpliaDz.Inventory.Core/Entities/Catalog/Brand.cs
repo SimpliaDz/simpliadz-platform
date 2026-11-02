@@ -26,7 +26,7 @@ public sealed class Brand
         Touch();
     }
 
-    public void Activate() => IsActive = true;
-    public void Deactivate() => IsActive = false;
+    public void Activate() { IsActive = true; Touch(); }
+    public void Deactivate() { IsActive = false; Touch(); }
     private void Touch() => UpdatedAt = DateTimeOffset.UtcNow;
 }

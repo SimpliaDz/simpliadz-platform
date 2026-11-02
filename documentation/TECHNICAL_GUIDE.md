@@ -101,7 +101,7 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Three modules (**Identity**, **Inventory**, **Organization**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Organization Module](ORGANIZATION_MODULE.md), [Product Catalog](PRODUCT_CATALOG.md), and [Product Categories](PRODUCT_CATEGORIES.md) for feature-specific contracts and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Three modules (**Identity**, **Inventory**, **Organization**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Organization Module](ORGANIZATION_MODULE.md), [Product Catalog](PRODUCT_CATALOG.md), [Product Categories](PRODUCT_CATEGORIES.md), and [Brands](BRANDS.md) for feature-specific contracts and rules.
 
 ### `tests/`
 
@@ -361,6 +361,8 @@ Business locations extend the same Inventory module rather than introducing anot
 
 Product categories also stay inside Inventory. `ProductCategory` has an optional self-reference, sibling-level name uniqueness, restrictive deletion, and application-level ancestry checks that prevent circular relationships. `GET /categories` returns the hierarchy recursively; create, update, retrieve, and deactivate operations use the `categories.view/create/edit` permissions. Deactivation never changes existing product references. See [Product Categories](PRODUCT_CATEGORIES.md).
 
+Brand management uses the same Inventory layers. `GET/POST/PUT /brands` and `PUT /brands/{id}/deactivate` expose the existing `Brand` entity through `brands.view/create/edit` permissions. Its unique name index applies to active and inactive records; deactivation preserves product references. See [Brands](BRANDS.md).
+
 ---
 
 ## 7. Repository pattern vs. Service pattern — which to use when
@@ -576,7 +578,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 
 **Working today:**
 - Identity module: login, rotating refresh tokens, logout/session revocation, account lockout, user operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, and change/forgot/reset password. See [Authentication and session lifecycle](AUTHENTICATION.md).
-- Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories with circular-reference prevention; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md) and [Product Categories](PRODUCT_CATEGORIES.md).
+- Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories and brands; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md), [Product Categories](PRODUCT_CATEGORIES.md), and [Brands](BRANDS.md).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
 - Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt/adjustment services.
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.

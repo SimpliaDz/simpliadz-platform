@@ -89,3 +89,4 @@ The product response includes product metadata and variant descriptions/prices. 
 `tests/SimpliaDz.Inventory.Tests/ProductTests.cs` covers the no-stock-on-product rule, validation, code normalization, brand/category reference validation, update identity preservation, retrieval/search, and history-preserving deactivation.
 
 Hierarchical category management is documented separately in [Product Categories](PRODUCT_CATEGORIES.md).
+Brand management is documented in [Brands](BRANDS.md).

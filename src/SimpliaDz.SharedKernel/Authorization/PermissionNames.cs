@@ -45,6 +45,13 @@ public static class PermissionNames
         public const string Edit = "categories.edit";
     }
 
+    public static class Brands
+    {
+        public const string View = "brands.view";
+        public const string Create = "brands.create";
+        public const string Edit = "brands.edit";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -67,6 +74,9 @@ public static class PermissionNames
         new(Categories.View,    "View Categories",    "Categories"),
         new(Categories.Create,  "Create Categories",  "Categories"),
         new(Categories.Edit,    "Edit Categories",    "Categories"),
+        new(Brands.View,        "View Brands",        "Brands"),
+        new(Brands.Create,      "Create Brands",      "Brands"),
+        new(Brands.Edit,        "Edit Brands",        "Brands"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),
