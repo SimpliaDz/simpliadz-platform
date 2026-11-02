@@ -28,6 +28,7 @@ public static class EndpointExtensions
         app.MapStockTransferEndpoints();
         app.MapOrganizationEndpoints();
         app.MapSupplierEndpoints();
+        app.MapPurchaseOrderEndpoints();
 
         return app;
     }

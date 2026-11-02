@@ -7,6 +7,7 @@ using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Resolution;
 using SimpliaDz.SharedKernel.Authorization;
+using SimpliaDz.Purchasing.UseCases.Services;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -30,6 +31,8 @@ public static class DependencyInjectionExtensions
             // DbContexts resolve their connection string from the request-scoped ITenantContext.
             module.Register(services, string.Empty);
         }
+
+        services.AddScoped<IInventoryReferenceValidator, InventoryReferenceValidator>();
 
         var useCaseAssemblies = new[]
         {

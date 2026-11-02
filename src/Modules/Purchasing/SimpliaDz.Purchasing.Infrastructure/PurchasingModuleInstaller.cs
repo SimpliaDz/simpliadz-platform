@@ -22,6 +22,7 @@ public sealed class PurchasingModuleInstaller : IModuleInstaller
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", "purchasing");
             }));
         services.AddScoped<ISupplierService, SupplierService>();
+        services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)

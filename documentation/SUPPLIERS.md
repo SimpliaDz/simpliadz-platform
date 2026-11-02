@@ -1,6 +1,6 @@
 # Suppliers (Purchasing)
 
-Each tenant stores its suppliers in its own `purchasing.Suppliers` table. A supplier has a required name and optional phone, email, address, and notes. Deactivation sets `IsActive = false` and keeps the supplier row and ID. The API does not expose hard deletion, and the Purchasing DbContext rejects supplier deletes. Future purchase documents can retain their `SupplierId` when a supplier is deactivated; those purchase documents are not part of this ticket.
+Each tenant stores its suppliers in its own `purchasing.Suppliers` table. A supplier has a required name and optional phone, email, address, and notes. Deactivation sets `IsActive = false` and keeps the supplier row and ID. The API does not expose hard deletion, and the Purchasing DbContext rejects supplier deletes. [Purchase orders](PURCHASE_ORDERS.md) retain their `SupplierId` when a supplier is deactivated.
 
 | Route | Permission | Purpose |
 |---|---|---|

@@ -23,6 +23,105 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("DestinationLocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("OrderDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PurchaseOrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DestinationLocationId");
+
+                    b.HasIndex("PurchaseOrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "OrderDate");
+
+                    b.HasIndex("SupplierId", "OrderDate");
+
+                    b.ToTable("PurchaseOrders", "purchasing");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrderLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("OrderedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PurchaseOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ReceivedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("PurchaseOrderId", "ProductVariantId")
+                        .IsUnique();
+
+                    b.ToTable("PurchaseOrderLines", "purchasing", t =>
+                        {
+                            t.HasCheckConstraint("CK_PurchaseOrderLines_OrderedQuantity_Positive", "[OrderedQuantity] > 0");
+
+                            t.HasCheckConstraint("CK_PurchaseOrderLines_ReceivedQuantity_Range", "[ReceivedQuantity] >= 0 AND [ReceivedQuantity] <= [OrderedQuantity]");
+
+                            t.HasCheckConstraint("CK_PurchaseOrderLines_UnitCost_NonNegative", "[UnitCost] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -72,6 +171,33 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
                     b.HasIndex("IsActive", "Name");
 
                     b.ToTable("Suppliers", "purchasing");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", b =>
+                {
+                    b.HasOne("SimpliaDz.Purchasing.Core.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("Lines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", b =>
+                {
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }
