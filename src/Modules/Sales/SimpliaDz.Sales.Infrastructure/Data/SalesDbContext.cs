@@ -11,6 +11,8 @@ public sealed class SalesDbContext : DbContext
     }
 
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleLine> SaleLines => Set<SaleLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,5 +51,8 @@ public sealed class SalesDbContext : DbContext
         ChangeTracker.DetectChanges();
         if (ChangeTracker.Entries<Customer>().Any(entry => entry.State == EntityState.Deleted))
             throw new InvalidOperationException("Customers must be deactivated, not deleted.");
+        if (ChangeTracker.Entries<Sale>().Any(entry => entry.State == EntityState.Deleted) ||
+            ChangeTracker.Entries<SaleLine>().Any(entry => entry.State == EntityState.Deleted))
+            throw new InvalidOperationException("Sale history cannot be deleted.");
     }
 }

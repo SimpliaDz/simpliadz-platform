@@ -1,6 +1,6 @@
 # Customers (SMP-38)
 
-Customers belong to the current tenant's Sales database schema. A customer has a required name, optional phone, email, address, and notes, and a `Retail` or `Wholesale` type. The default type for a new customer is `Retail`. Deactivation preserves the customer ID and details; Sales rejects hard deletion so future sales transactions can retain their customer association. Sales transaction documents are not implemented yet.
+Customers belong to the current tenant's Sales database schema. A customer has a required name, optional phone, email, address, and notes, and a `Retail` or `Wholesale` type. The default type for a new customer is `Retail`. Deactivation preserves the customer ID and details; Sales rejects hard deletion so [sale documents](SALES.md) retain their customer association.
 
 | Route | Permission | Purpose |
 |---|---|---|

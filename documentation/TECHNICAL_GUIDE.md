@@ -54,7 +54,7 @@ src/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
     ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
     ├── Purchasing/                # ACTIVE — suppliers, purchase orders, goods receipts.
-    ├── Sales/                     # ACTIVE — customer management.
+    ├── Sales/                     # ACTIVE — customers and sale documents.
     └── Audit | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
 tests/                              # Module-catalog, Organization, Inventory, Purchasing, and Sales tests.
 ```
@@ -553,7 +553,7 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Sales currently exposes customers; sales transactions remain future work.
+1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Sales exposes customers and sale completion; returns remain future work.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, and transfers are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
@@ -591,6 +591,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt, adjustment, opening stock, and transfer workflows.
 - Purchasing module: manage suppliers; create, place, list, and cancel purchase orders without changing stock; post partial or complete goods receipts atomically with stock movements. See [Suppliers](SUPPLIERS.md), [Purchase Orders](PURCHASE_ORDERS.md), and [Goods Receipts](GOODS_RECEIPTS.md).
 - Sales module: create, update, search, retrieve, and deactivate tenant-scoped retail or wholesale customers. See [Customers](CUSTOMERS.md).
+- Sales module: create sale drafts, snapshot price and cost, calculate discounts and totals, and complete atomically with inventory deduction. See [Sales](SALES.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
 **Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales.

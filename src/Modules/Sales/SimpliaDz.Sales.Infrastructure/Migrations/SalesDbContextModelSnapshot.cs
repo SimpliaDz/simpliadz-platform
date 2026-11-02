@@ -81,6 +81,154 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
 
                     b.ToTable("Customers", "sales");
                 });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CashierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CompletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PriceListId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("SaleDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SaleNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleNumber")
+                        .IsUnique()
+                        .HasFilter("[SaleNumber] IS NOT NULL");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("CustomerId", "SaleDate");
+
+                    b.HasIndex("LocationId", "SaleDate");
+
+                    b.ToTable("Sales", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_Sales_Discount_NonNegative", "[DiscountAmount] >= 0");
+
+                            t.HasCheckConstraint("CK_Sales_Subtotal_NonNegative", "[Subtotal] >= 0");
+
+                            t.HasCheckConstraint("CK_Sales_Total_NonNegative", "[Total] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("UnitCostSnapshot")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("SaleId", "ProductVariantId")
+                        .IsUnique();
+
+                    b.ToTable("SaleLines", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_SaleLines_Amounts_NonNegative", "[UnitPrice] >= 0 AND [UnitCostSnapshot] >= 0 AND [DiscountAmount] >= 0 AND [LineTotal] >= 0");
+
+                            t.HasCheckConstraint("CK_SaleLines_Quantity_Positive", "[Quantity] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleLine", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.Sale", "Sale")
+                        .WithMany("Lines")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>
+                {
+                    b.Navigation("Lines");
+                });
 #pragma warning restore 612, 618
         }
     }

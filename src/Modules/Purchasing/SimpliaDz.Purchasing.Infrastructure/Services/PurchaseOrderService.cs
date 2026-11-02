@@ -6,7 +6,7 @@ using SimpliaDz.Purchasing.UseCases.Services;
 
 namespace SimpliaDz.Purchasing.Infrastructure.Services;
 
-internal sealed class PurchaseOrderService(PurchasingDbContext db,
+public sealed class PurchaseOrderService(PurchasingDbContext db,
     IInventoryReferenceValidator inventory) : IPurchaseOrderService
 {
     public async Task<PurchaseOrderDto> CreateDraftAsync(Guid supplierId, Guid destinationLocationId,
@@ -32,7 +32,8 @@ internal sealed class PurchaseOrderService(PurchasingDbContext db,
             throw new ConflictException("Product variant must be active.");
         if (order.Lines.Any(x => x.ProductVariantId == productVariantId))
             throw new ConflictException("Variant already exists on this purchase order.");
-        order.AddLine(productVariantId, orderedQuantity, unitCost);
+        var line = order.AddLine(productVariantId, orderedQuantity, unitCost);
+        db.PurchaseOrderLines.Add(line);
         await SaveAsync(ct);
         return Map(order);
     }

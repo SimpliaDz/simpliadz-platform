@@ -60,6 +60,11 @@ public static class MiddlewareExtensions
                         await context.Response.WriteAsJsonAsync(new { Error = "BadRequest", Message = ioex.Message });
                         return;
 
+                    case ArgumentException aex:
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        await context.Response.WriteAsJsonAsync(new { Error = "BadRequest", Message = aex.Message });
+                        return;
+
                     default:
                         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                         await context.Response.WriteAsJsonAsync(new { Error = "ServerError" });

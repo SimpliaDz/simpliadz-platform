@@ -9,6 +9,8 @@ using SimpliaDz.Inventory.Core.ValueObjects;
 using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.Purchasing.Core.Entities;
 using SimpliaDz.Purchasing.Infrastructure.Data;
+using SimpliaDz.Purchasing.Infrastructure.Services;
+using SimpliaDz.Purchasing.UseCases.Services;
 using SimpliaDz.Purchasing.UseCases.Services;
 using Xunit;
 
@@ -49,12 +51,16 @@ public sealed class GoodsReceiptIntegrationTests
             await inventory.SaveChangesAsync();
 
             var supplier = new Supplier("Receipt test supplier");
-            var order = new PurchaseOrder(supplier.Id, location.Id, "buyer");
-            var line = order.AddLine(variant.Id, 100, 12.5m);
-            order.PlaceOrder();
             purchasing.Suppliers.Add(supplier);
-            purchasing.PurchaseOrders.Add(order);
             await purchasing.SaveChangesAsync();
+            purchasing.ChangeTracker.Clear();
+            var orders = new PurchaseOrderService(purchasing, new ActiveInventoryReferences());
+            var order = await orders.CreateDraftAsync(supplier.Id, location.Id, null,
+                "buyer", CancellationToken.None);
+            order = await orders.AddLineAsync(order.Id, variant.Id, 100, 12.5m,
+                CancellationToken.None);
+            var line = order.Lines.Single();
+            order = await orders.PlaceOrderAsync(order.Id, CancellationToken.None);
             purchasing.ChangeTracker.Clear();
 
             var service = new GoodsReceiptService(purchasing, new TestTenant(connectionString));
@@ -125,5 +131,14 @@ public sealed class GoodsReceiptIntegrationTests
         public string ConnectionString => connectionString;
         public bool IsModuleEnabled(string moduleName) =>
             moduleName is "Inventory" or "Purchasing";
+    }
+
+    private sealed class ActiveInventoryReferences : IInventoryReferenceValidator
+    {
+        public Task<bool> IsActiveLocationAsync(Guid locationId, CancellationToken ct) =>
+            Task.FromResult(true);
+
+        public Task<bool> IsActiveVariantAsync(Guid variantId, CancellationToken ct) =>
+            Task.FromResult(true);
     }
 }
