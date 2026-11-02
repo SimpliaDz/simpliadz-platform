@@ -80,6 +80,23 @@ public sealed class ProductTests
     }
 
     [Fact]
+    public async Task Update_can_retain_a_category_that_was_deactivated_after_assignment()
+    {
+        var repository = new InMemoryProductRepository();
+        var categoryId = Guid.NewGuid();
+        var product = new Product("Shirt", "SHIRT");
+        product.AssignCategory(categoryId);
+        repository.Seed(product);
+
+        var response = await new UpdateProductHandler(repository).Handle(
+            new UpdateProductCommand(product.Id, "Updated Shirt", "SHIRT", null, null, categoryId),
+            CancellationToken.None);
+
+        Assert.Equal(categoryId, response.CategoryId);
+        Assert.Equal("Updated Shirt", response.Name);
+    }
+
+    [Fact]
     public async Task Products_can_be_retrieved_and_searched()
     {
         var repository = new InMemoryProductRepository();

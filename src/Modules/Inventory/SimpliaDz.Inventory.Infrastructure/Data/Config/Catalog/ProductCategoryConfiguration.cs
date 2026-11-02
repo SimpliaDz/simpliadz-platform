@@ -16,8 +16,17 @@ internal sealed class ProductCategoryConfiguration : IEntityTypeConfiguration<Pr
             .HasMaxLength(150)
             .IsRequired();
 
-        b.HasIndex(x => x.Name).IsUnique();
+        b.HasOne(x => x.ParentCategory)
+            .WithMany(x => x.Children)
+            .HasForeignKey(x => x.ParentCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasIndex(x => new { x.ParentCategoryId, x.Name })
+            .IsUnique()
+            .HasFilter(null);
+        b.HasIndex(x => x.ParentCategoryId);
         b.Property(x => x.IsActive).IsRequired();
+        b.Property(x => x.UpdatedAt).IsRequired();
         b.HasIndex(x => x.IsActive);
     }
 }

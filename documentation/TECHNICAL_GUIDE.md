@@ -101,7 +101,7 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Three modules (**Identity**, **Inventory**, **Organization**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Organization Module](ORGANIZATION_MODULE.md) for the organization profile API and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Three modules (**Identity**, **Inventory**, **Organization**) have real code. Six (**Audit, Sales, Purchasing, Accounting, Notifications, Reporting**) are scaffolds only — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Organization Module](ORGANIZATION_MODULE.md), [Product Catalog](PRODUCT_CATALOG.md), and [Product Categories](PRODUCT_CATEGORIES.md) for feature-specific contracts and rules.
 
 ### `tests/`
 
@@ -269,7 +269,7 @@ public sealed class IdentityDbContext : IdentityDbContext<AppUser, AppRole, Guid
 Schema `identity`. Two migrations exist: `Identity_Initial` (base ASP.NET Identity tables) and `Identity_PermissionsAndProfile` (adds `Permissions`/`RolePermissions` tables and the `FirstName`/`LastName`/`IsActive` profile fields).
 
 **Permission-based authorization, end to end:**
-1. Permission names are constants in `SharedKernel/Authorization/PermissionNames.cs`. `IdentitySeeder` seeds their display metadata and grants all permissions to the `Admin` role. The catalog includes users, roles, permissions, products, and business-location permissions.
+1. Permission names are constants in `SharedKernel/Authorization/PermissionNames.cs`. `IdentitySeeder` seeds their display metadata and grants all permissions to the `Admin` role. The catalog includes users, roles, permissions, products, product categories, business locations, and organization permissions.
 2. On login, `JwtTokenGenerator` puts one JWT claim per effective permission into the token:
    ```csharp
    foreach (var permission in permissions)
@@ -358,6 +358,8 @@ This is the trick that lets `Product.Name` be a rich `ProductName` value object 
 `Product` contains commercial information and owns `ProductVariant` children, but contains no stock quantity. A variant is the sellable/stockable item. Quantity is stored separately by `StockItem` using `(VariantId, LocationId)`, so the same SKU can hold different quantities in different stores or warehouses. Product hard deletion is not exposed, and the database uses restrictive foreign keys so variants and their transaction/stock history cannot be removed through a cascading product delete. See [Product Catalog](PRODUCT_CATALOG.md) for the complete contract and rules.
 
 Business locations extend the same Inventory module rather than introducing another module. `GET/POST/PUT /locations` and `PUT /locations/{id}/deactivate` expose the `InventoryLocation` aggregate. Codes are normalized and unique inside each tenant database, deactivation retains stock history, and `StockService` rejects inactive or unknown locations before receiving or adjusting stock. See `BUSINESS_LOCATIONS.md` for the complete contract.
+
+Product categories also stay inside Inventory. `ProductCategory` has an optional self-reference, sibling-level name uniqueness, restrictive deletion, and application-level ancestry checks that prevent circular relationships. `GET /categories` returns the hierarchy recursively; create, update, retrieve, and deactivate operations use the `categories.view/create/edit` permissions. Deactivation never changes existing product references. See [Product Categories](PRODUCT_CATEGORIES.md).
 
 ---
 
@@ -545,7 +547,7 @@ Called out explicitly so you don't copy these patterns by accident, and so you k
 2. **Inventory stock operations still have no HTTP workflow.** Product-catalog and business-location management are complete, while stock receipt/adjustment services exist only at the application-service layer.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
-5. **Automated coverage is still partial.** Module-catalog, Organization, Inventory location, and Inventory product tests exist. The Identity session lifecycle has been exercised against the local API and SQL Server, but repeatable Identity/API integration tests should still be added to CI.
+5. **Automated coverage is still partial.** Module-catalog, Organization, Inventory location, Inventory product, and Inventory category tests exist. The Identity session lifecycle has been exercised against the local API and SQL Server, but repeatable Identity/API integration tests should still be added to CI.
 6. **The JSON tenant catalog is temporary local infrastructure.** Automated tenant provisioning, a control-plane tenant store, secret management, and tenant-specific routing/invitation links remain future work.
 
 None of these are "wrong" in the sense of breaking the architecture — they're normal signs of a codebase that's mid-build. They're listed here so a future change (yours or Claude's) fixes or extends them deliberately rather than assuming they're finished.
@@ -574,7 +576,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 
 **Working today:**
 - Identity module: login, rotating refresh tokens, logout/session revocation, account lockout, user operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, and change/forgot/reset password. See [Authentication and session lifecycle](AUTHENTICATION.md).
-- Inventory module: create, update, retrieve, search, and deactivate products; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md).
+- Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories with circular-reference prevention; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md) and [Product Categories](PRODUCT_CATEGORIES.md).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
 - Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt/adjustment services.
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.

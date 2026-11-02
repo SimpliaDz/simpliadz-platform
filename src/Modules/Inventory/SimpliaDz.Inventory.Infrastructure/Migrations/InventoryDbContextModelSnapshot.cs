@@ -113,6 +113,9 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<Guid?>("ParentCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -120,7 +123,9 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
                     b.HasIndex("IsActive");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("ParentCategoryId");
+
+                    b.HasIndex("ParentCategoryId", "Name")
                         .IsUnique();
 
                     b.ToTable("Categories", "inventory");
@@ -341,6 +346,16 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("ProductCategory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", "ParentCategory")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCategory");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductVariant", b =>
                 {
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.Product", "Product")
@@ -393,6 +408,11 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
                 {
                     b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", b =>
+                {
+                    b.Navigation("Children");
                 });
 #pragma warning restore 612, 618
         }

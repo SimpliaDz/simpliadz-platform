@@ -17,6 +17,7 @@ public static class EndpointExtensions
         app.MapRoleEndpoints();
         app.MapPermissionEndpoints();
         app.MapProductEndpoints();
+        app.MapCategoryEndpoints();
         app.MapLocationEndpoints();
         app.MapOrganizationEndpoints();
 

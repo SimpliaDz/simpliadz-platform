@@ -41,7 +41,7 @@ Quantity belongs to `StockItem`, keyed by `VariantId + LocationId`. Stock moveme
 - Product name is required and is limited to 200 characters.
 - Product code is optional, normalized to uppercase, limited to 50 characters, and unique inside the current tenant database.
 - Description is optional and limited to 2,000 characters.
-- A supplied brand or category must exist and be active.
+- A newly supplied brand or category must exist and be active. An existing product may retain its current category after that category is deactivated.
 - Deactivation changes `IsActive` to `false`; it does not remove the row.
 - The application exposes no hard-delete command or endpoint.
 - Product-to-variant deletion uses `Restrict`, while stock rows and movements also restrict variant deletion. This prevents cascading removal of transaction or stock history.
@@ -87,3 +87,5 @@ The product response includes product metadata and variant descriptions/prices. 
 ## Tests
 
 `tests/SimpliaDz.Inventory.Tests/ProductTests.cs` covers the no-stock-on-product rule, validation, code normalization, brand/category reference validation, update identity preservation, retrieval/search, and history-preserving deactivation.
+
+Hierarchical category management is documented separately in [Product Categories](PRODUCT_CATEGORIES.md).

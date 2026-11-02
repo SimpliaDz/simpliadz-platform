@@ -8,6 +8,7 @@ using SimpliaDz.Inventory.Infrastructure.Data.Repositories;
 using SimpliaDz.Inventory.Infrastructure.Data.Seeders;
 using SimpliaDz.Inventory.Infrastructure.Services;
 using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
+using SimpliaDz.Inventory.UseCases.Categories.Abstractions;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 using SimpliaDz.Inventory.UseCases.Services;
 
@@ -28,6 +29,7 @@ public sealed class InventoryModuleInstaller : IModuleInstaller
 
         // Repository registrations (per-aggregate root)
         services.AddScoped<IProductRepository, EfProductRepository>();
+        services.AddScoped<ICategoryRepository, EfCategoryRepository>();
         services.AddScoped<ILocationRepository, EfLocationRepository>();
         services.AddScoped<IStockService, StockService>();
     }

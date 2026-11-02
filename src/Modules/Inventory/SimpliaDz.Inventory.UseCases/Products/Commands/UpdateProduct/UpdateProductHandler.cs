@@ -28,8 +28,8 @@ public sealed class UpdateProductHandler : IRequestHandler<UpdateProductCommand,
 
         await ProductReferenceValidation.EnsureValidAsync(
             _products,
-            request.BrandId,
-            request.CategoryId,
+            request.BrandId == product.BrandId ? null : request.BrandId,
+            request.CategoryId == product.ProductCategoryId ? null : request.CategoryId,
             ct);
 
         product.Update(

@@ -6,6 +6,10 @@ public sealed class ProductCategory
 
     public Guid Id { get; private set; } = Guid.NewGuid();
     public string Name { get; private set; } = string.Empty;
+    public Guid? ParentCategoryId { get; private set; }
+    public ProductCategory? ParentCategory { get; private set; }
+    private readonly List<ProductCategory> _children = [];
+    public IReadOnlyCollection<ProductCategory> Children => _children.AsReadOnly();
     public bool IsActive { get; private set; } = true;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
 
@@ -13,7 +17,11 @@ public sealed class ProductCategory
 
     private ProductCategory() { }
 
-    public ProductCategory(string name) => SetName(name);
+    public ProductCategory(string name, Guid? parentCategoryId = null)
+    {
+        SetName(name);
+        SetParent(parentCategoryId);
+    }
 
     public void SetName(string name)
     {
@@ -28,16 +36,32 @@ public sealed class ProductCategory
         Name = trimmed;
         Touch();
     }
+
+    public void Update(string name, Guid? parentCategoryId)
+    {
+        SetName(name);
+        SetParent(parentCategoryId);
+    }
+
+    public void SetParent(Guid? parentCategoryId)
+    {
+        if (parentCategoryId == Id)
+            throw new InvalidOperationException("A category cannot be its own parent.");
+
+        ParentCategoryId = parentCategoryId;
+        Touch();
+    }
+
     public void Activate()
     {
         IsActive = true;
-        //Touch(); for later make this generic to add date and Byuser ... 
+        Touch();
     }
 
     public void Deactivate()
     {
         IsActive = false;
-        //Touch();
+        Touch();
     }
 
     private void Touch() => UpdatedAt = DateTimeOffset.UtcNow;
