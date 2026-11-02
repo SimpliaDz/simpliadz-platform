@@ -1,4 +1,5 @@
 using Mediator;
+using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 
@@ -18,10 +19,17 @@ public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand,
         // Optional uniqueness rule for Code (if provided)
         if (!string.IsNullOrWhiteSpace(request.Code))
         {
-            var exists = await _products.ExistsByCodeAsync(request.Code.Trim(), ct);
+            var normalizedCode = request.Code.Trim().ToUpperInvariant();
+            var exists = await _products.ExistsByCodeAsync(normalizedCode, null, ct);
             if (exists)
-                throw new InvalidOperationException($"Product code '{request.Code}' already exists.");
+                throw new ConflictException($"Product code '{normalizedCode}' already exists.");
         }
+
+        await ProductReferenceValidation.EnsureValidAsync(
+            _products,
+            request.BrandId,
+            request.CategoryId,
+            ct);
 
         var product = new Product(
             name: request.Name,

@@ -6,14 +6,6 @@ public sealed class CreateProductValidator : AbstractValidator<CreateProductComm
 {
     public CreateProductValidator()
     {
-        RuleFor(x => x.Name)
-            .NotEmpty()
-            .MaximumLength(200);
-
-        RuleFor(x => x.Code)
-            .MaximumLength(50);
-
-        RuleFor(x => x.Description)
-            .MaximumLength(2000);
+        ProductValidation.ApplyCommonRules(this, x => x.Name, x => x.Code, x => x.Description);
     }
 }

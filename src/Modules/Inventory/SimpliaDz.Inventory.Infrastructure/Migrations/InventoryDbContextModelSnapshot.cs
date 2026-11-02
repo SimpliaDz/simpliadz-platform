@@ -89,6 +89,7 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.HasIndex("BrandId");
 
                     b.HasIndex("Code")
+                        .IsUnique()
                         .HasFilter("[Code] IS NOT NULL");
 
                     b.HasIndex("IsActive");
@@ -345,7 +346,7 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.Product", "Product")
                         .WithMany("Variants")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Product");

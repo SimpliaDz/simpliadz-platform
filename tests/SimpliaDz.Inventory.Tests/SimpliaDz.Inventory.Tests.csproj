@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
       <PrivateAssets>all</PrivateAssets>
@@ -18,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.Core\SimpliaDz.Inventory.Core.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.Contracts\SimpliaDz.Inventory.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.UseCases\SimpliaDz.Inventory.UseCases.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.Infrastructure\SimpliaDz.Inventory.Infrastructure.csproj" />
   </ItemGroup>

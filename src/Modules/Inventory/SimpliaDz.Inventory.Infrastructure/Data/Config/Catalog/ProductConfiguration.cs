@@ -39,9 +39,9 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         b.HasMany(x => x.Variants)
             .WithOne(v => v.Product)
             .HasForeignKey(v => v.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
-        b.HasIndex(x => x.Code).HasFilter("[Code] IS NOT NULL");
+        b.HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL");
         b.HasIndex(x => x.BrandId);
         b.HasIndex(x => x.ProductCategoryId);
         b.HasIndex(x => x.IsActive);

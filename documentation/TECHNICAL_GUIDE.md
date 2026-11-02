@@ -52,9 +52,9 @@ src/
 ├── SimpliaDz.DatabaseMigrator/     # A separate CLI tool that runs migrations + seed data per tenant.
 └── Modules/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
-    ├── Inventory/                  # ACTIVE — products, variants, brands, categories, stock.
+    ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
     └── Audit | Sales | Purchasing | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
-tests/                              # Empty — no test project exists yet.
+tests/                              # Module-catalog, Organization, and Inventory tests.
 ```
 
 ### `SimpliaDz.Api` — the host
@@ -286,7 +286,7 @@ Dev-seeded admin login: `admin@dev.local` / `Admin123!` (see [Section 12](#12-wh
 
 ---
 
-## 6. Walkthrough #2: Inventory module, "CreateProduct" command
+## 6. Walkthrough #2: Inventory product catalog
 
 Same shape, different flavor of abstraction (repository instead of service — see [Section 7](#7-repository-pattern-vs-service-pattern--which-to-use-when)).
 
@@ -324,14 +324,15 @@ public void AddVariant(string sku, decimal retailPrice, decimal wholesalePrice, 
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<Product>> SearchAsync(string? search, bool? isActive, CancellationToken ct);
     Task AddAsync(Product product, CancellationToken ct);
-    Task UpdateAsync(Product product, CancellationToken ct);
-    Task DeleteAsync(Product product, CancellationToken ct);
-    Task<bool> ExistsByCodeAsync(string code, CancellationToken ct);
+    Task<bool> ExistsByCodeAsync(string code, Guid? excludingId, CancellationToken ct);
+    Task<bool> IsValidBrandAsync(Guid brandId, CancellationToken ct);
+    Task<bool> IsValidCategoryAsync(Guid categoryId, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
 ```
-`CreateProductHandler` depends only on this interface: checks `ExistsByCodeAsync`, constructs a `Product`, calls `AddAsync` + `SaveChangesAsync`.
+The create/update handlers depend only on this interface. They enforce code uniqueness, verify that optional brand/category references point to active records, mutate the aggregate, and save the unit of work. There is deliberately no repository delete operation: products are deactivated so transaction and stock history remain valid.
 
 **Infrastructure** — the EF Core implementation (`src/Modules/Inventory/SimpliaDz.Inventory.Infrastructure/Data/Repositories/EfProductRepository.cs`):
 ```csharp
@@ -339,7 +340,7 @@ internal sealed class EfProductRepository : IProductRepository
 {
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken ct) =>
         await _db.Products.Include(p => p.Variants).FirstOrDefaultAsync(p => p.Id == id, ct);
-    // AddAsync/UpdateAsync/DeleteAsync/ExistsByCodeAsync/SaveChangesAsync follow the same one-liner-over-EF shape
+    // Search/reference checks/AddAsync/SaveChangesAsync are implemented with the same DbContext.
 }
 ```
 
@@ -352,7 +353,9 @@ b.Property(x => x.Name)
 ```
 This is the trick that lets `Product.Name` be a rich `ProductName` value object in C# while the database column stays a plain `nvarchar` — EF converts in both directions, and because it round-trips through the value object's own constructor, validation re-runs even when data is loaded back out of the database.
 
-**API endpoint** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `POST /products` sends `CreateProductCommand` through Mediator and requires `PermissionNames.Products.Create`.
+**API endpoints** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `GET /products` supports `search` and `isActive` filters; `GET /products/{id}`, `POST /products`, `PUT /products/{id}`, and `PUT /products/{id}/deactivate` complete the catalog workflow. Read/create/edit operations require the matching `PermissionNames.Products` permission.
+
+`Product` contains commercial information and owns `ProductVariant` children, but contains no stock quantity. A variant is the sellable/stockable item. Quantity is stored separately by `StockItem` using `(VariantId, LocationId)`, so the same SKU can hold different quantities in different stores or warehouses. Product hard deletion is not exposed, and the database uses restrictive foreign keys so variants and their transaction/stock history cannot be removed through a cascading product delete. See [Product Catalog](PRODUCT_CATALOG.md) for the complete contract and rules.
 
 Business locations extend the same Inventory module rather than introducing another module. `GET/POST/PUT /locations` and `PUT /locations/{id}/deactivate` expose the `InventoryLocation` aggregate. Codes are normalized and unique inside each tenant database, deactivation retains stock history, and `StockService` rejects inactive or unknown locations before receiving or adjusting stock. See `BUSINESS_LOCATIONS.md` for the complete contract.
 
@@ -362,7 +365,7 @@ Business locations extend the same Inventory module rather than introducing anot
 
 You'll notice **Identity uses "services"** (`IIdentityUserService`, `IIdentityAuthService`, `IIdentityRoleService`, `IPermissionService`) while **Inventory uses a "repository"** (`IProductRepository`). Both are valid implementations of the *same* rule (`UseCases` defines the interface, `Infrastructure` implements it against EF Core) — the difference is just the shape of the abstraction, chosen per module:
 
-- **Repository pattern** (Inventory): one interface per aggregate root, exposing persistence-shaped verbs (`GetByIdAsync`, `AddAsync`, `UpdateAsync`, `DeleteAsync`, `SaveChangesAsync`). Reach for this when the module is plain EF Core domain persistence — you're the one designing the whole data-access surface.
+- **Repository pattern** (Inventory): one interface per aggregate root, exposing only the persistence operations its use cases need (`GetByIdAsync`, `SearchAsync`, `AddAsync`, `SaveChangesAsync`). Reach for this when the module is plain EF Core domain persistence — you're the one designing the whole data-access surface.
 - **Service pattern** (Identity): one interface per capability, exposing workflow-shaped verbs (`CreateUserAsync`, `AssignRolesAsync`, `GetEffectivePermissionsAsync`). Reach for this when you're wrapping an existing framework API that already has its own manager/store abstraction (here, ASP.NET Core Identity's `UserManager<T>`/`RoleManager<T>`) — a generic repository would just be an awkward re-wrap of something that already has a good API.
 
 **Rule of thumb for new modules:** if you're persisting your own domain aggregate with plain EF Core, use a repository named after the aggregate (`IOrderRepository`, `IInvoiceRepository`). If you're wrapping a third-party subsystem that already exposes its own manager/store API, wrap it in a service interface instead of forcing a repository shape onto it.
@@ -539,10 +542,10 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
 1. **Scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Purchasing, Accounting, Notifications, and Reporting still consist mostly of scaffolding; enabling one only registers its infrastructure. It remains unreachable until its use cases and endpoints are implemented and mapped.
-2. **Inventory's product workflow is still create-only.** The repository exposes get/update/delete operations, but the API currently maps only product creation. Business-location management is complete, while stock operations have an implementation but no HTTP workflow yet.
+2. **Inventory stock operations still have no HTTP workflow.** Product-catalog and business-location management are complete, while stock receipt/adjustment services exist only at the application-service layer.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
-5. **Automated coverage is still partial.** Module-catalog, Organization, and Inventory location tests exist. The Identity session lifecycle has been exercised against the local API and SQL Server, but repeatable Identity/API integration tests should still be added to CI.
+5. **Automated coverage is still partial.** Module-catalog, Organization, Inventory location, and Inventory product tests exist. The Identity session lifecycle has been exercised against the local API and SQL Server, but repeatable Identity/API integration tests should still be added to CI.
 6. **The JSON tenant catalog is temporary local infrastructure.** Automated tenant provisioning, a control-plane tenant store, secret management, and tenant-specific routing/invitation links remain future work.
 
 None of these are "wrong" in the sense of breaking the architecture — they're normal signs of a codebase that's mid-build. They're listed here so a future change (yours or Claude's) fixes or extends them deliberately rather than assuming they're finished.
@@ -571,9 +574,9 @@ Distilled from the patterns above — follow these to stay consistent with the r
 
 **Working today:**
 - Identity module: login, rotating refresh tokens, logout/session revocation, account lockout, user operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, and change/forgot/reset password. See [Authentication and session lifecycle](AUTHENTICATION.md).
-- Inventory module: create a product (with brand/category assignment and variants), seeded reference data (locations, brands, categories, 4 products/8 variants, partial initial stock).
+- Inventory module: create, update, retrieve, search, and deactivate products; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
-- Inventory module: create a product, manage/deactivate business locations, seeded reference data, and location-validated stock receipt/adjustment services.
+- Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt/adjustment services.
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
 **Modules that exist (with real code):** Identity, Inventory, Organization.

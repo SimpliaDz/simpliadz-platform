@@ -29,7 +29,6 @@ public static class PermissionNames
         public const string View = "products.view";
         public const string Create = "products.create";
         public const string Edit = "products.edit";
-        public const string Delete = "products.delete";
     }
 
     public static class Locations
@@ -58,7 +57,6 @@ public static class PermissionNames
         new(Products.View,      "View Products",      "Products"),
         new(Products.Create,    "Create Products",    "Products"),
         new(Products.Edit,      "Edit Products",      "Products"),
-        new(Products.Delete,    "Delete Products",    "Products"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

@@ -74,8 +74,22 @@ public sealed class Product
         if (trimmed.Length > 50)
             throw new ArgumentException("Code cannot exceed 50 characters.", nameof(code));
 
-        Code = trimmed;
+        Code = trimmed.ToUpperInvariant();
         Touch();
+    }
+
+    public void Update(
+        string name,
+        string? code,
+        string? description,
+        Guid? brandId,
+        Guid? categoryId)
+    {
+        SetName(name);
+        SetCode(code);
+        SetDescription(description);
+        AssignBrand(brandId);
+        AssignCategory(categoryId);
     }
 
     public void AssignBrand(Guid? brandId)
@@ -130,5 +144,5 @@ public sealed class Product
         Touch();
     }
 
-    private void Touch() => UpdatedAt = DateTimeOffset.UtcNow; //AddedBy user later ..
+    private void Touch() => UpdatedAt = DateTimeOffset.UtcNow;
 }

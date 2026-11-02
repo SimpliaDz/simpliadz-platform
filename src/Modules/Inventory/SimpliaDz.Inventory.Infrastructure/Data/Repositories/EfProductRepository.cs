@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 
@@ -18,24 +20,61 @@ internal sealed class EfProductRepository : IProductRepository
             .Include(p => p.Variants)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
+    public async Task<IReadOnlyList<Product>> SearchAsync(
+        string? search,
+        bool? isActive,
+        CancellationToken ct)
+    {
+        var query = _db.Products
+            .AsNoTracking()
+            .Include(product => product.Variants)
+            .AsQueryable();
+
+        if (isActive.HasValue)
+            query = query.Where(product => product.IsActive == isActive.Value);
+
+        var products = await query.ToListAsync(ct);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            products = products
+                .Where(product =>
+                    product.Name.Value.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    (product.Code?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (product.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
+        }
+
+        return products
+            .OrderBy(product => product.Name.Value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public async Task AddAsync(Product product, CancellationToken ct)
         => await _db.Products.AddAsync(product, ct);
 
-    public Task UpdateAsync(Product product, CancellationToken ct)
+    public Task<bool> ExistsByCodeAsync(string code, Guid? excludingId, CancellationToken ct)
+        => _db.Products.AnyAsync(
+            product => product.Code == code && (!excludingId.HasValue || product.Id != excludingId.Value),
+            ct);
+
+    public Task<bool> IsValidBrandAsync(Guid brandId, CancellationToken ct)
+        => _db.Brands.AnyAsync(brand => brand.Id == brandId && brand.IsActive, ct);
+
+    public Task<bool> IsValidCategoryAsync(Guid categoryId, CancellationToken ct)
+        => _db.Categories.AnyAsync(category => category.Id == categoryId && category.IsActive, ct);
+
+    public async Task SaveChangesAsync(CancellationToken ct)
     {
-        _db.Products.Update(product);
-        return Task.CompletedTask;
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            throw new ConflictException("A product with the same code already exists.");
+        }
     }
-
-    public Task DeleteAsync(Product product, CancellationToken ct)
-    {
-        _db.Products.Remove(product);
-        return Task.CompletedTask;
-    }
-
-    public async Task<bool> ExistsByCodeAsync(string code, CancellationToken ct)
-        => await _db.Products.AnyAsync(p => p.Code == code, ct);
-
-    public Task SaveChangesAsync(CancellationToken ct)
-        => _db.SaveChangesAsync(ct);
 }
