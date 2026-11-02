@@ -160,6 +160,19 @@ public sealed class ProductTests
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(_products.FirstOrDefault(product => product.Id == id));
 
+        public Task<ProductVariant?> GetVariantByIdAsync(Guid id, CancellationToken ct) =>
+            Task.FromResult(_products.SelectMany(x => x.Variants).FirstOrDefault(x => x.Id == id));
+        public Task<ProductVariant?> GetVariantBySkuAsync(string sku, CancellationToken ct) =>
+            Task.FromResult(_products.SelectMany(x => x.Variants).FirstOrDefault(x => x.Sku.Value == sku));
+        public Task<ProductVariant?> GetVariantByBarcodeAsync(string barcode, CancellationToken ct) =>
+            Task.FromResult(_products.SelectMany(x => x.Variants).FirstOrDefault(x => x.Barcode == barcode));
+        public Task<bool> SkuExistsAsync(string sku, CancellationToken ct) =>
+            Task.FromResult(_products.SelectMany(x => x.Variants).Any(x => x.Sku.Value == sku));
+        public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken ct) =>
+            Task.FromResult(_products.SelectMany(x => x.Variants).Any(x => x.Barcode == barcode));
+        public Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<AttributeValue>>([]);
+
         public Task<IReadOnlyList<Product>> SearchAsync(string? search, bool? isActive, CancellationToken ct)
         {
             IEnumerable<Product> query = _products;

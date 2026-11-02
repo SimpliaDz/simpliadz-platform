@@ -5,6 +5,12 @@ namespace SimpliaDz.Inventory.UseCases.Products.Abstractions;
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<ProductVariant?> GetVariantByIdAsync(Guid id, CancellationToken ct);
+    Task<ProductVariant?> GetVariantBySkuAsync(string sku, CancellationToken ct);
+    Task<ProductVariant?> GetVariantByBarcodeAsync(string barcode, CancellationToken ct);
+    Task<bool> SkuExistsAsync(string sku, CancellationToken ct);
+    Task<bool> BarcodeExistsAsync(string barcode, CancellationToken ct);
+    Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
 
     Task<IReadOnlyList<Product>> SearchAsync(string? search, bool? isActive, CancellationToken ct);
 

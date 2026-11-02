@@ -12,4 +12,4 @@ Each value belongs to exactly one attribute through a required foreign key. Attr
 | `POST /attributes/{id}/values` | `attributes.manage` | Add `{ "value": "Cotton", "displayOrder": 0 }`. |
 | `PUT /attributes/{id}/values/{valueId}/order` | `attributes.manage` | Change `{ "displayOrder": 1 }`. |
 
-The existing ProductVariant `Size` and `Color` text fields remain in place for compatibility with seeded variants and stock history. This ticket establishes the generic catalog; connecting variants to chosen attribute values is a separate workflow. Attribute-based pricing and variant generation are outside this ticket.
+The existing ProductVariant `Size` and `Color` text fields remain in place for compatibility with seeded variants and stock history. Newly created variants can select values from this generic catalog through the [Product Variants](PRODUCT_VARIANTS.md) workflow. Attribute-based pricing and automatic variant generation remain outside this feature.

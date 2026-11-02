@@ -1,4 +1,6 @@
 using SimpliaDz.Inventory.Core.ValueObjects;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SimpliaDz.Inventory.Core.Entities.Catalog;
 
@@ -19,6 +21,9 @@ public sealed class ProductVariant
     public decimal? WholesalePrice { get; private set; }
 
     public bool IsActive { get; private set; } = true;
+    public string? CombinationKey { get; private set; }
+    private readonly List<VariantAttributeValue> _attributeValues = [];
+    public IReadOnlyCollection<VariantAttributeValue> AttributeValues => _attributeValues.AsReadOnly();
 
     private ProductVariant() { }
 
@@ -105,6 +110,19 @@ public sealed class ProductVariant
     {
         if (price is < 0) throw new ArgumentOutOfRangeException(nameof(price));
         WholesalePrice = price;
+    }
+
+    public void AssignAttributeValues(IEnumerable<Guid> valueIds)
+    {
+        var ids = valueIds.ToArray();
+        if (ids.Length == 0 || ids.Any(id => id == Guid.Empty) || ids.Distinct().Count() != ids.Length)
+            throw new ArgumentException("At least one distinct attribute value is required.", nameof(valueIds));
+
+        _attributeValues.Clear();
+        foreach (var id in ids)
+            _attributeValues.Add(new VariantAttributeValue(Id, id));
+        var canonical = string.Join(";", ids.OrderBy(id => id).Select(id => id.ToString("N")));
+        CombinationKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
     public void Activate() => IsActive = true;

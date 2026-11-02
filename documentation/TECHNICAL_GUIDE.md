@@ -365,6 +365,8 @@ Brand management uses the same Inventory layers. `GET/POST/PUT /brands` and `PUT
 
 Generic product attributes live in Inventory as `ProductAttribute` and `AttributeValue`. `GET/POST /attributes` and nested value creation/order endpoints expose Size, Color, and future attribute types through `attributes.view/manage` permissions. The existing variant text fields remain compatible with stock data. See [Product Attributes](PRODUCT_ATTRIBUTES.md).
 
+New product variants link to multiple attribute values through `VariantAttributeValues`. A unique product and combination key prevents duplicate selections regardless of value order. SKU and barcode lookup and deactivation are exposed through `/variants`; stock continues to reference variant IDs. See [Product Variants](PRODUCT_VARIANTS.md).
+
 ---
 
 ## 7. Repository pattern vs. Service pattern — which to use when

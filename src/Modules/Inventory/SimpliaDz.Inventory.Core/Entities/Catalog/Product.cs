@@ -110,7 +110,8 @@ public sealed class Product
         decimal? wholesalePrice = null,
         string? barcode = null,
         string? color = null,
-        string? size = null)
+        string? size = null,
+        IReadOnlyCollection<Guid>? attributeValueIds = null)
     {
         var newSku = new Sku(sku);
 
@@ -126,6 +127,13 @@ public sealed class Product
             color: color,
             size: size
         );
+
+        if (attributeValueIds is not null)
+        {
+            variant.AssignAttributeValues(attributeValueIds);
+            if (_variants.Any(v => v.CombinationKey == variant.CombinationKey))
+                throw new InvalidOperationException("This product already has a variant with the same attribute combination.");
+        }
 
         _variants.Add(variant);
         Touch();

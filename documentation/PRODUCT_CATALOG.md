@@ -91,3 +91,4 @@ The product response includes product metadata and variant descriptions/prices. 
 Hierarchical category management is documented separately in [Product Categories](PRODUCT_CATEGORIES.md).
 Brand management is documented in [Brands](BRANDS.md).
 The generic Size, Color, and other attribute catalog is documented in [Product Attributes](PRODUCT_ATTRIBUTES.md).
+Creation and lookup of sellable variants is documented in [Product Variants](PRODUCT_VARIANTS.md).

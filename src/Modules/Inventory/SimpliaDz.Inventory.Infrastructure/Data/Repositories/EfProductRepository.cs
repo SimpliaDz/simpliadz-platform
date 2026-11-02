@@ -17,8 +17,30 @@ internal sealed class EfProductRepository : IProductRepository
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.Products
-            .Include(p => p.Variants)
+            .Include(p => p.Variants).ThenInclude(v => v.AttributeValues)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    private IQueryable<ProductVariant> VariantsWithValues => _db.ProductVariants
+        .Include(v => v.AttributeValues).ThenInclude(link => link.AttributeValue)
+            .ThenInclude(value => value.Attribute);
+
+    public Task<ProductVariant?> GetVariantByIdAsync(Guid id, CancellationToken ct) =>
+        VariantsWithValues.FirstOrDefaultAsync(v => v.Id == id, ct);
+
+    public Task<ProductVariant?> GetVariantBySkuAsync(string sku, CancellationToken ct) =>
+        VariantsWithValues.FirstOrDefaultAsync(v => v.Sku == new Core.ValueObjects.Sku(sku), ct);
+
+    public Task<ProductVariant?> GetVariantByBarcodeAsync(string barcode, CancellationToken ct) =>
+        VariantsWithValues.FirstOrDefaultAsync(v => v.Barcode == barcode, ct);
+
+    public Task<bool> SkuExistsAsync(string sku, CancellationToken ct) =>
+        _db.ProductVariants.AnyAsync(v => v.Sku == new Core.ValueObjects.Sku(sku), ct);
+
+    public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken ct) =>
+        _db.ProductVariants.AnyAsync(v => v.Barcode == barcode, ct);
+
+    public async Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        await _db.AttributeValues.AsNoTracking().Where(v => ids.Contains(v.Id)).ToListAsync(ct);
 
     public async Task<IReadOnlyList<Product>> SearchAsync(
         string? search,
@@ -27,7 +49,7 @@ internal sealed class EfProductRepository : IProductRepository
     {
         var query = _db.Products
             .AsNoTracking()
-            .Include(product => product.Variants)
+            .Include(product => product.Variants).ThenInclude(v => v.AttributeValues)
             .AsQueryable();
 
         if (isActive.HasValue)
@@ -74,7 +96,7 @@ internal sealed class EfProductRepository : IProductRepository
         catch (DbUpdateException exception)
             when (exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
-            throw new ConflictException("A product with the same code already exists.");
+            throw new ConflictException("A product code, variant SKU, barcode, or attribute combination already exists.");
         }
     }
 }
