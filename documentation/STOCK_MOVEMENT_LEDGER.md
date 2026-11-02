@@ -4,7 +4,7 @@
 
 `OpeningBalance` can have a zero delta to record an explicit zero opening count. All other movement types require a nonzero delta.
 
-The types supported by the domain are `OpeningBalance`, `PurchaseReceipt`, `Sale`, `SaleReturn`, `Adjustment`, `TransferOut`, and `TransferIn`. Historical `Receipt`, `Issue`, and `ReturnIn` values remain readable with their original numeric values. The demo seed now uses `OpeningBalance`; the receipt endpoint uses `PurchaseReceipt`; adjustments use `Adjustment`. Sale and transfer operations can use the corresponding types when those workflows are built.
+The types supported by the domain are `OpeningBalance`, `PurchaseReceipt`, `Sale`, `SaleReturn`, `Adjustment`, `TransferOut`, and `TransferIn`. Historical `Receipt`, `Issue`, and `ReturnIn` values remain readable with their original numeric values. The demo seed uses `OpeningBalance`; the receipt endpoint uses `PurchaseReceipt`; adjustments use `Adjustment`; completing a stock transfer creates paired `TransferOut` and `TransferIn` entries. Sale workflows can use the corresponding types when built.
 
 The existing ledger table and columns remain in place. `MovementType` maps to the existing `Type` column, `Reason` maps to `Note`, and `ReferenceType`/`ReferenceId` map to `SourceDocumentType`/`SourceDocumentId`. The SMP-29 migration adds `CreatedBy` and a nonzero delta constraint. Old rows receive `CreatedBy = "legacy"`, since their actual actor cannot be recovered. Seed rows use `"system"`; authenticated API changes store the user's ID. An EF save guard rejects normal updates and deletes of movements, deletes of balances, and balance changes without a matching new movement. There are no ledger update or delete API routes.
 

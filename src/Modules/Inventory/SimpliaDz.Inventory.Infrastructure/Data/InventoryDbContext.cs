@@ -23,6 +23,8 @@ public sealed class InventoryDbContext : DbContext
     public DbSet<InventoryLocation> Locations => Set<InventoryLocation>();
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferLine> StockTransferLines => Set<StockTransferLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -96,6 +98,36 @@ public sealed class InventoryDbContext : DbContext
                 .Sum(m => (long)m.QuantityDelta);
             if (delta == 0 || movementDelta != delta)
                 throw new InvalidOperationException("A stock balance change requires matching stock movements.");
+        }
+
+        foreach (var entry in ChangeTracker.Entries<StockTransfer>())
+        {
+            if (entry.State != EntityState.Modified ||
+                entry.Entity.Status != StockTransferStatus.Completed ||
+                entry.OriginalValues.GetValue<StockTransferStatus>(nameof(StockTransfer.Status)) ==
+                    StockTransferStatus.Completed)
+                continue;
+
+            var transfer = entry.Entity;
+            var transferMovements = movements.Where(m =>
+                m.ReferenceType == "StockTransfer" && m.ReferenceId == transfer.Id).ToList();
+            if (transfer.Lines.Count == 0 || transferMovements.Count != transfer.Lines.Count * 2)
+                throw new InvalidOperationException("A completed transfer requires paired stock movements.");
+
+            foreach (var line in transfer.Lines)
+            {
+                if (transferMovements.Count(m =>
+                        m.VariantId == line.ProductVariantId &&
+                        m.LocationId == transfer.SourceLocationId &&
+                        m.MovementType == StockMovementType.TransferOut &&
+                        m.QuantityDelta == -line.Quantity) != 1 ||
+                    transferMovements.Count(m =>
+                        m.VariantId == line.ProductVariantId &&
+                        m.LocationId == transfer.DestinationLocationId &&
+                        m.MovementType == StockMovementType.TransferIn &&
+                        m.QuantityDelta == line.Quantity) != 1)
+                    throw new InvalidOperationException("A completed transfer requires paired stock movements.");
+            }
         }
     }
 }

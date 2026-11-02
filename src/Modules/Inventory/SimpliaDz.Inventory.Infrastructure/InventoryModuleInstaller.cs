@@ -38,6 +38,7 @@ public sealed class InventoryModuleInstaller : IModuleInstaller
         services.AddScoped<IPriceListRepository, EfPriceListRepository>();
         services.AddScoped<ILocationRepository, EfLocationRepository>();
         services.AddScoped<IStockService, StockService>();
+        services.AddScoped<IStockTransferService, StockTransferService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
