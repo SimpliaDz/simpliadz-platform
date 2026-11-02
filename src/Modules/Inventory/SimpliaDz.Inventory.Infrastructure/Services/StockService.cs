@@ -133,7 +133,19 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
             null, reason, null, null, createdBy, ct);
     }
 
-    private async Task ChangeAsync(Guid variantId, Guid locationId, int? receiptQuantity,
+    public Task AdjustByAsync(Guid variantId, Guid locationId, int quantityDelta, string reason,
+        string createdBy, CancellationToken ct)
+    {
+        if (quantityDelta == 0)
+            throw new ArgumentOutOfRangeException(nameof(quantityDelta), "Adjustment delta cannot be zero.");
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Adjustment reason is required.", nameof(reason));
+
+        return ChangeAsync(variantId, locationId, quantityDelta, null, StockMovementType.Adjustment,
+            null, reason, null, null, createdBy, ct);
+    }
+
+    private async Task ChangeAsync(Guid variantId, Guid locationId, int? quantityDelta,
         int? targetQuantity, StockMovementType type, string? reference, string? reason,
         string? referenceType, Guid? referenceId, string createdBy, CancellationToken ct)
     {
@@ -149,18 +161,24 @@ internal sealed class StockService(InventoryDbContext db) : IStockService
                 var balance = await db.StockBalances.FirstOrDefaultAsync(
                     b => b.VariantId == variantId && b.LocationId == locationId, ct);
                 var current = balance?.QuantityOnHand ?? 0;
-                var delta = receiptQuantity ?? checked(targetQuantity!.Value - current);
+                var delta = quantityDelta ?? checked(targetQuantity!.Value - current);
                 if (delta == 0) return;
+
+                var movement = new StockMovement(variantId, locationId, type, delta,
+                    createdBy, reference, reason, referenceType, referenceId);
 
                 if (balance is null)
                 {
                     balance = new StockBalance(variantId, locationId);
+                    balance.ApplyDelta(delta);
                     db.StockBalances.Add(balance);
                 }
+                else
+                {
+                    balance.ApplyDelta(delta);
+                }
 
-                balance.ApplyDelta(delta);
-                db.StockMovements.Add(new StockMovement(variantId, locationId, type, delta,
-                    createdBy, reference, reason, referenceType, referenceId));
+                db.StockMovements.Add(movement);
                 await db.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
                 return;

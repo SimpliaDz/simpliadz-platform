@@ -29,6 +29,14 @@ public interface IStockService
         string reason,
         string createdBy,
         CancellationToken ct);
+
+    Task AdjustByAsync(
+        Guid variantId,
+        Guid locationId,
+        int quantityDelta,
+        string reason,
+        string createdBy,
+        CancellationToken ct);
 }
 
 public sealed record StockBalanceDto(Guid ProductVariantId, Guid LocationId, int QuantityOnHand, DateTimeOffset UpdatedAt);

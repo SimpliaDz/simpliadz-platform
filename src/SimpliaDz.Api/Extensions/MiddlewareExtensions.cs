@@ -4,6 +4,7 @@ using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.Inventory.Core.Exceptions;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -47,6 +48,11 @@ public static class MiddlewareExtensions
                     case ConflictException cex:
                         context.Response.StatusCode = StatusCodes.Status409Conflict;
                         await context.Response.WriteAsJsonAsync(new { Error = "Conflict", Message = cex.Message });
+                        return;
+
+                    case InsufficientStockException stockException:
+                        context.Response.StatusCode = StatusCodes.Status409Conflict;
+                        await context.Response.WriteAsJsonAsync(new { Error = "InsufficientStock", Message = stockException.Message });
                         return;
 
                     case InvalidOperationException ioex:

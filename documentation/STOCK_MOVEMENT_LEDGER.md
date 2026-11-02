@@ -12,6 +12,6 @@ The existing ledger table and columns remain in place. `MovementType` maps to th
 |---|---|---|
 | `GET /stock/movements?productVariantId=&locationId=&page=1&pageSize=50` | `stock.view` | Query history, newest first, with optional variant and location filters and a maximum page size of 100. |
 | `POST /stock/receipts` | `stock.manage` | Add a purchase receipt. Supports `referenceType`, `referenceId`, and `reason` in addition to the existing fields. |
-| `POST /stock/adjustments` | `stock.manage` | Set physical stock. A reason is required. |
+| `POST /stock/adjustments` | `stock.manage` | Correct stock with a signed `quantityDelta`, or set an absolute `quantityOnHand`. A reason is required. |
 
 The receipt and adjustment services save the balance and movement in one transaction. No-op adjustments write neither. `StockBalance` is the current snapshot; movements are the historical explanation. Run the database migrator for each tenant before using the new ledger fields.

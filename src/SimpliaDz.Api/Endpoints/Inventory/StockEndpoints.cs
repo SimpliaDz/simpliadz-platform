@@ -84,14 +84,24 @@ public static class StockEndpoints
             ClaimsPrincipal principal, [FromServices] IStockService stock, CancellationToken ct) =>
         {
             var errors = ValidateIds(request.ProductVariantId, request.LocationId);
-            if (request.QuantityOnHand < 0) errors["quantityOnHand"] = ["QuantityOnHand cannot be negative."];
+            if (request.QuantityDelta.HasValue == request.QuantityOnHand.HasValue)
+                errors["quantityDelta"] = ["Provide exactly one of quantityDelta or quantityOnHand."];
+            if (request.QuantityDelta == 0)
+                errors["quantityDelta"] = ["QuantityDelta cannot be zero."];
+            if (request.QuantityOnHand < 0)
+                errors["quantityOnHand"] = ["QuantityOnHand cannot be negative."];
             var reason = request.Reason ?? request.Note;
             if (string.IsNullOrWhiteSpace(reason)) errors["reason"] = ["Reason is required for an adjustment."];
             else if (reason.Length > 500) errors["reason"] = ["Reason cannot exceed 500 characters."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
 
-            await stock.AdjustToAsync(request.ProductVariantId, request.LocationId,
-                request.QuantityOnHand, reason!, RequireActor(principal), ct);
+            var actor = RequireActor(principal);
+            if (request.QuantityDelta.HasValue)
+                await stock.AdjustByAsync(request.ProductVariantId, request.LocationId,
+                    request.QuantityDelta.Value, reason!, actor, ct);
+            else
+                await stock.AdjustToAsync(request.ProductVariantId, request.LocationId,
+                    request.QuantityOnHand!.Value, reason!, actor, ct);
             return Results.NoContent();
         }).RequireAuthorization(PermissionNames.Stock.Manage);
 
@@ -118,5 +128,6 @@ public sealed record ReceiveStockRequest(Guid ProductVariantId, Guid LocationId,
     string? Reason = null);
 public sealed record OpenStockRequest(Guid ProductVariantId, Guid LocationId, int Quantity,
     string? Reason);
-public sealed record AdjustStockRequest(Guid ProductVariantId, Guid LocationId, int QuantityOnHand,
-    string? Note, string? Reason = null);
+public sealed record AdjustStockRequest(Guid ProductVariantId, Guid LocationId,
+    int? QuantityOnHand = null, string? Note = null, string? Reason = null,
+    int? QuantityDelta = null);
