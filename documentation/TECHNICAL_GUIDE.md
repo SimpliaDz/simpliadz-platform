@@ -54,8 +54,9 @@ src/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
     ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
     ├── Purchasing/                # ACTIVE — suppliers, purchase orders, goods receipts.
-    └── Audit | Sales | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
-tests/                              # Module-catalog, Organization, Inventory, and Purchasing tests.
+    ├── Sales/                     # ACTIVE — customer management.
+    └── Audit | Accounting | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
+tests/                              # Module-catalog, Organization, Inventory, Purchasing, and Sales tests.
 ```
 
 ### `SimpliaDz.Api` — the host
@@ -102,11 +103,11 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Four modules (**Identity**, **Inventory**, **Organization**, **Purchasing**) have real code. Five (**Audit, Sales, Accounting, Notifications, Reporting**) remain scaffolds — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Suppliers](SUPPLIERS.md) and the feature-specific module guides for contracts and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Five modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**) have real code. Four (**Audit, Accounting, Notifications, Reporting**) remain scaffolds — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](CUSTOMERS.md), [Suppliers](SUPPLIERS.md), and the feature-specific module guides for contracts and rules.
 
 ### `tests/`
 
-Contains module-level test projects, including Purchasing supplier tests.
+Contains module-level test projects, including Purchasing and Sales tests.
 
 ---
 
@@ -552,7 +553,7 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Sales, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Purchasing exposes suppliers, purchase orders, and goods receipts.
+1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Accounting, Notifications, and Reporting still consist mostly of scaffolding. Sales currently exposes customers; sales transactions remain future work.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, and transfers are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
@@ -589,11 +590,12 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
 - Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt, adjustment, opening stock, and transfer workflows.
 - Purchasing module: manage suppliers; create, place, list, and cancel purchase orders without changing stock; post partial or complete goods receipts atomically with stock movements. See [Suppliers](SUPPLIERS.md), [Purchase Orders](PURCHASE_ORDERS.md), and [Goods Receipts](GOODS_RECEIPTS.md).
+- Sales module: create, update, search, retrieve, and deactivate tenant-scoped retail or wholesale customers. See [Customers](CUSTOMERS.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
-**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing.
+**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales.
 
-**Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Sales, Accounting, Notifications, Reporting.
+**Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Accounting, Notifications, Reporting.
 
 **Partially implemented / worth knowing about:**
 - Purchasing goods receipts update received quantities and Inventory movements in one SQL Server transaction. The optional SQL Server integration test verifies partial/full receipt, duplicate prevention, and rollback after a forced stock write failure; set `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` to run it.
@@ -601,6 +603,6 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Permission names, display labels, categories, and policy registration are centralized in `PermissionNames`.
 
 **Logical next steps** (in a sensible order, not a mandate):
-1. Build out the five remaining stub modules as their business workflows become needed.
+1. Build out the four remaining stub modules as their business workflows become needed.
 2. Extend SQL Server integration coverage with simultaneous goods receipts for the same purchase order.
 3. Extend test coverage with Identity and API-level authorization/integration tests.

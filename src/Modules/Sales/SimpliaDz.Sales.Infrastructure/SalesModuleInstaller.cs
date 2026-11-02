@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Sales.Infrastructure.Data;
+using SimpliaDz.Sales.Infrastructure.Services;
+using SimpliaDz.Sales.UseCases.Services;
 
 namespace SimpliaDz.Sales.Infrastructure;
 
@@ -17,7 +19,9 @@ public sealed class SalesModuleInstaller : IModuleInstaller
             options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
             {
                 sql.MigrationsAssembly(typeof(SalesDbContext).Assembly.FullName);
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", "sales");
             }));
+        services.AddScoped<ICustomerService, CustomerService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)

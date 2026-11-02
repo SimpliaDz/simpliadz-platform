@@ -126,6 +126,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Purchasing", "Purchasing", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpliaDz.Purchasing.Tests", "..\tests\SimpliaDz.Purchasing.Tests\SimpliaDz.Purchasing.Tests.csproj", "{CDD7BC63-9AEF-42C5-8144-4C6B65B26A40}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpliaDz.Sales.Tests", "..\tests\SimpliaDz.Sales.Tests\SimpliaDz.Sales.Tests.csproj", "{D7B42BC6-5578-4BE9-93D1-A8599160F19E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -676,6 +678,18 @@ Global
 		{CDD7BC63-9AEF-42C5-8144-4C6B65B26A40}.Release|x64.Build.0 = Release|Any CPU
 		{CDD7BC63-9AEF-42C5-8144-4C6B65B26A40}.Release|x86.ActiveCfg = Release|Any CPU
 		{CDD7BC63-9AEF-42C5-8144-4C6B65B26A40}.Release|x86.Build.0 = Release|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Debug|x64.Build.0 = Debug|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Debug|x86.Build.0 = Debug|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Release|x64.ActiveCfg = Release|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Release|x64.Build.0 = Release|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Release|x86.ActiveCfg = Release|Any CPU
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -733,5 +747,6 @@ Global
 		{3793D39D-03D7-4FB3-BB39-141FB8FA0F81} = {01DBE0A7-B8FA-09F1-6BF1-F187B4EB9912}
 		{D91DB065-6E49-8ADE-F059-61161AFA15E8} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{CDD7BC63-9AEF-42C5-8144-4C6B65B26A40} = {D91DB065-6E49-8ADE-F059-61161AFA15E8}
+		{D7B42BC6-5578-4BE9-93D1-A8599160F19E} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
