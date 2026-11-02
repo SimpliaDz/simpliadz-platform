@@ -23,6 +23,33 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.AttributeValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AttributeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttributeId", "DisplayOrder");
+
+                    b.HasIndex("AttributeId", "Value")
+                        .IsUnique();
+
+                    b.ToTable("AttributeValues", "inventory");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Brand", b =>
                 {
                     b.Property<Guid>("Id")
@@ -97,6 +124,25 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.HasIndex("ProductCategoryId");
 
                     b.ToTable("Products", "inventory");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductAttribute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ProductAttributes", "inventory");
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", b =>
@@ -329,6 +375,17 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("StockMovements", "inventory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.AttributeValue", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductAttribute", "Attribute")
+                        .WithMany("Values")
+                        .HasForeignKey("AttributeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attribute");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
                 {
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.Brand", "Brand")
@@ -408,6 +465,11 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
                 {
                     b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductAttribute", b =>
+                {
+                    b.Navigation("Values");
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", b =>

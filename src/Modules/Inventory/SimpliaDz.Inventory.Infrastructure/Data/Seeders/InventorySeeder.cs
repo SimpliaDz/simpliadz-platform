@@ -12,10 +12,36 @@ internal static class InventorySeeder
         await SeedLocationsAsync(db, ct);
         await SeedBrandsAsync(db, ct);
         await SeedCategoriesAsync(db, ct);
+        await SeedAttributesAsync(db, ct);
         await SeedProductsAsync(db, ct);
 
         // optional but very useful for testing
         await SeedInitialStockAsync(db, ct);
+    }
+
+    private static async Task SeedAttributesAsync(InventoryDbContext db, CancellationToken ct)
+    {
+        await UpsertAttributeAsync(db, "Color", ["Black", "White", "Blue"], ct);
+        await UpsertAttributeAsync(db, "Size", ["S", "M", "L", "XL"], ct);
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task UpsertAttributeAsync(
+        InventoryDbContext db, string name, string[] values, CancellationToken ct)
+    {
+        var attribute = await db.ProductAttributes.Include(x => x.Values)
+            .FirstOrDefaultAsync(x => x.Name == name, ct);
+        if (attribute is null)
+        {
+            attribute = new ProductAttribute(name);
+            db.ProductAttributes.Add(attribute);
+        }
+
+        for (var order = 0; order < values.Length; order++)
+        {
+            if (!attribute.Values.Any(x => x.Value == values[order]))
+                attribute.AddValue(values[order], order);
+        }
     }
 
     private static async Task SeedLocationsAsync(InventoryDbContext db, CancellationToken ct)

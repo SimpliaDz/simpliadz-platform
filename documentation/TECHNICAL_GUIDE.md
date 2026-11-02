@@ -363,6 +363,8 @@ Product categories also stay inside Inventory. `ProductCategory` has an optional
 
 Brand management uses the same Inventory layers. `GET/POST/PUT /brands` and `PUT /brands/{id}/deactivate` expose the existing `Brand` entity through `brands.view/create/edit` permissions. Its unique name index applies to active and inactive records; deactivation preserves product references. See [Brands](BRANDS.md).
 
+Generic product attributes live in Inventory as `ProductAttribute` and `AttributeValue`. `GET/POST /attributes` and nested value creation/order endpoints expose Size, Color, and future attribute types through `attributes.view/manage` permissions. The existing variant text fields remain compatible with stock data. See [Product Attributes](PRODUCT_ATTRIBUTES.md).
+
 ---
 
 ## 7. Repository pattern vs. Service pattern — which to use when
