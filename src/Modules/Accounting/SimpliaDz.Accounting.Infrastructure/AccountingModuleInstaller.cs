@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Accounting.Infrastructure.Data;
+using SimpliaDz.Accounting.Infrastructure.Services;
+using SimpliaDz.Accounting.UseCases.Services;
 
 namespace SimpliaDz.Accounting.Infrastructure;
 
@@ -18,6 +20,7 @@ public sealed class AccountingModuleInstaller : IModuleInstaller
             {
                 sql.MigrationsAssembly(typeof(AccountingDbContext).Assembly.FullName);
             }));
+        services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+using SimpliaDz.Api.Endpoints.Accounting;
 using SimpliaDz.Api.Endpoints.Identity;
 using SimpliaDz.Api.Endpoints.Inventory;
 using SimpliaDz.Api.Endpoints.Organization;
@@ -37,6 +38,7 @@ public static class EndpointExtensions
         app.MapPosProductLookupEndpoints();
         app.MapPaymentEndpoints();
         app.MapSaleReturnEndpoints();
+        app.MapExpenseCategoryEndpoints();
 
         return app;
     }

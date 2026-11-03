@@ -12,7 +12,7 @@
           "Organization": true,
           "Sales": true,
           "Purchasing": true,
-          "Accounting": false,
+          "Accounting": true,
           "Notifications": false,
           "Reporting": false,
           "Audit": false
@@ -27,7 +27,7 @@
           "Organization": true,
           "Sales": true,
           "Purchasing": true,
-          "Accounting": false,
+          "Accounting": true,
           "Notifications": false,
           "Reporting": false,
           "Audit": false
