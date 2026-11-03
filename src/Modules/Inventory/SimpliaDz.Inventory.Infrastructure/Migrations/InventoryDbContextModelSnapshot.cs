@@ -439,6 +439,41 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryPolicy", b =>
+                {
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ReorderPoint")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("TargetStockLevel")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("ProductVariantId", "LocationId");
+
+                    b.HasIndex("LocationId");
+
+                    b.ToTable("InventoryPolicies", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryPolicies_ReorderPoint_NonNegative", "[ReorderPoint] >= 0");
+
+                            t.HasCheckConstraint("CK_InventoryPolicies_TargetStockLevel_Valid", "[TargetStockLevel] IS NULL OR [TargetStockLevel] >= [ReorderPoint]");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockBalance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -449,9 +484,6 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("QuantityOnHand")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ReorderPoint")
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
@@ -478,8 +510,6 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("StockItems", "inventory", t =>
                         {
                             t.HasCheckConstraint("CK_StockItems_QuantityOnHand_NonNegative", "[QuantityOnHand] >= 0");
-
-                            t.HasCheckConstraint("CK_StockItems_ReorderPoint_NonNegative", "[ReorderPoint] IS NULL OR [ReorderPoint] >= 0");
                         });
                 });
 
@@ -767,6 +797,25 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("InventoryCount");
+
+                    b.Navigation("ProductVariant");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryPolicy", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Stock.InventoryLocation", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Location");
 
                     b.Navigation("ProductVariant");
                 });

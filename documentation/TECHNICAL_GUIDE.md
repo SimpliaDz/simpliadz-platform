@@ -52,7 +52,7 @@ src/
 ├── SimpliaDz.DatabaseMigrator/     # A separate CLI tool that runs migrations + seed data per tenant.
 └── Modules/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
-    ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
+    ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock, and low-stock policies.
     ├── Purchasing/                # ACTIVE — suppliers, purchase orders, goods receipts.
     ├── Sales/                     # ACTIVE — customers and sale documents.
     ├── Accounting/                 # ACTIVE — expense categories and expenses.

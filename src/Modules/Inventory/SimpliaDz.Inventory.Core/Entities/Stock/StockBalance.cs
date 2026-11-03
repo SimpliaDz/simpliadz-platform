@@ -11,7 +11,6 @@ public sealed class StockBalance
     public Guid LocationId { get; private set; }
     public InventoryLocation Location { get; private set; } = default!;
     public int QuantityOnHand { get; private set; }
-    public int? ReorderPoint { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public byte[] RowVersion { get; private set; } = [];
 

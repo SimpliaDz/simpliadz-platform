@@ -12,13 +12,11 @@ internal sealed class StockBalanceConfiguration : IEntityTypeConfiguration<Stock
         b.ToTable("StockItems", t =>
         {
             t.HasCheckConstraint("CK_StockItems_QuantityOnHand_NonNegative", "[QuantityOnHand] >= 0");
-            t.HasCheckConstraint("CK_StockItems_ReorderPoint_NonNegative", "[ReorderPoint] IS NULL OR [ReorderPoint] >= 0");
         });
 
         b.HasKey(x => x.Id);
 
         b.Property(x => x.QuantityOnHand).IsRequired();
-        b.Property(x => x.ReorderPoint);
         b.Property(x => x.UpdatedAt).IsRequired();
         b.Property(x => x.RowVersion).IsRowVersion();
 
