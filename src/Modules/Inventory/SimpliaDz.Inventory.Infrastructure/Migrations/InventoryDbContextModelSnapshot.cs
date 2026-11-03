@@ -305,6 +305,86 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("VariantAttributeValues", "inventory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryCount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CompletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("LocationId", "StartedAt");
+
+                    b.ToTable("InventoryCounts", "inventory");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryCountLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("CountedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExpectedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("InventoryCountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("InventoryCountId", "ProductVariantId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryCountLines", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryCountLines_CountedQuantity_NonNegative", "[CountedQuantity] IS NULL OR [CountedQuantity] >= 0");
+
+                            t.HasCheckConstraint("CK_InventoryCountLines_ExpectedQuantity_NonNegative", "[ExpectedQuantity] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryLocation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -658,6 +738,36 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("Variant");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryCount", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Stock.InventoryLocation", "Location")
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Location");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryCountLine", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Stock.InventoryCount", "InventoryCount")
+                        .WithMany("Lines")
+                        .HasForeignKey("InventoryCountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryCount");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockBalance", b =>
                 {
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Stock.InventoryLocation", "Location")
@@ -757,6 +867,11 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductVariant", b =>
                 {
                     b.Navigation("AttributeValues");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryCount", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockTransfer", b =>
