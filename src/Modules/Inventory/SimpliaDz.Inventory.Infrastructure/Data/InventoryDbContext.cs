@@ -25,6 +25,8 @@ public sealed class InventoryDbContext : DbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<StockTransferLine> StockTransferLines => Set<StockTransferLine>();
+    public DbSet<InventoryCount> InventoryCounts => Set<InventoryCount>();
+    public DbSet<InventoryCountLine> InventoryCountLines => Set<InventoryCountLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -127,6 +129,35 @@ public sealed class InventoryDbContext : DbContext
                         m.MovementType == StockMovementType.TransferIn &&
                         m.QuantityDelta == line.Quantity) != 1)
                     throw new InvalidOperationException("A completed transfer requires paired stock movements.");
+            }
+        }
+
+        if (ChangeTracker.Entries<InventoryCount>().Any(entry => entry.State == EntityState.Deleted) ||
+            ChangeTracker.Entries<InventoryCountLine>().Any(entry => entry.State == EntityState.Deleted))
+            throw new InvalidOperationException("Inventory count history cannot be deleted.");
+
+        foreach (var entry in ChangeTracker.Entries<InventoryCount>())
+        {
+            if (entry.State != EntityState.Modified ||
+                entry.Entity.Status != InventoryCountStatus.Completed ||
+                entry.OriginalValues.GetValue<InventoryCountStatus>(nameof(InventoryCount.Status)) ==
+                    InventoryCountStatus.Completed)
+                continue;
+
+            var count = entry.Entity;
+            var countMovements = movements.Where(m => m.ReferenceType == "InventoryCount" &&
+                m.ReferenceId == count.Id).ToList();
+            var changedLines = count.Lines.Where(line => line.Difference is not 0).ToList();
+            if (count.Lines.Count == 0 || count.Lines.Any(line => line.CountedQuantity is null) ||
+                countMovements.Count != changedLines.Count)
+                throw new InvalidOperationException("A completed inventory count requires matching adjustments.");
+            foreach (var line in changedLines)
+            {
+                if (countMovements.Count(m => m.VariantId == line.ProductVariantId &&
+                        m.LocationId == count.LocationId &&
+                        m.MovementType == StockMovementType.Adjustment &&
+                        m.QuantityDelta == line.Difference) != 1)
+                    throw new InvalidOperationException("A completed inventory count requires matching adjustments.");
             }
         }
     }
