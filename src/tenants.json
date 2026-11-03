@@ -14,7 +14,7 @@
           "Purchasing": true,
           "Accounting": true,
           "Notifications": false,
-          "Reporting": false,
+          "Reporting": true,
           "Audit": false
         }
       },
@@ -29,7 +29,7 @@
           "Purchasing": true,
           "Accounting": true,
           "Notifications": false,
-          "Reporting": false,
+          "Reporting": true,
           "Audit": false
         }
       }
