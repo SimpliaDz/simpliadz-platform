@@ -35,6 +35,8 @@ public sealed class Sale
     public SaleDiscountType? DiscountType { get; private set; }
     public decimal? DiscountValue { get; private set; }
     public decimal Total { get; private set; }
+    public decimal PaidAmount { get; private set; }
+    public decimal BalanceDue => Total - PaidAmount;
     public int Revision { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
     public IReadOnlyCollection<SaleLine> Lines => _lines;
@@ -145,6 +147,17 @@ public sealed class Sale
     {
         EnsureDraft();
         Status = SaleStatus.Cancelled;
+        Revision = checked(Revision + 1);
+    }
+
+    public void RecordPayment(decimal amount)
+    {
+        if (Status != SaleStatus.Completed)
+            throw new InvalidOperationException("Only completed sales can receive payments.");
+        if (amount <= 0 || amount > Total - PaidAmount)
+            throw new ArgumentOutOfRangeException(nameof(amount),
+                "Payment must be positive and cannot exceed the remaining sale total.");
+        PaidAmount += amount;
         Revision = checked(Revision + 1);
     }
 

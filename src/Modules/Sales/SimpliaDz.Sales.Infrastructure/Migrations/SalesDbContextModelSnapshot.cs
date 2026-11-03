@@ -82,6 +82,40 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.ToTable("Customers", "sales");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("ReceivedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleId", "PaidAt");
+
+                    b.ToTable("Payments", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_Payments_Amount_Positive", "[Amount] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>
                 {
                     b.Property<Guid>("Id")
@@ -111,6 +145,10 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
 
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<Guid>("PriceListId")
                         .HasColumnType("uniqueidentifier");
@@ -159,6 +197,8 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.ToTable("Sales", "sales", t =>
                         {
                             t.HasCheckConstraint("CK_Sales_Discount_NonNegative", "[DiscountAmount] >= 0");
+
+                            t.HasCheckConstraint("CK_Sales_PaidAmount_Range", "[PaidAmount] >= 0 AND [PaidAmount] <= [Total]");
 
                             t.HasCheckConstraint("CK_Sales_Subtotal_NonNegative", "[Subtotal] >= 0");
 
@@ -218,6 +258,17 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_SaleLines_Quantity_Positive", "[Quantity] > 0");
                         });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Payment", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Sale");
                 });
 
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>

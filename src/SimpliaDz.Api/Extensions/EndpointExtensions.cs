@@ -34,6 +34,7 @@ public static class EndpointExtensions
         app.MapCustomerEndpoints();
         app.MapSaleEndpoints();
         app.MapPosProductLookupEndpoints();
+        app.MapPaymentEndpoints();
 
         return app;
     }

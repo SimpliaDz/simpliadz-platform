@@ -105,6 +105,34 @@ public sealed class SaleIntegrationTests
                 x.MovementType == StockMovementType.Sale && x.ReferenceId == first.Id &&
                 x.QuantityDelta == -2);
 
+            var payments = new PaymentService(sales);
+            var firstPaymentId = Guid.NewGuid();
+            await payments.RecordAsync(firstPaymentId, first.Id, 10m, PaymentMethod.Cash,
+                cashier, CancellationToken.None);
+            await Assert.ThrowsAsync<ConflictException>(() => payments.RecordAsync(firstPaymentId,
+                first.Id, 10m, PaymentMethod.Cash, cashier, CancellationToken.None));
+            await Assert.ThrowsAsync<ConflictException>(() => payments.RecordAsync(Guid.NewGuid(),
+                first.Id, 8m, PaymentMethod.Card, cashier, CancellationToken.None));
+            Assert.Equal(7m, (await service.GetByIdAsync(first.Id, CancellationToken.None)).BalanceDue);
+
+            await sales.Database.ExecuteSqlRawAsync("""
+                CREATE TRIGGER sales.RejectPaymentTest ON sales.Payments
+                AFTER INSERT AS BEGIN THROW 51003, 'Test payment write failure', 1; END
+                """);
+            var failedPaymentId = Guid.NewGuid();
+            await Assert.ThrowsAnyAsync<Exception>(() => payments.RecordAsync(failedPaymentId,
+                first.Id, 7m, PaymentMethod.Card, cashier, CancellationToken.None));
+            await sales.Database.ExecuteSqlRawAsync("DROP TRIGGER sales.RejectPaymentTest");
+            sales.ChangeTracker.Clear();
+            Assert.Equal(7m, (await service.GetByIdAsync(first.Id, CancellationToken.None)).BalanceDue);
+            Assert.False(await sales.Payments.AnyAsync(x => x.Id == failedPaymentId));
+
+            await payments.RecordAsync(Guid.NewGuid(), first.Id, 7m, PaymentMethod.Card,
+                cashier, CancellationToken.None);
+            Assert.Equal(0m, (await service.GetByIdAsync(first.Id, CancellationToken.None)).BalanceDue);
+            Assert.Equal(17m, (await service.GetByIdAsync(first.Id, CancellationToken.None)).PaidAmount);
+            Assert.Equal(2, (await payments.ListBySaleAsync(first.Id, CancellationToken.None)).Count);
+
             await new CustomerService(sales).DeactivateAsync(customer.Id, CancellationToken.None);
             Assert.Equal(customer.Id, (await service.GetByIdAsync(first.Id, CancellationToken.None)).CustomerId);
 

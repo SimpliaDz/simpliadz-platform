@@ -13,6 +13,7 @@ internal sealed class SaleConfiguration : IEntityTypeConfiguration<Sale>
             table.HasCheckConstraint("CK_Sales_Subtotal_NonNegative", "[Subtotal] >= 0");
             table.HasCheckConstraint("CK_Sales_Discount_NonNegative", "[DiscountAmount] >= 0");
             table.HasCheckConstraint("CK_Sales_Total_NonNegative", "[Total] >= 0");
+            table.HasCheckConstraint("CK_Sales_PaidAmount_Range", "[PaidAmount] >= 0 AND [PaidAmount] <= [Total]");
         });
         b.HasKey(x => x.Id);
         b.Property(x => x.SaleNumber).HasMaxLength(40);
@@ -24,6 +25,8 @@ internal sealed class SaleConfiguration : IEntityTypeConfiguration<Sale>
         b.Property(x => x.DiscountType).HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.DiscountValue).HasPrecision(18, 4);
         b.Property(x => x.Total).HasPrecision(18, 4).IsRequired();
+        b.Property(x => x.PaidAmount).HasPrecision(18, 4).IsRequired();
+        b.Ignore(x => x.BalanceDue);
         b.Property(x => x.Revision).IsRequired();
         b.Property(x => x.RowVersion).IsRowVersion();
         b.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId)

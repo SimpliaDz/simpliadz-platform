@@ -27,4 +27,4 @@ public sealed record SaleLineDto(Guid Id, Guid ProductVariantId, int Quantity,
 public sealed record SaleDto(Guid Id, string? SaleNumber, Guid LocationId, Guid? CustomerId,
     Guid CashierId, Guid PriceListId, string Status, DateTimeOffset SaleDate,
     decimal Subtotal, decimal DiscountAmount, decimal Total, IReadOnlyList<SaleLineDto> Lines,
-    string? DiscountType, decimal? DiscountValue);
+    string? DiscountType, decimal? DiscountValue, decimal PaidAmount, decimal BalanceDue);
