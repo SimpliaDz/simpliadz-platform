@@ -592,6 +592,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Purchasing module: manage suppliers; create, place, list, and cancel purchase orders without changing stock; post partial or complete goods receipts atomically with stock movements. See [Suppliers](SUPPLIERS.md), [Purchase Orders](PURCHASE_ORDERS.md), and [Goods Receipts](GOODS_RECEIPTS.md).
 - Sales module: create, update, search, retrieve, and deactivate tenant-scoped retail or wholesale customers. See [Customers](CUSTOMERS.md).
 - Sales module: create sale drafts, snapshot price and cost, calculate discounts and totals, and complete atomically with inventory deduction. See [Sales](SALES.md).
+- Sales discounts: authorized fixed or percentage discounts on draft lines and sales. See [Sale Discounts](SALE_DISCOUNTS.md).
 - Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](POS_PRODUCT_LOOKUP.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 

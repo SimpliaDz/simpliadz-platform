@@ -2,13 +2,13 @@
 
 A sale is a tenant-scoped Sales document. A draft belongs to an active location and price list and may optionally reference an active customer. The authenticated user becomes its cashier. Lines are added by **SKU or barcode**, one variant per sale, with a positive quantity. The server resolves `UnitPrice` from the selected price list and stores it on the line. `UnitCostSnapshot` comes from the latest posted goods receipt for that variant when Purchasing is enabled; it is zero when no receipt cost is available. Changing a price list or later purchase cost does not rewrite existing sale lines.
 
-`Subtotal` is the sum of quantity times unit price before discounts. Each line stores its own discount and line total; the sale can also have an order-level `DiscountAmount`. `Total` is the sum of line totals minus the order discount. All amounts are calculated on the server. A draft has no sale number. Completing it assigns a unique `SALE-<GUID>` number and changes status to `Completed`. `PartiallyReturned` and `Returned` are reserved for a future return workflow; SMP-39 exposes no return operation.
+`Subtotal` is the sum of quantity times unit price before discounts. Each line stores its own discount and line total; the sale can also have an order-level `DiscountAmount`. `Total` is the sum of line totals minus the order discount. All amounts are calculated on the server. [Sale Discounts](SALE_DISCOUNTS.md) adds fixed and percentage types with a separate permission. A draft has no sale number. Completing it assigns a unique `SALE-<GUID>` number and changes status to `Completed`. `PartiallyReturned` and `Returned` are reserved for a future return workflow; SMP-39 exposes no return operation.
 
 | Route | Permission | Purpose |
 |---|---|---|
 | `POST /sales` | `sales.manage` | Create a draft with `locationId`, optional `customerId`, and `priceListId`. |
 | `POST /sales/{id}/lines` | `sales.manage` | Add `sku` or `barcode`, `quantity`, and optional `discountAmount`. |
-| `PUT /sales/{id}/discount` | `sales.manage` | Set the order discount. |
+| `PUT /sales/{id}/discount` | `sales.manage` + `sales.discounts.apply` | Set a fixed or percentage order discount. |
 | `POST /sales/{id}/complete` | `sales.manage` | Complete once and deduct inventory. |
 | `POST /sales/{id}/cancel` | `sales.manage` | Cancel a draft without stock effects. |
 | `GET /sales/{id}` | `sales.view` | Retrieve a sale with line snapshots and totals. |

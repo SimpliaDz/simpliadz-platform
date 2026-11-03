@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Sales.Core.Entities;
@@ -54,6 +55,7 @@ public static class SaleEndpoints
         }).RequireAuthorization(PermissionNames.Sales.Manage);
 
         group.MapPost("/{id:guid}/lines", async (Guid id, [FromBody] AddSaleLineRequest request,
+            ClaimsPrincipal principal, [FromServices] IAuthorizationService authorization,
             [FromServices] ISaleService sales, CancellationToken ct) =>
         {
             var errors = new Dictionary<string, string[]>();
@@ -67,20 +69,35 @@ public static class SaleEndpoints
                 decimal.Round(request.DiscountAmount, 4) != request.DiscountAmount)
                 errors["discountAmount"] = ["Discount must be nonnegative and fit decimal(18,4)."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
+            if (request.DiscountAmount > 0 &&
+                !(await authorization.AuthorizeAsync(principal,
+                    PermissionNames.SaleDiscounts.Apply)).Succeeded)
+                return Results.Forbid();
             return Results.Ok(await sales.AddLineAsync(id, request.Sku, request.Barcode,
                 request.Quantity, request.DiscountAmount, ct));
         }).RequireAuthorization(PermissionNames.Sales.Manage);
 
-        group.MapPut("/{id:guid}/discount", async (Guid id,
-            [FromBody] SetSaleDiscountRequest request, [FromServices] ISaleService sales,
+        group.MapPut("/{id:guid}/lines/{lineId:guid}/discount", async (Guid id, Guid lineId,
+            [FromBody] ApplySaleDiscountRequest request, [FromServices] ISaleService sales,
             CancellationToken ct) =>
         {
-            if (request.DiscountAmount < 0 || request.DiscountAmount > 99999999999999.9999m ||
-                decimal.Round(request.DiscountAmount, 4) != request.DiscountAmount)
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                    { ["discountAmount"] = ["Discount must be nonnegative and fit decimal(18,4)."] });
-            return Results.Ok(await sales.SetDiscountAsync(id, request.DiscountAmount, ct));
-        }).RequireAuthorization(PermissionNames.Sales.Manage);
+            var errors = ValidateDiscount(request);
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+            return Results.Ok(await sales.ApplyLineDiscountAsync(id, lineId,
+                Enum.Parse<SaleDiscountType>(request.Type.Trim(), true), request.Value, ct));
+        }).RequireAuthorization(PermissionNames.Sales.Manage,
+            PermissionNames.SaleDiscounts.Apply);
+
+        group.MapPut("/{id:guid}/discount", async (Guid id,
+            [FromBody] ApplySaleDiscountRequest request, [FromServices] ISaleService sales,
+            CancellationToken ct) =>
+        {
+            var errors = ValidateDiscount(request);
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+            return Results.Ok(await sales.ApplySaleDiscountAsync(id,
+                Enum.Parse<SaleDiscountType>(request.Type.Trim(), true), request.Value, ct));
+        }).RequireAuthorization(PermissionNames.Sales.Manage,
+            PermissionNames.SaleDiscounts.Apply);
 
         group.MapPost("/{id:guid}/complete", async (Guid id, ClaimsPrincipal principal,
             [FromServices] ISaleService sales, CancellationToken ct) =>
@@ -102,9 +119,26 @@ public static class SaleEndpoints
         userId != Guid.Empty
             ? userId
             : throw new UnauthorizedAccessException("Authenticated user ID is required for sales.");
+
+    private static Dictionary<string, string[]> ValidateDiscount(ApplySaleDiscountRequest request)
+    {
+        var errors = new Dictionary<string, string[]>();
+        var isNamedType = Enum.GetNames<SaleDiscountType>().Any(x =>
+            string.Equals(x, request.Type?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (!isNamedType)
+            errors["type"] = ["Discount type must be FixedAmount or Percentage."];
+        if (request.Value < 0 || request.Value > 99999999999999.9999m ||
+            decimal.Round(request.Value, 4) != request.Value)
+            errors["value"] = ["Discount value must be nonnegative and fit decimal(18,4)."];
+        else if (isNamedType &&
+            Enum.Parse<SaleDiscountType>(request.Type!.Trim(), true) == SaleDiscountType.Percentage &&
+            request.Value > 100m)
+            errors["value"] = ["Percentage must be between 0 and 100."];
+        return errors;
+    }
 }
 
 public sealed record CreateSaleRequest(Guid LocationId, Guid? CustomerId, Guid PriceListId);
 public sealed record AddSaleLineRequest(string? Sku, string? Barcode, int Quantity,
     decimal DiscountAmount);
-public sealed record SetSaleDiscountRequest(decimal DiscountAmount);
+public sealed record ApplySaleDiscountRequest(string Type, decimal Value);

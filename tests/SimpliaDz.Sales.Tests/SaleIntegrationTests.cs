@@ -80,14 +80,22 @@ public sealed class SaleIntegrationTests
                 CancellationToken.None);
             Assert.Equal(12m, first.Lines.Single().UnitPrice);
             Assert.Equal(6.5m, first.Lines.Single().UnitCostSnapshot);
-            first = await service.SetDiscountAsync(first.Id, 1m, CancellationToken.None);
+            first = await service.ApplyLineDiscountAsync(first.Id, first.Lines.Single().Id,
+                SaleDiscountType.Percentage, 25m, CancellationToken.None);
+            first = await service.ApplySaleDiscountAsync(first.Id, SaleDiscountType.FixedAmount,
+                1m, CancellationToken.None);
             Assert.Equal(24m, first.Subtotal);
-            Assert.Equal(22m, first.Total);
+            Assert.Equal(17m, first.Total);
             Assert.Null(first.SaleNumber);
 
             first = await service.CompleteAsync(first.Id, cashier, CancellationToken.None);
             Assert.Equal("Completed", first.Status);
             Assert.StartsWith("SALE-", first.SaleNumber);
+            Assert.Equal("Percentage", first.Lines.Single().DiscountType);
+            Assert.Equal(25m, first.Lines.Single().DiscountValue);
+            Assert.Equal(6m, first.Lines.Single().DiscountAmount);
+            Assert.Equal("FixedAmount", first.DiscountType);
+            Assert.Equal(1m, first.DiscountAmount);
             await Assert.ThrowsAsync<ConflictException>(() => service.CompleteAsync(first.Id,
                 cashier, CancellationToken.None));
             sales.ChangeTracker.Clear();

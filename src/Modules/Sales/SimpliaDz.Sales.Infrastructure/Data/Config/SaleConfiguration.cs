@@ -21,6 +21,8 @@ internal sealed class SaleConfiguration : IEntityTypeConfiguration<Sale>
         b.Property(x => x.SaleDate).IsRequired();
         b.Property(x => x.Subtotal).HasPrecision(18, 4).IsRequired();
         b.Property(x => x.DiscountAmount).HasPrecision(18, 4).IsRequired();
+        b.Property(x => x.DiscountType).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.DiscountValue).HasPrecision(18, 4);
         b.Property(x => x.Total).HasPrecision(18, 4).IsRequired();
         b.Property(x => x.Revision).IsRequired();
         b.Property(x => x.RowVersion).IsRowVersion();
@@ -50,6 +52,8 @@ internal sealed class SaleLineConfiguration : IEntityTypeConfiguration<SaleLine>
         b.Property(x => x.UnitPrice).HasPrecision(18, 2).IsRequired();
         b.Property(x => x.UnitCostSnapshot).HasPrecision(18, 4).IsRequired();
         b.Property(x => x.DiscountAmount).HasPrecision(18, 4).IsRequired();
+        b.Property(x => x.DiscountType).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.DiscountValue).HasPrecision(18, 4);
         b.Property(x => x.LineTotal).HasPrecision(18, 4).IsRequired();
         b.HasIndex(x => new { x.SaleId, x.ProductVariantId }).IsUnique();
         b.HasIndex(x => x.ProductVariantId);

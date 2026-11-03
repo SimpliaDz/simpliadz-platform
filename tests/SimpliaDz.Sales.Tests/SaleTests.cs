@@ -22,6 +22,44 @@ public sealed class SaleTests
     }
 
     [Fact]
+    public void Percentage_discounts_recalculate_when_lines_change()
+    {
+        var sale = NewSale();
+        var first = sale.AddLine(Guid.NewGuid(), 2, 12m, 6.5m);
+        sale.ApplyLineDiscount(first.Id, SaleDiscountType.Percentage, 25m);
+        Assert.Equal(6m, first.DiscountAmount);
+        Assert.Equal(18m, first.LineTotal);
+        sale.ApplySaleDiscount(SaleDiscountType.Percentage, 10m);
+        Assert.Equal(1.8m, sale.DiscountAmount);
+        Assert.Equal(16.2m, sale.Total);
+
+        sale.AddLine(Guid.NewGuid(), 1, 10m, 4m);
+        Assert.Equal(34m, sale.Subtotal);
+        Assert.Equal(2.8m, sale.DiscountAmount);
+        Assert.Equal(25.2m, sale.Total);
+        Assert.Equal(SaleDiscountType.Percentage, sale.DiscountType);
+        Assert.Equal(10m, sale.DiscountValue);
+    }
+
+    [Fact]
+    public void Invalid_discounts_cannot_make_totals_negative_or_change_completed_sale()
+    {
+        var sale = NewSale();
+        var line = sale.AddLine(Guid.NewGuid(), 1, 10m, 2m);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            sale.ApplyLineDiscount(line.Id, SaleDiscountType.Percentage, 101m));
+        Assert.Throws<ArgumentException>(() =>
+            sale.ApplyLineDiscount(line.Id, SaleDiscountType.FixedAmount, 11m));
+        sale.ApplySaleDiscount(SaleDiscountType.FixedAmount, 5m);
+        Assert.Throws<ArgumentException>(() =>
+            sale.ApplyLineDiscount(line.Id, SaleDiscountType.FixedAmount, 6m));
+        Assert.Equal(5m, sale.Total);
+        sale.Complete(Guid.NewGuid());
+        Assert.Throws<InvalidOperationException>(() =>
+            sale.ApplySaleDiscount(SaleDiscountType.Percentage, 5m));
+    }
+
+    [Fact]
     public void Completion_assigns_number_once_and_cannot_be_repeated()
     {
         var sale = NewSale();

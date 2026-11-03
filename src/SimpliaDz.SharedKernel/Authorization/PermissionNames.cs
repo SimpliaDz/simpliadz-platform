@@ -107,6 +107,11 @@ public static class PermissionNames
         public const string Manage = "sales.manage";
     }
 
+    public static class SaleDiscounts
+    {
+        public const string Apply = "sales.discounts.apply";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -151,6 +156,7 @@ public static class PermissionNames
         new(Customers.Manage, "Manage Customers", "Customers"),
         new(Sales.View, "View Sales", "Sales"),
         new(Sales.Manage, "Manage Sales", "Sales"),
+        new(SaleDiscounts.Apply, "Apply Sale Discounts", "Sales"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

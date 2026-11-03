@@ -77,10 +77,27 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
 
     public async Task<SaleDto> SetDiscountAsync(Guid saleId, decimal discountAmount,
         CancellationToken ct)
+        => await ApplySaleDiscountAsync(saleId, SaleDiscountType.FixedAmount,
+            discountAmount, ct);
+
+    public async Task<SaleDto> ApplySaleDiscountAsync(Guid saleId, SaleDiscountType type,
+        decimal value, CancellationToken ct)
     {
         var sale = await LoadAsync(saleId, ct);
         EnsureDraft(sale);
-        sale.SetDiscount(discountAmount);
+        sale.ApplySaleDiscount(type, value);
+        await SaveAsync(ct);
+        return Map(sale);
+    }
+
+    public async Task<SaleDto> ApplyLineDiscountAsync(Guid saleId, Guid lineId,
+        SaleDiscountType type, decimal value, CancellationToken ct)
+    {
+        var sale = await LoadAsync(saleId, ct);
+        EnsureDraft(sale);
+        if (!sale.Lines.Any(x => x.Id == lineId))
+            throw new NotFoundException("Sale line", lineId);
+        sale.ApplyLineDiscount(lineId, type, value);
         await SaveAsync(ct);
         return Map(sale);
     }
@@ -218,5 +235,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         x.CashierId, x.PriceListId, x.Status.ToString(), x.SaleDate, x.Subtotal,
         x.DiscountAmount, x.Total, x.Lines.OrderBy(line => line.ProductVariantId)
             .Select(line => new SaleLineDto(line.Id, line.ProductVariantId, line.Quantity,
-                line.UnitPrice, line.UnitCostSnapshot, line.DiscountAmount, line.LineTotal)).ToList());
+                line.UnitPrice, line.UnitCostSnapshot, line.DiscountAmount, line.LineTotal,
+                line.DiscountType?.ToString(), line.DiscountValue)).ToList(),
+        x.DiscountType?.ToString(), x.DiscountValue);
 }
