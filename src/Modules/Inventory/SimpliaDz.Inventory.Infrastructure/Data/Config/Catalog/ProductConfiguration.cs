@@ -42,6 +42,7 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .OnDelete(DeleteBehavior.Restrict);
 
         b.HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL");
+        b.HasIndex(x => x.Name).HasDatabaseName("IX_Products_Name_PosLookup");
         b.HasIndex(x => x.BrandId);
         b.HasIndex(x => x.ProductCategoryId);
         b.HasIndex(x => x.IsActive);

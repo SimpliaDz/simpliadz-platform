@@ -175,6 +175,9 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
                     b.HasIndex("IsActive");
 
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Products_Name_PosLookup");
+
                     b.HasIndex("ProductCategoryId");
 
                     b.ToTable("Products", "inventory");
