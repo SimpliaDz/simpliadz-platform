@@ -45,6 +45,7 @@ public static class EndpointExtensions
         app.MapSalesSummaryReportEndpoints();
         app.MapProductPerformanceReportEndpoints();
         app.MapInventoryReportEndpoints();
+        app.MapLowStockReportEndpoints();
 
         return app;
     }
