@@ -140,6 +140,7 @@ public static class PermissionNames
         public const string ProductPerformance = "reports.product-performance.view";
         public const string Inventory = "reports.inventory.view";
         public const string LowStock = "reports.low-stock.view";
+        public const string Dashboard = "reports.dashboard.view";
     }
 
     public static class Organization
@@ -197,6 +198,7 @@ public static class PermissionNames
         new(Reports.ProductPerformance, "View Product Performance Report", "Reporting"),
         new(Reports.Inventory, "View Inventory Report", "Reporting"),
         new(Reports.LowStock, "View Low Stock Report", "Reporting"),
+        new(Reports.Dashboard, "View Dashboard Summary", "Reporting"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

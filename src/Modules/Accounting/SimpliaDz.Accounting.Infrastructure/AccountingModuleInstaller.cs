@@ -22,6 +22,7 @@ public sealed class AccountingModuleInstaller : IModuleInstaller
             }));
         services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
         services.AddScoped<IExpenseService, ExpenseService>();
+        services.AddScoped<IExpenseTotalReader, ExpenseTotalReader>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)

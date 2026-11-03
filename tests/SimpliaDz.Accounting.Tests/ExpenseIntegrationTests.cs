@@ -42,6 +42,11 @@ public sealed class ExpenseIntegrationTests
                 new DateOnly(2026, 11, 1), "Monthly rent", actor, CancellationToken.None);
             var second = await service.CreateAsync(supplies.Id, location, 50.5m,
                 new DateOnly(2026, 11, 2), "Paper", actor, CancellationToken.None);
+            var totals = new ExpenseTotalReader(db);
+            Assert.Equal(50.5m, await totals.GetTotalForDateAsync(
+                new DateOnly(2026, 11, 2), CancellationToken.None));
+            Assert.Equal(0m, await totals.GetTotalForDateAsync(
+                new DateOnly(2026, 11, 4), CancellationToken.None));
             Assert.Null(first.LocationId);
             Assert.Equal(location, second.LocationId);
             Assert.Single(await service.ListAsync(new DateOnly(2026, 11, 2),
