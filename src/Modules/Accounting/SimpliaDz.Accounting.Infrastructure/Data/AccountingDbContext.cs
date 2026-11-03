@@ -11,6 +11,7 @@ public sealed class AccountingDbContext : DbContext
     }
 
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<Expense> Expenses => Set<Expense>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,33 +22,35 @@ public sealed class AccountingDbContext : DbContext
 
     public override int SaveChanges()
     {
-        PreventCategoryDeletes();
+        PreventHistoryDeletes();
         return base.SaveChanges();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        PreventCategoryDeletes();
+        PreventHistoryDeletes();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        PreventCategoryDeletes();
+        PreventHistoryDeletes();
         return base.SaveChangesAsync(cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
-        PreventCategoryDeletes();
+        PreventHistoryDeletes();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    private void PreventCategoryDeletes()
+    private void PreventHistoryDeletes()
     {
         ChangeTracker.DetectChanges();
         if (ChangeTracker.Entries<ExpenseCategory>().Any(x => x.State == EntityState.Deleted))
             throw new InvalidOperationException("Expense categories must be deactivated, not deleted.");
+        if (ChangeTracker.Entries<Expense>().Any(x => x.State == EntityState.Deleted))
+            throw new InvalidOperationException("Expenses cannot be deleted.");
     }
 }

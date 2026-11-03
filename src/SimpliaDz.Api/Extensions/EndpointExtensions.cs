@@ -39,6 +39,7 @@ public static class EndpointExtensions
         app.MapPaymentEndpoints();
         app.MapSaleReturnEndpoints();
         app.MapExpenseCategoryEndpoints();
+        app.MapExpenseEndpoints();
 
         return app;
     }

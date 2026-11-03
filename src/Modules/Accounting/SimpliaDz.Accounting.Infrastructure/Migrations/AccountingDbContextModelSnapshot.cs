@@ -23,6 +23,58 @@ namespace SimpliaDz.Accounting.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SimpliaDz.Accounting.Core.Expense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("ExpenseCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("ExpenseDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpenseCategoryId", "ExpenseDate");
+
+                    b.HasIndex("ExpenseDate", "Id");
+
+                    b.HasIndex("LocationId", "ExpenseDate");
+
+                    b.ToTable("Expenses", "accounting", t =>
+                        {
+                            t.HasCheckConstraint("CK_Expenses_Amount_Positive", "[Amount] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Accounting.Core.ExpenseCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -57,6 +109,17 @@ namespace SimpliaDz.Accounting.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ExpenseCategories", "accounting");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Accounting.Core.Expense", b =>
+                {
+                    b.HasOne("SimpliaDz.Accounting.Core.ExpenseCategory", "ExpenseCategory")
+                        .WithMany()
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ExpenseCategory");
                 });
 #pragma warning restore 612, 618
         }

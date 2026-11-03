@@ -55,7 +55,7 @@ src/
     ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock.
     ├── Purchasing/                # ACTIVE — suppliers, purchase orders, goods receipts.
     ├── Sales/                     # ACTIVE — customers and sale documents.
-    ├── Accounting/                 # ACTIVE — expense categories.
+    ├── Accounting/                 # ACTIVE — expense categories and expenses.
     └── Audit | Notifications | Reporting/   # SCAFFOLDED, NOT IMPLEMENTED.
 tests/                              # Module-catalog, Organization, Inventory, Purchasing, Sales, and Accounting tests.
 ```
@@ -554,7 +554,7 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Notifications, and Reporting still consist mostly of scaffolding. Accounting exposes expense categories; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
+1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit, Notifications, and Reporting still consist mostly of scaffolding. Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, transfers, and physical counts are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.

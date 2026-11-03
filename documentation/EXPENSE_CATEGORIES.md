@@ -12,4 +12,4 @@ Expense categories are maintained by the tenant's Accounting module. A category 
 
 Routes are tenant-scoped and require the Accounting module to be enabled. The local `dev` and `demo` tenants enable it; run the database migrator for each tenant after updating to this version. Each tenant's Accounting DbContext uses its own configured database. The `Accounting_ExpenseCategories` migration creates `accounting.ExpenseCategories` with a unique name index and row-version concurrency token.
 
-Hard deletion is blocked by the Accounting DbContext. Deactivated categories retain their IDs and remain readable, so future Expense records can keep their category reference. The Expense entity and its foreign key are not introduced by this ticket; when added, its category relationship should use `DeleteBehavior.Restrict` and allow references to inactive categories for historical records.
+Hard deletion is blocked by the Accounting DbContext. Deactivated categories retain their IDs and remain readable. SMP-45 adds `Expense` with a restrictive category foreign key, so existing expenses keep their category reference after deactivation. New expenses must use an active category.

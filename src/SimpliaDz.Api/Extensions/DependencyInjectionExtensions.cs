@@ -9,6 +9,7 @@ using SimpliaDz.BuildingBlocks.Tenancy.Resolution;
 using SimpliaDz.SharedKernel.Authorization;
 using SimpliaDz.Purchasing.UseCases.Services;
 using SimpliaDz.Sales.UseCases.Services;
+using SimpliaDz.Accounting.UseCases.Services;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -34,6 +35,7 @@ public static class DependencyInjectionExtensions
         }
 
         services.AddScoped<IInventoryReferenceValidator, InventoryReferenceValidator>();
+        services.AddScoped<IExpenseLocationValidator, ExpenseLocationValidator>();
         services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
         services.AddScoped<ISaleService, SaleService>();
         services.AddScoped<ISaleReturnService, SaleReturnService>();

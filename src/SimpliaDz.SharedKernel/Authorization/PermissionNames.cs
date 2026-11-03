@@ -128,6 +128,12 @@ public static class PermissionNames
         public const string Manage = "expense-categories.manage";
     }
 
+    public static class Expenses
+    {
+        public const string View = "expenses.view";
+        public const string Manage = "expenses.manage";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -177,6 +183,8 @@ public static class PermissionNames
         new(SaleReturns.Manage, "Process Sale Returns", "Sales"),
         new(ExpenseCategories.View, "View Expense Categories", "Accounting"),
         new(ExpenseCategories.Manage, "Manage Expense Categories", "Accounting"),
+        new(Expenses.View, "View Expenses", "Accounting"),
+        new(Expenses.Manage, "Manage Expenses", "Accounting"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

@@ -21,6 +21,7 @@ public sealed class AccountingModuleInstaller : IModuleInstaller
                 sql.MigrationsAssembly(typeof(AccountingDbContext).Assembly.FullName);
             }));
         services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
+        services.AddScoped<IExpenseService, ExpenseService>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
