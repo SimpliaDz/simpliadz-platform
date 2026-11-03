@@ -14,6 +14,8 @@ public sealed class SalesDbContext : DbContext
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleLine> SaleLines => Set<SaleLine>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
+    public DbSet<SaleReturnLine> SaleReturnLines => Set<SaleReturnLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +59,9 @@ public sealed class SalesDbContext : DbContext
             throw new InvalidOperationException("Sale history cannot be deleted.");
         if (ChangeTracker.Entries<Payment>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
             throw new InvalidOperationException("Payment history is immutable.");
+        if (ChangeTracker.Entries<SaleReturn>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted) ||
+            ChangeTracker.Entries<SaleReturnLine>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("Sale return history is immutable.");
 
         var newPayments = ChangeTracker.Entries<Payment>()
             .Where(entry => entry.State == EntityState.Added)

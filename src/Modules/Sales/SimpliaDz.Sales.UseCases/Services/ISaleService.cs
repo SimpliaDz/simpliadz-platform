@@ -22,7 +22,7 @@ public interface ISaleService
 
 public sealed record SaleLineDto(Guid Id, Guid ProductVariantId, int Quantity,
     decimal UnitPrice, decimal UnitCostSnapshot, decimal DiscountAmount, decimal LineTotal,
-    string? DiscountType, decimal? DiscountValue);
+    string? DiscountType, decimal? DiscountValue, int ReturnedQuantity);
 
 public sealed record SaleDto(Guid Id, string? SaleNumber, Guid LocationId, Guid? CustomerId,
     Guid CashierId, Guid PriceListId, string Status, DateTimeOffset SaleDate,

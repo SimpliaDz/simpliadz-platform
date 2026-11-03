@@ -14,6 +14,7 @@ using SimpliaDz.Purchasing.UseCases.Services;
 using SimpliaDz.Sales.Core.Entities;
 using SimpliaDz.Sales.Infrastructure.Data;
 using SimpliaDz.Sales.Infrastructure.Services;
+using SimpliaDz.Sales.UseCases.Services;
 using Xunit;
 
 namespace SimpliaDz.Sales.Tests;
@@ -163,6 +164,64 @@ public sealed class SaleIntegrationTests
             Assert.Equal(8, (await inventory.StockBalances.SingleAsync()).QuantityOnHand);
             Assert.DoesNotContain(await inventory.StockMovements.ToListAsync(),
                 x => x.MovementType == StockMovementType.Sale && x.ReferenceId == failedId);
+
+            sales.ChangeTracker.Clear();
+            var returns = new SaleReturnService(sales, tenant);
+            var saleLineId = first.Lines.Single().Id;
+            var partialId = Guid.NewGuid();
+            var partial = await returns.ProcessAsync(partialId, first.Id, location.Id,
+                "Customer changed size", cashier,
+                [new ReturnSaleLine(saleLineId, 1, true)], CancellationToken.None);
+            Assert.Equal(8.5m, partial.RefundTotal);
+            Assert.Equal(8.5m, partial.Lines.Single().UnitRefundAmount);
+            Assert.Equal("PartiallyReturned", (await service.GetByIdAsync(first.Id,
+                CancellationToken.None)).Status);
+            Assert.Equal(1, (await service.GetByIdAsync(first.Id,
+                CancellationToken.None)).Lines.Single().ReturnedQuantity);
+            inventory.ChangeTracker.Clear();
+            Assert.Equal(9, (await inventory.StockBalances.SingleAsync()).QuantityOnHand);
+            Assert.Contains(await inventory.StockMovements.ToListAsync(), x =>
+                x.MovementType == StockMovementType.SaleReturn && x.ReferenceId == partialId &&
+                x.QuantityDelta == 1);
+            await Assert.ThrowsAsync<ConflictException>(() => returns.ProcessAsync(partialId,
+                first.Id, location.Id, "Duplicate", cashier,
+                [new ReturnSaleLine(saleLineId, 1, true)], CancellationToken.None));
+            await Assert.ThrowsAsync<ConflictException>(() => returns.ProcessAsync(Guid.NewGuid(),
+                first.Id, location.Id, "Too many", cashier,
+                [new ReturnSaleLine(saleLineId, 2, true)], CancellationToken.None));
+
+            await inventory.Database.ExecuteSqlRawAsync("""
+                CREATE TRIGGER inventory.RejectReturnTest ON inventory.StockMovements
+                AFTER INSERT AS BEGIN THROW 51004, 'Test return stock failure', 1; END
+                """);
+            var failedReturnId = Guid.NewGuid();
+            await Assert.ThrowsAnyAsync<Exception>(() => returns.ProcessAsync(failedReturnId,
+                first.Id, location.Id, "Rollback check", cashier,
+                [new ReturnSaleLine(saleLineId, 1, true)], CancellationToken.None));
+            await inventory.Database.ExecuteSqlRawAsync("DROP TRIGGER inventory.RejectReturnTest");
+            sales.ChangeTracker.Clear();
+            inventory.ChangeTracker.Clear();
+            Assert.False(await sales.SaleReturns.AnyAsync(x => x.Id == failedReturnId));
+            Assert.Equal("PartiallyReturned", (await service.GetByIdAsync(first.Id,
+                CancellationToken.None)).Status);
+            Assert.Equal(9, (await inventory.StockBalances.SingleAsync()).QuantityOnHand);
+
+            var finalId = Guid.NewGuid();
+            var finalReturn = await returns.ProcessAsync(finalId, first.Id, location.Id,
+                "Damaged item", cashier,
+                [new ReturnSaleLine(saleLineId, 1, false)], CancellationToken.None);
+            Assert.Equal(8.5m, finalReturn.RefundTotal);
+            Assert.Equal("Returned", (await service.GetByIdAsync(first.Id,
+                CancellationToken.None)).Status);
+            Assert.Equal(2, (await service.GetByIdAsync(first.Id,
+                CancellationToken.None)).Lines.Single().ReturnedQuantity);
+            inventory.ChangeTracker.Clear();
+            Assert.Equal(9, (await inventory.StockBalances.SingleAsync()).QuantityOnHand);
+            Assert.DoesNotContain(await inventory.StockMovements.ToListAsync(), x =>
+                x.MovementType == StockMovementType.SaleReturn && x.ReferenceId == finalId);
+            Assert.Equal(2, (await returns.ListBySaleAsync(first.Id, CancellationToken.None)).Count);
+            Assert.Equal(partial.Id, (await returns.GetByIdAsync(partialId,
+                CancellationToken.None)).Id);
         }
         finally
         {

@@ -161,6 +161,19 @@ public sealed class Sale
         Revision = checked(Revision + 1);
     }
 
+    public void RecordReturn(Guid lineId, int quantity)
+    {
+        if (Status is not (SaleStatus.Completed or SaleStatus.PartiallyReturned))
+            throw new InvalidOperationException("Only a completed sale can be returned.");
+        var line = _lines.FirstOrDefault(x => x.Id == lineId)
+            ?? throw new ArgumentException("Line does not belong to this sale.", nameof(lineId));
+        line.RecordReturn(quantity);
+        Status = _lines.All(x => x.ReturnedQuantity == x.Quantity)
+            ? SaleStatus.Returned
+            : SaleStatus.PartiallyReturned;
+        Revision = checked(Revision + 1);
+    }
+
     private void EnsureDraft()
     {
         if (Status != SaleStatus.Draft)
@@ -183,6 +196,7 @@ public sealed class SaleLine
     public SaleDiscountType? DiscountType { get; private set; }
     public decimal? DiscountValue { get; private set; }
     public decimal LineTotal { get; private set; }
+    public int ReturnedQuantity { get; private set; }
     public decimal GrossAmount => Quantity * UnitPrice;
 
     private SaleLine() { }
@@ -225,5 +239,13 @@ public sealed class SaleLine
         DiscountValue = value;
         DiscountAmount = amount;
         LineTotal = GrossAmount - amount;
+    }
+
+    internal void RecordReturn(int quantity)
+    {
+        if (quantity <= 0 || quantity > Quantity - ReturnedQuantity)
+            throw new ArgumentOutOfRangeException(nameof(quantity),
+                "Return quantity must be positive and cannot exceed remaining sold quantity.");
+        ReturnedQuantity += quantity;
     }
 }

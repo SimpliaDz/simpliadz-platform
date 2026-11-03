@@ -234,6 +234,9 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<int>("ReturnedQuantity")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -257,6 +260,94 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                             t.HasCheckConstraint("CK_SaleLines_Amounts_NonNegative", "[UnitPrice] >= 0 AND [UnitCostSnapshot] >= 0 AND [DiscountAmount] >= 0 AND [LineTotal] >= 0");
 
                             t.HasCheckConstraint("CK_SaleLines_Quantity_Positive", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_SaleLines_ReturnedQuantity_Range", "[ReturnedQuantity] >= 0 AND [ReturnedQuantity] <= [Quantity]");
+                        });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleReturn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalSaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset>("ReturnDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("ReturnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("OriginalSaleId", "ReturnDate");
+
+                    b.ToTable("SaleReturns", "sales");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleReturnLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OriginalSaleLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RefundAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("Restock")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("SaleReturnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("UnitRefundAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OriginalSaleLineId");
+
+                    b.HasIndex("ProductVariantId");
+
+                    b.HasIndex("SaleReturnId", "OriginalSaleLineId")
+                        .IsUnique();
+
+                    b.ToTable("SaleReturnLines", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_SaleReturnLines_Quantity_Positive", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_SaleReturnLines_Refund_NonNegative", "[UnitRefundAmount] >= 0 AND [RefundAmount] >= 0");
                         });
                 });
 
@@ -292,7 +383,42 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleReturn", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.Sale", "OriginalSale")
+                        .WithMany()
+                        .HasForeignKey("OriginalSaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OriginalSale");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleReturnLine", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.SaleLine", "OriginalSaleLine")
+                        .WithMany()
+                        .HasForeignKey("OriginalSaleLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.SaleReturn", "SaleReturn")
+                        .WithMany("Lines")
+                        .HasForeignKey("SaleReturnId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OriginalSaleLine");
+
+                    b.Navigation("SaleReturn");
+                });
+
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleReturn", b =>
                 {
                     b.Navigation("Lines");
                 });

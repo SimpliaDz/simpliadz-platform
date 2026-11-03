@@ -49,6 +49,8 @@ internal sealed class SaleLineConfiguration : IEntityTypeConfiguration<SaleLine>
             table.HasCheckConstraint("CK_SaleLines_Quantity_Positive", "[Quantity] > 0");
             table.HasCheckConstraint("CK_SaleLines_Amounts_NonNegative",
                 "[UnitPrice] >= 0 AND [UnitCostSnapshot] >= 0 AND [DiscountAmount] >= 0 AND [LineTotal] >= 0");
+            table.HasCheckConstraint("CK_SaleLines_ReturnedQuantity_Range",
+                "[ReturnedQuantity] >= 0 AND [ReturnedQuantity] <= [Quantity]");
         });
         b.HasKey(x => x.Id);
         b.Ignore(x => x.GrossAmount);

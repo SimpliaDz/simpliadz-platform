@@ -236,6 +236,6 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         x.DiscountAmount, x.Total, x.Lines.OrderBy(line => line.ProductVariantId)
             .Select(line => new SaleLineDto(line.Id, line.ProductVariantId, line.Quantity,
                 line.UnitPrice, line.UnitCostSnapshot, line.DiscountAmount, line.LineTotal,
-                line.DiscountType?.ToString(), line.DiscountValue)).ToList(),
+                line.DiscountType?.ToString(), line.DiscountValue, line.ReturnedQuantity)).ToList(),
         x.DiscountType?.ToString(), x.DiscountValue, x.PaidAmount, x.BalanceDue);
 }
