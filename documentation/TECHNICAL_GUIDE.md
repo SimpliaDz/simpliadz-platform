@@ -56,7 +56,7 @@ src/
     ├── Purchasing/                # ACTIVE — suppliers, purchase orders, goods receipts.
     ├── Sales/                     # ACTIVE — customers and sale documents.
     ├── Accounting/                 # ACTIVE — expense categories and expenses.
-    ├── Reporting/                  # ACTIVE — sales summary report.
+    ├── Reporting/                  # ACTIVE — sales summary and product performance reports.
     └── Audit | Notifications/      # SCAFFOLDED, NOT IMPLEMENTED.
 tests/                              # Module-catalog, Organization, Inventory, Purchasing, Sales, and Accounting tests.
 ```

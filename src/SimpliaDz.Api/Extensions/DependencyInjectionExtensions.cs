@@ -11,6 +11,7 @@ using SimpliaDz.Purchasing.UseCases.Services;
 using SimpliaDz.Sales.UseCases.Services;
 using SimpliaDz.Accounting.UseCases.Services;
 using SimpliaDz.Reporting.UseCases.SalesSummary;
+using SimpliaDz.Reporting.UseCases.ProductPerformance;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -42,6 +43,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ISaleReturnService, SaleReturnService>();
         services.AddScoped<IPosProductLookupService, PosProductLookupService>();
         services.AddScoped<ISalesSummaryReportService, SalesSummaryReportService>();
+        services.AddScoped<IProductPerformanceReportService, ProductPerformanceReportService>();
 
         var useCaseAssemblies = new[]
         {

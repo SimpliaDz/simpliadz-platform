@@ -43,6 +43,7 @@ public static class EndpointExtensions
         app.MapExpenseCategoryEndpoints();
         app.MapExpenseEndpoints();
         app.MapSalesSummaryReportEndpoints();
+        app.MapProductPerformanceReportEndpoints();
 
         return app;
     }
