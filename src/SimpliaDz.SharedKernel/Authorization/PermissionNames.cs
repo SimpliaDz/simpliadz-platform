@@ -138,6 +138,7 @@ public static class PermissionNames
     {
         public const string SalesSummary = "reports.sales-summary.view";
         public const string ProductPerformance = "reports.product-performance.view";
+        public const string Inventory = "reports.inventory.view";
     }
 
     public static class Organization
@@ -193,6 +194,7 @@ public static class PermissionNames
         new(Expenses.Manage, "Manage Expenses", "Accounting"),
         new(Reports.SalesSummary, "View Sales Summary Report", "Reporting"),
         new(Reports.ProductPerformance, "View Product Performance Report", "Reporting"),
+        new(Reports.Inventory, "View Inventory Report", "Reporting"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),
