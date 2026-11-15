@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.UseCases.Services;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Inventory;
@@ -68,8 +70,20 @@ public static class InventoryCountEndpoints
         }).RequireAuthorization(PermissionNames.Stock.Manage);
 
         group.MapPost("/{id:guid}/complete", async (Guid id, ClaimsPrincipal principal,
-            [FromServices] IInventoryCountService counts, CancellationToken ct) =>
-            Results.Ok(await counts.CompleteAsync(id, RequireActor(principal), ct)))
+            HttpContext http, [FromServices] IInventoryCountService counts,
+            [FromServices] IAuditTrail audit, CancellationToken ct) =>
+        {
+            var result = await counts.CompleteAsync(id, RequireActor(principal), ct);
+            await BusinessAudit.RecordAsync(audit, http, "InventoryCountCompleted",
+                "InventoryCount", id,
+                new Dictionary<string, object?> { ["status"] = "Draft",
+                    ["locationId"] = result.LocationId },
+                new Dictionary<string, object?> { ["status"] = result.Status,
+                    ["lineCount"] = result.Lines.Count,
+                    ["adjustedLineCount"] = result.Lines.Count(x => x.Difference != 0) }, ct);
+            return Results.Ok(result);
+        })
+            .RequireAudit()
             .RequireAuthorization(PermissionNames.Stock.Manage);
 
         group.MapPost("/{id:guid}/cancel", async (Guid id,

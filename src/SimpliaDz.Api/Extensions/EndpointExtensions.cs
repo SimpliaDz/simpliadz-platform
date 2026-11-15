@@ -1,4 +1,5 @@
 using SimpliaDz.Api.Endpoints.Accounting;
+using SimpliaDz.Api.Endpoints.Audit;
 using SimpliaDz.Api.Endpoints.Identity;
 using SimpliaDz.Api.Endpoints.Inventory;
 using SimpliaDz.Api.Endpoints.Organization;
@@ -47,6 +48,7 @@ public static class EndpointExtensions
         app.MapInventoryReportEndpoints();
         app.MapLowStockReportEndpoints();
         app.MapDashboardSummaryEndpoints();
+        app.MapAuditEndpoints();
 
         return app;
     }

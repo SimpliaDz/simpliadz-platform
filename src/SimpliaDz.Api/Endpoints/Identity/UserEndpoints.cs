@@ -1,4 +1,6 @@
 using Mediator;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -85,12 +87,19 @@ public static class UserEndpoints
 
         group.MapPut("/{id:guid}/deactivate", async (
             Guid id,
+            HttpContext http,
             [FromServices] ISender sender,
+            [FromServices] IAuditTrail audit,
             CancellationToken ct) =>
         {
+            var before = await sender.Send(new GetUserByIdQuery(id), ct);
             await sender.Send(new DeactivateUserCommand(id), ct);
+            if (before.IsActive)
+                await BusinessAudit.RecordAsync(audit, http, "UserDeactivated", "User", id,
+                    new Dictionary<string, object?> { ["isActive"] = true },
+                    new Dictionary<string, object?> { ["isActive"] = false }, ct);
             return Results.NoContent();
-        }).RequireAuthorization(PermissionNames.Users.Edit);
+        }).RequireAudit().RequireAuthorization(PermissionNames.Users.Edit);
 
         group.MapGet("/{id:guid}/permissions", async (
             Guid id,

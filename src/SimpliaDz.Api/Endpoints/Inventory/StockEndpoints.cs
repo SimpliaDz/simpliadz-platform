@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.UseCases.Services;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Inventory;
@@ -81,7 +83,9 @@ public static class StockEndpoints
         }).RequireAuthorization(PermissionNames.Stock.Manage);
 
         group.MapPost("/adjustments", async ([FromBody] AdjustStockRequest request,
-            ClaimsPrincipal principal, [FromServices] IStockService stock, CancellationToken ct) =>
+            ClaimsPrincipal principal, HttpContext http,
+            [FromServices] IStockService stock, [FromServices] IAuditTrail audit,
+            CancellationToken ct) =>
         {
             var errors = ValidateIds(request.ProductVariantId, request.LocationId);
             if (request.QuantityDelta.HasValue == request.QuantityOnHand.HasValue)
@@ -96,14 +100,25 @@ public static class StockEndpoints
             if (errors.Count > 0) return Results.ValidationProblem(errors);
 
             var actor = RequireActor(principal);
+            var before = (await stock.GetByVariantAsync(request.ProductVariantId, ct))
+                .FirstOrDefault(x => x.LocationId == request.LocationId)?.QuantityOnHand ?? 0;
             if (request.QuantityDelta.HasValue)
                 await stock.AdjustByAsync(request.ProductVariantId, request.LocationId,
                     request.QuantityDelta.Value, reason!, actor, ct);
             else
                 await stock.AdjustToAsync(request.ProductVariantId, request.LocationId,
                     request.QuantityOnHand!.Value, reason!, actor, ct);
+            var after = (await stock.GetByVariantAsync(request.ProductVariantId, ct))
+                .FirstOrDefault(x => x.LocationId == request.LocationId)?.QuantityOnHand ?? 0;
+            if (after != before)
+                await BusinessAudit.RecordAsync(audit, http, "StockAdjusted", "ProductVariant",
+                    request.ProductVariantId,
+                    new Dictionary<string, object?> { ["locationId"] = request.LocationId,
+                        ["quantityOnHand"] = before },
+                    new Dictionary<string, object?> { ["locationId"] = request.LocationId,
+                        ["quantityOnHand"] = after, ["reason"] = reason }, ct);
             return Results.NoContent();
-        }).RequireAuthorization(PermissionNames.Stock.Manage);
+        }).RequireAudit().RequireAuthorization(PermissionNames.Stock.Manage);
 
         return app;
     }

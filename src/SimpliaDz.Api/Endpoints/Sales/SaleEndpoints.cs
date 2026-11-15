@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Sales.Core.Entities;
@@ -105,11 +107,17 @@ public static class SaleEndpoints
             .RequireAuthorization(PermissionNames.Sales.Manage);
 
         group.MapPost("/{id:guid}/cancel", async (Guid id,
-            [FromServices] ISaleService sales, CancellationToken ct) =>
+            HttpContext http, [FromServices] ISaleService sales,
+            [FromServices] IAuditTrail audit, CancellationToken ct) =>
         {
+            var before = await sales.GetByIdAsync(id, ct);
             await sales.CancelAsync(id, ct);
+            await BusinessAudit.RecordAsync(audit, http, "SaleCancelled", "Sale", id,
+                new Dictionary<string, object?> { ["status"] = before.Status,
+                    ["saleNumber"] = before.SaleNumber },
+                new Dictionary<string, object?> { ["status"] = "Cancelled" }, ct);
             return Results.NoContent();
-        }).RequireAuthorization(PermissionNames.Sales.Manage);
+        }).RequireAudit().RequireAuthorization(PermissionNames.Sales.Manage);
 
         return app;
     }

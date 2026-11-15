@@ -57,8 +57,9 @@ src/
     ├── Sales/                     # ACTIVE — customers and sale documents.
     ├── Accounting/                 # ACTIVE — expense categories and expenses.
     ├── Reporting/                  # ACTIVE — sales, product, inventory, low stock, and dashboard reports.
-    └── Audit | Notifications/      # SCAFFOLDED, NOT IMPLEMENTED.
-tests/                              # Module-catalog, Organization, Inventory, Purchasing, Sales, and Accounting tests.
+    ├── Audit/                      # ACTIVE — business audit trail.
+    └── Notifications/              # SCAFFOLDED, NOT IMPLEMENTED.
+tests/                              # Module integration and unit tests, including Audit and Reporting.
 ```
 
 ### `SimpliaDz.Api` — the host
@@ -105,7 +106,7 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Seven modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**, **Accounting**, **Reporting**) have real code. Two (**Audit, Notifications**) remain scaffolds — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](CUSTOMERS.md), [Suppliers](SUPPLIERS.md), [Expense Categories](EXPENSE_CATEGORIES.md), [Sales Summary Report](SALES_SUMMARY_REPORT.md), and the feature-specific module guides for contracts and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Eight modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**, **Accounting**, **Reporting**, **Audit**) have real code. **Notifications** remains a scaffold — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](CUSTOMERS.md), [Suppliers](SUPPLIERS.md), [Business Audit Trail](BUSINESS_AUDIT_TRAIL.md), and the feature-specific module guides for contracts and rules.
 
 ### `tests/`
 
@@ -555,7 +556,7 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **Some scaffold modules still have no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Audit and Notifications still consist mostly of scaffolding. Reporting exposes sales summary, product performance, inventory, low stock, and dashboard reports; Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
+1. **One scaffold module still has no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Notifications remains a scaffold. Audit exposes an authorized business history query and records the sensitive actions listed in [Business Audit Trail](BUSINESS_AUDIT_TRAIL.md). Reporting exposes sales summary, product performance, inventory, low stock, and dashboard reports; Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, transfers, and physical counts are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
@@ -599,7 +600,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](POS_PRODUCT_LOOKUP.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
-**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting.
+**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit.
 
 **Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Notifications.
 

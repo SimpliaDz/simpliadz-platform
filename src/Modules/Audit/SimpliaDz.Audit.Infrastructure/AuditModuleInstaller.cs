@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Audit.Infrastructure.Data;
+using SimpliaDz.Audit.UseCases;
 
 namespace SimpliaDz.Audit.Infrastructure;
 
@@ -18,6 +19,7 @@ public sealed class AuditModuleInstaller : IModuleInstaller
             {
                 sql.MigrationsAssembly(typeof(AuditDbContext).Assembly.FullName);
             }));
+        services.AddScoped<IAuditTrail, AuditTrail>();
     }
 
     public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)

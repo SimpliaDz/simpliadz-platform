@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Purchasing.UseCases.Services;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Purchasing;
@@ -17,7 +19,9 @@ public static class GoodsReceiptEndpoints
             .WithMetadata(new ModuleEndpointMetadata("Purchasing"));
 
         group.MapPost("/", async ([FromBody] ReceiveGoodsRequest request,
-            ClaimsPrincipal principal, [FromServices] IGoodsReceiptService receipts, CancellationToken ct) =>
+            ClaimsPrincipal principal, HttpContext http,
+            [FromServices] IGoodsReceiptService receipts,
+            [FromServices] IAuditTrail audit, CancellationToken ct) =>
         {
             var errors = new Dictionary<string, string[]>();
             if (request.Id == Guid.Empty) errors["id"] = ["A receipt ID is required for safe retries."];
@@ -37,8 +41,13 @@ public static class GoodsReceiptEndpoints
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             var result = await receipts.ReceiveAsync(request.Id, request.PurchaseOrderId,
                 request.Lines!, RequireActor(principal), ct);
+            await BusinessAudit.RecordAsync(audit, http, "GoodsReceived", "GoodsReceipt",
+                result.Id, null,
+                new Dictionary<string, object?> { ["purchaseOrderId"] = result.PurchaseOrderId,
+                    ["locationId"] = result.LocationId, ["lineCount"] = result.Lines.Count,
+                    ["quantityReceived"] = result.Lines.Sum(x => x.QuantityReceived) }, ct);
             return Results.Created($"/goods-receipts/{result.Id}", result);
-        }).RequireAuthorization(PermissionNames.GoodsReceipts.Manage);
+        }).RequireAudit().RequireAuthorization(PermissionNames.GoodsReceipts.Manage);
 
         group.MapGet("/{id:guid}", async (Guid id,
             [FromServices] IGoodsReceiptService receipts, CancellationToken ct) =>

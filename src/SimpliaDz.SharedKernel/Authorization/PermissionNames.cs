@@ -143,6 +143,11 @@ public static class PermissionNames
         public const string Dashboard = "reports.dashboard.view";
     }
 
+    public static class Audit
+    {
+        public const string View = "audit.view";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -199,6 +204,7 @@ public static class PermissionNames
         new(Reports.Inventory, "View Inventory Report", "Reporting"),
         new(Reports.LowStock, "View Low Stock Report", "Reporting"),
         new(Reports.Dashboard, "View Dashboard Summary", "Reporting"),
+        new(Audit.View, "View Business Audit Trail", "Audit"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

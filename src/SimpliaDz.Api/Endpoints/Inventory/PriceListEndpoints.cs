@@ -1,4 +1,7 @@
 using Mediator;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
+using SimpliaDz.BuildingBlocks.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
@@ -29,8 +32,23 @@ public static class PriceListEndpoints
         }).RequireAuthorization(PermissionNames.PriceLists.Manage);
 
         group.MapPut("/{id:guid}/variants/{variantId:guid}", async (Guid id, Guid variantId,
-            [FromBody] SetVariantPriceRequest request, [FromServices] ISender sender, CancellationToken ct) =>
-            Results.Ok(await sender.Send(new SetVariantPriceCommand(id, variantId, request.Price), ct)))
+            [FromBody] SetVariantPriceRequest request, HttpContext http,
+            [FromServices] ISender sender, [FromServices] IAuditTrail audit,
+            CancellationToken ct) =>
+        {
+            decimal? oldPrice;
+            try { oldPrice = (await sender.Send(new ResolveVariantPriceQuery(id, variantId), ct)).Price; }
+            catch (NotFoundException) { oldPrice = null; }
+            var result = await sender.Send(new SetVariantPriceCommand(id, variantId, request.Price), ct);
+            if (oldPrice != result.Price)
+                await BusinessAudit.RecordAsync(audit, http, "PriceChanged", "ProductVariant",
+                    variantId,
+                    new Dictionary<string, object?> { ["priceListId"] = id, ["price"] = oldPrice },
+                    new Dictionary<string, object?> { ["priceListId"] = id,
+                        ["price"] = result.Price, ["currencyCode"] = result.CurrencyCode }, ct);
+            return Results.Ok(result);
+        })
+            .RequireAudit()
             .RequireAuthorization(PermissionNames.PriceLists.Manage);
 
         group.MapGet("/{id:guid}/variants/{variantId:guid}", async (Guid id, Guid variantId,
