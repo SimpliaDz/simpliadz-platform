@@ -51,6 +51,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ILowStockReportService, LowStockReportService>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IDashboardSummaryService, DashboardSummaryService>();
+        services.AddScoped<ICashRegisterService, CashRegisterService>();
+        services.AddScoped<ICashSessionService, CashSessionService>();
 
         var useCaseAssemblies = new[]
         {

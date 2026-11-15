@@ -16,6 +16,9 @@ public sealed class SalesDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
     public DbSet<SaleReturnLine> SaleReturnLines => Set<SaleReturnLine>();
+    public DbSet<CashRegister> CashRegisters => Set<CashRegister>();
+    public DbSet<CashSession> CashSessions => Set<CashSession>();
+    public DbSet<CashMovement> CashMovements => Set<CashMovement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +65,12 @@ public sealed class SalesDbContext : DbContext
         if (ChangeTracker.Entries<SaleReturn>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted) ||
             ChangeTracker.Entries<SaleReturnLine>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
             throw new InvalidOperationException("Sale return history is immutable.");
+        if (ChangeTracker.Entries<CashMovement>().Any(entry =>
+                entry.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("Cash movement history is immutable.");
+        if (ChangeTracker.Entries<CashSession>().Any(entry => entry.State == EntityState.Deleted) ||
+            ChangeTracker.Entries<CashRegister>().Any(entry => entry.State == EntityState.Deleted))
+            throw new InvalidOperationException("Cash registers and sessions cannot be deleted.");
 
         var newPayments = ChangeTracker.Entries<Payment>()
             .Where(entry => entry.State == EntityState.Added)

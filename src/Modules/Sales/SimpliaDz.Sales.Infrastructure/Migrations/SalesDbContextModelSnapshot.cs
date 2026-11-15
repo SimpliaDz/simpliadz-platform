@@ -23,6 +23,135 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountDelta")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashSessionId", "OccurredAt");
+
+                    b.ToTable("CashMovements", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_CashMovements_NonZero", "[AmountDelta] <> 0");
+                        });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashRegister", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("LocationId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("CashRegisters", "sales");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ClosedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("CountedCash")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal?>("ExpectedCash")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("OpenedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("OpeningCash")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Open'");
+
+                    b.HasIndex("OpenedAt");
+
+                    b.ToTable("CashSessions", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_CashSessions_ClosingCash", "([Status] = 'Open' AND [ClosedAt] IS NULL AND [CountedCash] IS NULL AND [ExpectedCash] IS NULL) OR ([Status] = 'Closed' AND [ClosedAt] IS NOT NULL AND [CountedCash] >= 0 AND [ExpectedCash] >= 0)");
+
+                            t.HasCheckConstraint("CK_CashSessions_OpeningCash", "[OpeningCash] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -92,6 +221,9 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<Guid?>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTimeOffset>("PaidAt")
                         .HasColumnType("datetimeoffset");
 
@@ -107,6 +239,8 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CashSessionId", "PaymentMethod");
 
                     b.HasIndex("SaleId", "PaidAt");
 
@@ -351,13 +485,42 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashMovement", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.CashSession", "CashSession")
+                        .WithMany()
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashSession");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashSession", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
+                });
+
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Payment", b =>
                 {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.CashSession", "CashSession")
+                        .WithMany()
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SimpliaDz.Sales.Core.Entities.Sale", "Sale")
                         .WithMany()
                         .HasForeignKey("SaleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CashSession");
 
                     b.Navigation("Sale");
                 });

@@ -10,7 +10,7 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F04 | Customer management | Partial |
 | F05 | Sell products and record payment | Available |
 | F06 | Sale discounts | Available |
-| F07 | Open and close the cash register | Needed |
+| F07 | Open and close the cash register | Available |
 | F08 | Search products by name, SKU, or barcode | Available |
 | F09 | Generate a barcode | Needed |
 | F10 | Print barcode labels | Needed |
@@ -145,9 +145,9 @@ sequenceDiagram
 
 ## F07 — Open and close the cash register
 
-**Needed.** Add a daily cash register session for each selling location: record who opens it and when, opening cash, payments and cash movements during the session, closing cash counted by staff, and any difference. Confirm whether a register may be reopened and whether multiple registers can run at one location.
+**Available.** A location can have several cash registers, each with one open session at a time. Several cashiers can record sales payments in the same session. The session records opening cash, cash payments, other payments, signed cash movements, counted cash at closing, and the difference. A closed register can be reopened with a new session; history remains available.
 
-**Proposed endpoints:** `POST /cash-sessions/open`; `GET /cash-sessions/current?locationId=...`; `GET /cash-sessions/{id}`; `POST /cash-sessions/{id}/close`; `GET /cash-sessions?locationId=...`.
+**Current endpoints:** `GET /cash-registers?locationId=...`; `POST /cash-registers`; `PUT /cash-registers/{id}`; `PUT /cash-registers/{id}/deactivate`; `POST /cash-sessions/open`; `GET /cash-sessions/current?locationId=...`; `GET /cash-sessions/{id}`; `GET /cash-sessions?locationId=...`; `POST /cash-sessions/{id}/movements`; `GET /cash-sessions/{id}/movements`; `POST /cash-sessions/{id}/close`; `POST /sales/{saleId}/payments` (with `cashSessionId`).
 
 ```mermaid
 sequenceDiagram
@@ -157,6 +157,9 @@ sequenceDiagram
     Cashier->>App: Enter opening cash
     App->>API: POST /cash-sessions/open
     API-->>App: Session opened
+    Cashier->>App: Record a sale payment
+    App->>API: POST /sales/{saleId}/payments with cashSessionId
+    API-->>App: Payment recorded in session
     Cashier->>App: Count cash at closing
     App->>API: POST /cash-sessions/{id}/close
     API-->>App: Closing summary and difference

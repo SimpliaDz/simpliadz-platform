@@ -17,11 +17,13 @@ public sealed class Payment
     public PaymentMethod PaymentMethod { get; private set; }
     public DateTimeOffset PaidAt { get; private set; } = DateTimeOffset.UtcNow;
     public Guid ReceivedBy { get; private set; }
+    public Guid? CashSessionId { get; private set; }
+    public CashSession? CashSession { get; private set; }
 
     private Payment() { }
 
     public Payment(Guid id, Guid saleId, decimal amount, PaymentMethod paymentMethod,
-        Guid receivedBy)
+        Guid receivedBy, Guid? cashSessionId = null)
     {
         if (id == Guid.Empty) throw new ArgumentException("Payment ID is required.", nameof(id));
         if (saleId == Guid.Empty) throw new ArgumentException("Sale is required.", nameof(saleId));
@@ -32,10 +34,13 @@ public sealed class Payment
             throw new ArgumentOutOfRangeException(nameof(paymentMethod));
         if (receivedBy == Guid.Empty)
             throw new ArgumentException("Receiving user is required.", nameof(receivedBy));
+        if (cashSessionId == Guid.Empty)
+            throw new ArgumentException("Cash session ID must be valid.", nameof(cashSessionId));
         Id = id;
         SaleId = saleId;
         Amount = amount;
         PaymentMethod = paymentMethod;
         ReceivedBy = receivedBy;
+        CashSessionId = cashSessionId;
     }
 }

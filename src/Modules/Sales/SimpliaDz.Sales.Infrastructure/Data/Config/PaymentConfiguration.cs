@@ -17,6 +17,9 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         b.Property(x => x.ReceivedBy).IsRequired();
         b.HasOne(x => x.Sale).WithMany().HasForeignKey(x => x.SaleId)
             .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.CashSession).WithMany().HasForeignKey(x => x.CashSessionId)
+            .OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => new { x.SaleId, x.PaidAt });
+        b.HasIndex(x => new { x.CashSessionId, x.PaymentMethod });
     }
 }

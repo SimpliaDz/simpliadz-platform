@@ -148,6 +148,18 @@ public static class PermissionNames
         public const string View = "audit.view";
     }
 
+    public static class CashRegisters
+    {
+        public const string View = "cash-registers.view";
+        public const string Manage = "cash-registers.manage";
+    }
+
+    public static class CashSessions
+    {
+        public const string View = "cash-sessions.view";
+        public const string Manage = "cash-sessions.manage";
+    }
+
     public static class Organization
     {
         public const string View = "organization.view";
@@ -205,6 +217,10 @@ public static class PermissionNames
         new(Reports.LowStock, "View Low Stock Report", "Reporting"),
         new(Reports.Dashboard, "View Dashboard Summary", "Reporting"),
         new(Audit.View, "View Business Audit Trail", "Audit"),
+        new(CashRegisters.View, "View Cash Registers", "Sales"),
+        new(CashRegisters.Manage, "Manage Cash Registers", "Sales"),
+        new(CashSessions.View, "View Cash Sessions", "Sales"),
+        new(CashSessions.Manage, "Manage Cash Sessions", "Sales"),
         new(Locations.View,     "View Locations",     "Locations"),
         new(Locations.Create,   "Create Locations",   "Locations"),
         new(Locations.Edit,     "Edit Locations",     "Locations"),

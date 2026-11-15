@@ -29,10 +29,12 @@ public static class PaymentEndpoints
             if (!Enum.GetNames<PaymentMethod>().Any(x =>
                     string.Equals(x, request.PaymentMethod?.Trim(), StringComparison.OrdinalIgnoreCase)))
                 errors["paymentMethod"] = ["Method must be Cash, Card, BankTransfer, or Other."];
+            if (request.CashSessionId == Guid.Empty)
+                errors["cashSessionId"] = ["Cash session ID must be valid."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             var result = await payments.RecordAsync(request.Id, saleId, request.Amount,
                 Enum.Parse<PaymentMethod>(request.PaymentMethod.Trim(), true),
-                RequireActor(principal), ct);
+                RequireActor(principal), ct, request.CashSessionId);
             return Results.Created($"/payments/{result.Id}", result);
         }).RequireAuthorization(PermissionNames.Sales.Manage,
             PermissionNames.SalePayments.Manage);
@@ -60,4 +62,5 @@ public static class PaymentEndpoints
             : throw new UnauthorizedAccessException("Authenticated user ID is required for payments.");
 }
 
-public sealed record RecordPaymentRequest(Guid Id, decimal Amount, string PaymentMethod);
+public sealed record RecordPaymentRequest(Guid Id, decimal Amount, string PaymentMethod,
+    Guid? CashSessionId = null);

@@ -53,7 +53,9 @@ public sealed class PaymentTests
         using var db = NewDb();
         var entity = db.Model.FindEntityType(typeof(Payment))!;
         Assert.Equal("sales", entity.GetSchema());
-        Assert.Equal(DeleteBehavior.Restrict, entity.GetForeignKeys().Single().DeleteBehavior);
+        Assert.Equal(2, entity.GetForeignKeys().Count());
+        Assert.All(entity.GetForeignKeys(), foreignKey =>
+            Assert.Equal(DeleteBehavior.Restrict, foreignKey.DeleteBehavior));
     }
 
     private static SalesDbContext NewDb() => new(

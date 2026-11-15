@@ -48,6 +48,8 @@ public static class EndpointExtensions
         app.MapInventoryReportEndpoints();
         app.MapLowStockReportEndpoints();
         app.MapDashboardSummaryEndpoints();
+        app.MapCashRegisterEndpoints();
+        app.MapCashSessionEndpoints();
         app.MapAuditEndpoints();
 
         return app;

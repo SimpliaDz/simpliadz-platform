@@ -11,9 +11,9 @@ namespace SimpliaDz.Sales.Infrastructure.Services;
 public sealed class PaymentService(SalesDbContext db) : IPaymentService
 {
     public async Task<PaymentDto> RecordAsync(Guid paymentId, Guid saleId, decimal amount,
-        PaymentMethod method, Guid receivedBy, CancellationToken ct)
+        PaymentMethod method, Guid receivedBy, CancellationToken ct,
+        Guid? cashSessionId = null)
     {
-        var payment = new Payment(paymentId, saleId, amount, method, receivedBy);
         for (var attempt = 0; attempt < 5; attempt++)
         {
             await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
@@ -25,8 +25,21 @@ public sealed class PaymentService(SalesDbContext db) : IPaymentService
                     ?? throw new NotFoundException("Sale", saleId);
                 if (sale.Status != SaleStatus.Completed)
                     throw new ConflictException("Only completed sales can receive payments.");
+                if (cashSessionId.HasValue)
+                {
+                    var session = await db.CashSessions.Include(x => x.CashRegister)
+                        .FirstOrDefaultAsync(x => x.Id == cashSessionId.Value, ct)
+                        ?? throw new NotFoundException("Cash session", cashSessionId.Value);
+                    if (session.Status != CashSessionStatus.Open ||
+                        session.CashRegister.LocationId != sale.LocationId)
+                        throw new ConflictException("Payment requires an open cash session at the sale location.");
+                }
+                else if (await db.CashRegisters.AnyAsync(x =>
+                             x.LocationId == sale.LocationId && x.IsActive, ct))
+                    throw new ConflictException("Select an open cash session for this payment.");
                 if (amount > sale.BalanceDue)
                     throw new ConflictException("Payment exceeds the remaining sale total.");
+                var payment = new Payment(paymentId, saleId, amount, method, receivedBy, cashSessionId);
                 sale.RecordPayment(amount);
                 db.Payments.Add(payment);
                 await db.SaveChangesAsync(ct);
@@ -68,13 +81,13 @@ public sealed class PaymentService(SalesDbContext db) : IPaymentService
     }
 
     private static PaymentDto Map(Payment x) => new(x.Id, x.SaleId, x.Amount,
-        x.PaymentMethod.ToString(), x.PaidAt, x.ReceivedBy);
+        x.PaymentMethod.ToString(), x.PaidAt, x.ReceivedBy, x.CashSessionId);
 
     private static bool IsUniqueConflict(DbUpdateException exception) =>
         exception.InnerException is SqlException { Number: 2601 or 2627 };
 
     private static bool IsRetryable(Exception exception) =>
         exception is DbUpdateConcurrencyException ||
-        exception is DbUpdateException { InnerException: SqlException { Number: 1205 } } ||
-        exception is SqlException { Number: 1205 };
+        exception is SqlException { Number: 1205 } ||
+        exception.InnerException is not null && IsRetryable(exception.InnerException);
 }
