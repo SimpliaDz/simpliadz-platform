@@ -598,6 +598,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Sales discounts: authorized fixed or percentage discounts on draft lines and sales. See [Sale Discounts](SALE_DISCOUNTS.md).
 - Sales payments: immutable payment history and atomic paid-total updates on completed sales. See [Sale Payments](SALE_PAYMENTS.md).
 - Cash registers: multiple registers per location, shared cashier sessions, payment attribution, cash movements, and closing differences. See [Cash Registers](CASH_REGISTERS.md).
+- Barcode labels: tenant-stored page and label templates with printable Code 128 documents. See [Barcode Labels](BARCODE_LABELS.md).
 - Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](POS_PRODUCT_LOOKUP.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 

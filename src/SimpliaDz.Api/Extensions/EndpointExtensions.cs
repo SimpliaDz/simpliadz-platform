@@ -26,6 +26,7 @@ public static class EndpointExtensions
         app.MapBrandEndpoints();
         app.MapAttributeEndpoints();
         app.MapVariantEndpoints();
+        app.MapBarcodeLabelEndpoints();
         app.MapPriceListEndpoints();
         app.MapLocationEndpoints();
         app.MapStockEndpoints();

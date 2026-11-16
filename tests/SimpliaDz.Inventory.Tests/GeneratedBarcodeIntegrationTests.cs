@@ -36,6 +36,7 @@ public sealed class GeneratedBarcodeIntegrationTests
             await using (var db = NewDb(connection))
             {
                 await db.Database.MigrateAsync();
+                Assert.Single(await db.BarcodeLabelTemplates.ToListAsync());
                 var product = new Product("Barcode test product");
                 db.Products.Add(product);
                 db.ProductVariants.Add(new ProductVariant(product.Id, new Sku("BC-ONE"), 0));

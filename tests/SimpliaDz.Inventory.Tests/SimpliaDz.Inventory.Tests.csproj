@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.Contracts\SimpliaDz.Inventory.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.UseCases\SimpliaDz.Inventory.UseCases.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SimpliaDz.Inventory.Infrastructure\SimpliaDz.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SimpliaDz.Api\SimpliaDz.Api.csproj" />
   </ItemGroup>
 
 </Project>

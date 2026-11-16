@@ -65,6 +65,13 @@ public static class PermissionNames
         public const string Edit = "variants.edit";
     }
 
+    public static class BarcodeLabels
+    {
+        public const string View = "barcode-labels.view";
+        public const string Manage = "barcode-labels.manage";
+        public const string Print = "barcode-labels.print";
+    }
+
     public static class PriceLists
     {
         public const string View = "price-lists.view";
@@ -190,6 +197,9 @@ public static class PermissionNames
         new(Variants.View,      "View Variants",      "Variants"),
         new(Variants.Create,    "Create Variants",    "Variants"),
         new(Variants.Edit,      "Edit Variants",      "Variants"),
+        new(BarcodeLabels.View, "View Barcode Label Templates", "Inventory"),
+        new(BarcodeLabels.Manage, "Manage Barcode Label Templates", "Inventory"),
+        new(BarcodeLabels.Print, "Print Barcode Labels", "Inventory"),
         new(PriceLists.View,    "View Price Lists",   "Price Lists"),
         new(PriceLists.Manage,  "Manage Price Lists", "Price Lists"),
         new(Stock.View,         "View Stock",        "Stock"),

@@ -50,6 +50,82 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("AttributeValues", "inventory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.BarcodeLabelTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("GapMm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("LabelHeightMm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<decimal>("LabelWidthMm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<decimal>("MarginMm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("PageHeightMm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<decimal>("PageWidthMm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<bool>("ShowName")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowSku")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("BarcodeLabelTemplates", "inventory");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("5369ed28-f57a-49be-a587-13f4d0d091f1"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            GapMm = 3m,
+                            IsActive = true,
+                            LabelHeightMm = 40m,
+                            LabelWidthMm = 90m,
+                            MarginMm = 5m,
+                            Name = "Standard A4 90 x 40 mm",
+                            PageHeightMm = 297m,
+                            PageWidthMm = 210m,
+                            ShowName = true,
+                            ShowSku = true,
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Brand", b =>
                 {
                     b.Property<Guid>("Id")

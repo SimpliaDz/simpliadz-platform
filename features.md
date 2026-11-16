@@ -13,7 +13,7 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F07 | Open and close the cash register | Available |
 | F08 | Search products by name, SKU, or barcode | Available |
 | F09 | Generate a barcode | Available |
-| F10 | Print barcode labels | Needed |
+| F10 | Print barcode labels | Available |
 | F11 | Consult inventory | Available |
 | F12 | Print inventory documents | Needed |
 | F13 | Brand management | Available |
@@ -201,9 +201,9 @@ sequenceDiagram
 
 ## F10 — Print barcode labels
 
-**Needed.** Let staff choose variants, label quantities, and a saved label template or size, then produce printable barcode labels. Confirm printer models, paper sizes, label layouts, and whether prices appear on labels.
+**Available.** Authorized staff can choose variants and quantities, select a saved label template, and receive a printable HTML document with vector Code 128 barcodes. Templates are stored in the tenant database and can be created, updated, or deactivated by an authorized manager. Page and label dimensions, margins, gaps, product name, and SKU are configurable. A standard A4 90 × 40 mm template is supplied. Printer-specific layouts and prices on labels can be added later.
 
-**Proposed endpoints:** `GET /barcode-label-templates`; `POST /barcode-label-templates`; `PUT /barcode-label-templates/{id}`; `POST /barcode-labels/print-document`.
+**Current endpoints:** `GET /barcode-label-templates`; `POST /barcode-label-templates`; `PUT /barcode-label-templates/{id}`; `PUT /barcode-label-templates/{id}/deactivate`; `POST /barcode-labels/print-document`.
 
 ```mermaid
 sequenceDiagram
