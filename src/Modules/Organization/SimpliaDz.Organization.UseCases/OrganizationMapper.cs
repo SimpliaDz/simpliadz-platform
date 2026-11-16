@@ -17,5 +17,6 @@ internal static class OrganizationMapper
             organization.DefaultLanguage,
             organization.IsActive,
             organization.CreatedAt,
-            organization.UpdatedAt);
+            organization.UpdatedAt,
+            organization.TimeZoneId);
 }

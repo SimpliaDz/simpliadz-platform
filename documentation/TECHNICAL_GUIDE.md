@@ -601,6 +601,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Barcode labels: tenant-stored page and label templates with printable Code 128 documents. See [Barcode Labels](BARCODE_LABELS.md).
 - Inventory documents: tenant-stored stock list and count templates with printable reports. See [Inventory Documents](INVENTORY_DOCUMENTS.md).
 - Inventory warnings: tenant-configured scheduled low-stock and ageing scans with a database lease. See [Inventory Warnings](INVENTORY_WARNINGS.md).
+- Worked hours: organization time zone, staff work sessions, audited manager corrections, and daily reports. See [Worked Hours](WORKED_HOURS.md).
 - Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](POS_PRODUCT_LOOKUP.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 

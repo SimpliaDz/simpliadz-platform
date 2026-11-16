@@ -17,5 +17,6 @@ public sealed class UpdateOrganizationValidator : AbstractValidator<UpdateOrgani
             .WithMessage("CurrencyCode must be a three-letter currency code.")
             .When(x => !string.IsNullOrWhiteSpace(x.CurrencyCode));
         RuleFor(x => x.DefaultLanguage).MaximumLength(20);
+        RuleFor(x => x.TimeZoneId).MaximumLength(100);
     }
 }

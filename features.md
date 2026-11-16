@@ -23,8 +23,8 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F17 | Inventory analytics and warnings | Available |
 | F18 | Scan a barcode for price and stock | Available |
 | F19 | Physical inventory counts | Available |
-| F20 | Worked-hours reporting | Needed |
-| F21 | HR access to user management | Partial |
+| F20 | Worked-hours reporting | Available |
+| F21 | HR access to user management | Available |
 | F22 | Store and warehouse locations | Available |
 
 ## F01 — User rights and roles
@@ -395,9 +395,9 @@ sequenceDiagram
 
 ## F20 — Worked-hours reporting
 
-**Needed.** There is no staff clock-in, clock-out, shift correction, or worked-hours report. Define how breaks, overnight shifts, absences, manual corrections, and approval work before calculating daily, monthly, or yearly totals.
+**Available.** Staff can clock in and out, see their own sessions, and work overnight. Authorized managers can correct sessions with a required reason; the old and new times remain in correction history. Reports split completed hours by the organization's local day and provide daily and period totals. V1 does not track breaks or absences.
 
-**Proposed endpoints:** `POST /work-sessions/clock-in`; `POST /work-sessions/{id}/clock-out`; `GET /work-sessions?userId=...&fromDate=...&toDate=...`; `PUT /work-sessions/{id}`; `GET /reports/work-hours?userId=...&fromDate=...&toDate=...`.
+**Current endpoints:** `POST /work-sessions/clock-in`; `POST /work-sessions/{id}/clock-out`; `GET /work-sessions/me`; `GET /work-sessions?userId=...&fromDate=...&toDate=...`; `PUT /work-sessions/{id}`; `GET /work-sessions/{id}/corrections`; `GET /reports/work-hours?userId=...&fromDate=...&toDate=...`.
 
 ```mermaid
 sequenceDiagram
@@ -415,11 +415,10 @@ sequenceDiagram
 
 ## F21 — HR access to user management
 
-**Partial.** The existing user and role endpoints can create staff accounts and deactivate them, with rights controlling access. There is no dedicated HR staff profile, employment lifecycle, or separate HR-specific access setup. Confirm which user-management actions an HR manager may perform without full administrator rights.
+**Available.** An administrator can configure an HR role with only the needed user-management and worked-hours permissions. HR staff can create and deactivate user accounts, review work sessions, correct times, and see worked-hours reports according to their assigned rights. A separate employee profile and employment lifecycle are deferred beyond this MVP.
 
 **Current endpoints:** `GET /users`; `POST /users`; `PUT /users/{id}/deactivate`; `PUT /users/{id}/activate`; `POST /users/{id}/roles`; `GET /roles`; `GET /permissions`.
 
-**Proposed only if HR records are required:** `GET /staff`; `POST /staff`; `PUT /staff/{id}`.
 
 ```mermaid
 sequenceDiagram

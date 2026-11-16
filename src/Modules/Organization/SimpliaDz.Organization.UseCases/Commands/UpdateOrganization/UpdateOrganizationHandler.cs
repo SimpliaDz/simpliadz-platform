@@ -26,7 +26,8 @@ public sealed class UpdateOrganizationHandler : IRequestHandler<UpdateOrganizati
                 request.Address,
                 request.CurrencyCode,
                 request.DefaultLanguage,
-                request.IsActive);
+                request.IsActive,
+                request.TimeZoneId);
 
             await _organizations.AddAsync(organization, ct);
         }
@@ -40,7 +41,8 @@ public sealed class UpdateOrganizationHandler : IRequestHandler<UpdateOrganizati
                 request.Address,
                 request.CurrencyCode,
                 request.DefaultLanguage,
-                request.IsActive);
+                request.IsActive,
+                request.TimeZoneId);
         }
 
         await _organizations.SaveChangesAsync(ct);

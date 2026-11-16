@@ -36,6 +36,7 @@ public static class EndpointExtensions
         app.MapStockTransferEndpoints();
         app.MapInventoryCountEndpoints();
         app.MapOrganizationEndpoints();
+        app.MapWorkSessionEndpoints();
         app.MapSupplierEndpoints();
         app.MapPurchaseOrderEndpoints();
         app.MapGoodsReceiptEndpoints();

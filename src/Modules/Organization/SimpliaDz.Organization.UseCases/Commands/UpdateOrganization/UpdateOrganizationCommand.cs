@@ -11,4 +11,5 @@ public sealed record UpdateOrganizationCommand(
     string? Address,
     string? CurrencyCode,
     string? DefaultLanguage,
-    bool IsActive) : IRequest<OrganizationResponse>;
+    bool IsActive,
+    string? TimeZoneId = null) : IRequest<OrganizationResponse>;

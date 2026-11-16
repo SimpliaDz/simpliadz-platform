@@ -19,6 +19,7 @@ public sealed class OrganizationTests
         var organization = CreateOrganization(currencyCode: null);
 
         Assert.Equal("DZD", organization.CurrencyCode);
+        Assert.Equal("Africa/Algiers", organization.TimeZoneId);
         Assert.Equal(OrganizationEntity.ProfileId, organization.Id);
     }
 
@@ -28,6 +29,14 @@ public sealed class OrganizationTests
         var organization = CreateOrganization(currencyCode: "dzd");
 
         Assert.Equal("DZD", organization.CurrencyCode);
+    }
+
+    [Fact]
+    public void Organization_rejects_unknown_time_zone()
+    {
+        var organization = CreateOrganization(currencyCode: null);
+        Assert.Throws<ArgumentException>(() => organization.Update("Store", null,
+            null, null, null, "DZD", null, true, "Not/A_Time_Zone"));
     }
 
     [Fact]

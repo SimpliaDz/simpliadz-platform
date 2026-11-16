@@ -3,6 +3,7 @@ namespace SimpliaDz.Organization.Core.Entities;
 public sealed class Organization
 {
     public const string DefaultCurrencyCode = "DZD";
+    public const string DefaultTimeZoneId = "Africa/Algiers";
     public static readonly Guid ProfileId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     public Guid Id { get; private set; } = ProfileId;
@@ -13,6 +14,7 @@ public sealed class Organization
     public string? Address { get; private set; }
     public string CurrencyCode { get; private set; } = DefaultCurrencyCode;
     public string? DefaultLanguage { get; private set; }
+    public string TimeZoneId { get; private set; } = DefaultTimeZoneId;
     public bool IsActive { get; private set; } = true;
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -29,11 +31,13 @@ public sealed class Organization
         string? address,
         string? currencyCode,
         string? defaultLanguage,
-        bool isActive)
+        bool isActive,
+        string? timeZoneId = null)
     {
         var now = DateTimeOffset.UtcNow;
         CreatedAt = now;
-        Apply(name, legalName, phone, email, address, currencyCode, defaultLanguage, isActive, now);
+        Apply(name, legalName, phone, email, address, currencyCode, defaultLanguage,
+            isActive, now, timeZoneId);
     }
 
     public void Update(
@@ -44,7 +48,8 @@ public sealed class Organization
         string? address,
         string? currencyCode,
         string? defaultLanguage,
-        bool isActive) =>
+        bool isActive,
+        string? timeZoneId = null) =>
         Apply(
             name,
             legalName,
@@ -54,7 +59,8 @@ public sealed class Organization
             currencyCode,
             defaultLanguage,
             isActive,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            timeZoneId);
 
     private void Apply(
         string name,
@@ -65,7 +71,8 @@ public sealed class Organization
         string? currencyCode,
         string? defaultLanguage,
         bool isActive,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt,
+        string? timeZoneId)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Organization name is required.", nameof(name));
@@ -84,6 +91,14 @@ public sealed class Organization
         Address = NormalizeOptional(address);
         CurrencyCode = normalizedCurrency;
         DefaultLanguage = NormalizeOptional(defaultLanguage);
+        var selectedZone = string.IsNullOrWhiteSpace(timeZoneId)
+            ? TimeZoneId : timeZoneId.Trim();
+        try { _ = TimeZoneInfo.FindSystemTimeZoneById(selectedZone); }
+        catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            throw new ArgumentException("Time zone is not recognized.", nameof(timeZoneId), exception);
+        }
+        TimeZoneId = selectedZone;
         IsActive = isActive;
         UpdatedAt = updatedAt;
     }

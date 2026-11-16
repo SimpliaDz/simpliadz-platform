@@ -38,7 +38,8 @@ public static class OrganizationEndpoints
                     request.Address,
                     request.CurrencyCode,
                     request.DefaultLanguage,
-                    request.IsActive),
+                    request.IsActive,
+                    request.TimeZoneId),
                 ct);
 
             return Results.Ok(organization);

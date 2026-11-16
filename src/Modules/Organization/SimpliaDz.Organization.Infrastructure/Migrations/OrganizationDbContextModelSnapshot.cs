@@ -66,12 +66,112 @@ namespace SimpliaDz.Organization.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)")
+                        .HasDefaultValue("Africa/Algiers");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
                     b.ToTable("Organizations", "organization");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Organization.Core.Entities.WorkSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ClockInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("ClockOutAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ClockedOutBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[ClockOutAt] IS NULL");
+
+                    b.HasIndex("UserId", "ClockInAt");
+
+                    b.ToTable("WorkSessions", "organization", t =>
+                        {
+                            t.HasCheckConstraint("CK_WorkSessions_ClockOrder", "[ClockOutAt] IS NULL OR [ClockOutAt] > [ClockInAt]");
+                        });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Organization.Core.Entities.WorkSessionCorrection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CorrectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CorrectedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("NewClockInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("NewClockOutAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("OldClockInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("OldClockOutAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("WorkSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkSessionId", "CorrectedAt");
+
+                    b.ToTable("WorkSessionCorrections", "organization");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Organization.Core.Entities.WorkSessionCorrection", b =>
+                {
+                    b.HasOne("SimpliaDz.Organization.Core.Entities.WorkSession", null)
+                        .WithMany()
+                        .HasForeignKey("WorkSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

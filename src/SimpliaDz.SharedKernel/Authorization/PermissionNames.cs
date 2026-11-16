@@ -85,6 +85,13 @@ public static class PermissionNames
         public const string Manage = "inventory-warnings.manage";
     }
 
+    public static class WorkSessions
+    {
+        public const string View = "work-sessions.view";
+        public const string Manage = "work-sessions.manage";
+        public const string Report = "work-sessions.report";
+    }
+
     public static class PriceLists
     {
         public const string View = "price-lists.view";
@@ -218,6 +225,9 @@ public static class PermissionNames
         new(InventoryDocuments.Print, "Print Inventory Documents", "Inventory"),
         new(InventoryWarnings.View, "View Inventory Warnings", "Inventory"),
         new(InventoryWarnings.Manage, "Manage Inventory Warning Schedule", "Inventory"),
+        new(WorkSessions.View, "View Work Sessions", "Organization"),
+        new(WorkSessions.Manage, "Correct Work Sessions", "Organization"),
+        new(WorkSessions.Report, "View Worked Hours Report", "Organization"),
         new(PriceLists.View,    "View Price Lists",   "Price Lists"),
         new(PriceLists.Manage,  "Manage Price Lists", "Price Lists"),
         new(Stock.View,         "View Stock",        "Stock"),

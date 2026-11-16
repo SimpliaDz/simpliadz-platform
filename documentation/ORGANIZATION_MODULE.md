@@ -24,11 +24,12 @@ The `Organization` entity stores:
 - `Address`
 - `CurrencyCode`
 - `DefaultLanguage`
+- `TimeZoneId`
 - `IsActive`
 - `CreatedAt`
 - `UpdatedAt`
 
-It is mapped to `organization.Organizations`. Currency codes are stored as three uppercase ASCII letters. When the first configuration request omits a currency, the entity uses `DZD`.
+It is mapped to `organization.Organizations`. Currency codes are stored as three uppercase ASCII letters. When the first configuration request omits a currency, the entity uses `DZD`. The time zone defaults to `Africa/Algiers` and is used by worked-hours reports.
 
 ## API
 

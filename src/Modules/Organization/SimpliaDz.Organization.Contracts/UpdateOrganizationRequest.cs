@@ -8,4 +8,5 @@ public sealed record UpdateOrganizationRequest(
     string? Address,
     string? CurrencyCode,
     string? DefaultLanguage,
-    bool IsActive = true);
+    bool IsActive = true,
+    string? TimeZoneId = null);

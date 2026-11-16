@@ -17,5 +17,6 @@
     <ProjectReference Include="..\..\src\Modules\Organization\SimpliaDz.Organization.Core\SimpliaDz.Organization.Core.csproj" />
     <ProjectReference Include="..\..\src\Modules\Organization\SimpliaDz.Organization.UseCases\SimpliaDz.Organization.UseCases.csproj" />
     <ProjectReference Include="..\..\src\Modules\Organization\SimpliaDz.Organization.Infrastructure\SimpliaDz.Organization.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SimpliaDz.Api\SimpliaDz.Api.csproj" />
   </ItemGroup>
 </Project>
