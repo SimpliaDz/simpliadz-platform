@@ -15,7 +15,7 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F09 | Generate a barcode | Available |
 | F10 | Print barcode labels | Available |
 | F11 | Consult inventory | Available |
-| F12 | Print inventory documents | Needed |
+| F12 | Print inventory documents | Available |
 | F13 | Brand management | Available |
 | F14 | Category management | Available |
 | F15 | Purchase orders and goods receipts | Available |
@@ -237,11 +237,9 @@ sequenceDiagram
 
 ## F12 — Print inventory documents
 
-**Needed.** The backend returns inventory data but has no dedicated printable stock document. Define with the client which documents they currently print, such as stock lists, movements, count sheets, and differences, then agree on format and required signatures.
+**Available.** Authorized staff can request printable stock lists, blank physical count sheets, and completed count difference reports. Each document uses a tenant-stored template that controls title, selected columns, A4 or A3 paper, orientation, and footer text. Three standard templates are supplied. The backend returns print-ready HTML; the client app can display or print it. Movement reports and printer-specific formatting can be added later if required.
 
-**Current endpoints supplying data:** `GET /reports/inventory`; `GET /stock/movements`; `GET /inventory-counts/{id}`.
-
-**Proposed endpoints:** `GET /reports/inventory/document?locationId=...`; `GET /inventory-counts/{id}/count-sheet`; `GET /inventory-counts/{id}/difference-document`.
+**Current endpoints:** `GET /inventory-document-templates`; `POST /inventory-document-templates`; `PUT /inventory-document-templates/{id}`; `PUT /inventory-document-templates/{id}/deactivate`; `GET /reports/inventory/document?templateId=...&locationId=...`; `GET /inventory-counts/{id}/count-sheet?templateId=...`; `GET /inventory-counts/{id}/difference-document?templateId=...`.
 
 ```mermaid
 sequenceDiagram

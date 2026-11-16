@@ -153,6 +153,102 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("Brands", "inventory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.InventoryDocumentTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Columns")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FooterText")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Landscape")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PaperSize")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("InventoryDocumentTemplates", "inventory");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11a37a5b-14c9-444b-a858-71dc0cb2fd47"),
+                            Columns = "Product,Sku,Barcode,Quantity",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            Landscape = false,
+                            Name = "Standard stock list",
+                            PaperSize = "A4",
+                            Title = "Inventory stock list",
+                            Type = "StockList",
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = new Guid("22a37a5b-14c9-444b-a858-71dc0cb2fd47"),
+                            Columns = "Product,Sku,Barcode,Counted",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            Landscape = false,
+                            Name = "Standard count sheet",
+                            PaperSize = "A4",
+                            Title = "Physical inventory count",
+                            Type = "CountSheet",
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = new Guid("33a37a5b-14c9-444b-a858-71dc0cb2fd47"),
+                            Columns = "Product,Sku,Expected,Counted,Difference",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            Landscape = false,
+                            Name = "Standard count differences",
+                            PaperSize = "A4",
+                            Title = "Inventory count differences",
+                            Type = "CountDifferences",
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.PriceList", b =>
                 {
                     b.Property<Guid>("Id")

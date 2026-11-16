@@ -72,6 +72,13 @@ public static class PermissionNames
         public const string Print = "barcode-labels.print";
     }
 
+    public static class InventoryDocuments
+    {
+        public const string View = "inventory-documents.view";
+        public const string Manage = "inventory-documents.manage";
+        public const string Print = "inventory-documents.print";
+    }
+
     public static class PriceLists
     {
         public const string View = "price-lists.view";
@@ -200,6 +207,9 @@ public static class PermissionNames
         new(BarcodeLabels.View, "View Barcode Label Templates", "Inventory"),
         new(BarcodeLabels.Manage, "Manage Barcode Label Templates", "Inventory"),
         new(BarcodeLabels.Print, "Print Barcode Labels", "Inventory"),
+        new(InventoryDocuments.View, "View Inventory Document Templates", "Inventory"),
+        new(InventoryDocuments.Manage, "Manage Inventory Document Templates", "Inventory"),
+        new(InventoryDocuments.Print, "Print Inventory Documents", "Inventory"),
         new(PriceLists.View,    "View Price Lists",   "Price Lists"),
         new(PriceLists.Manage,  "Manage Price Lists", "Price Lists"),
         new(Stock.View,         "View Stock",        "Stock"),

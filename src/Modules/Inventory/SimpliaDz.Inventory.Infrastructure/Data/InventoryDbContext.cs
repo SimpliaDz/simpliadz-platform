@@ -14,6 +14,7 @@ public sealed class InventoryDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<BarcodeLabelTemplate> BarcodeLabelTemplates => Set<BarcodeLabelTemplate>();
+    public DbSet<InventoryDocumentTemplate> InventoryDocumentTemplates => Set<InventoryDocumentTemplate>();
     public DbSet<ProductCategory> Categories => Set<ProductCategory>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<ProductAttribute> ProductAttributes => Set<ProductAttribute>();
