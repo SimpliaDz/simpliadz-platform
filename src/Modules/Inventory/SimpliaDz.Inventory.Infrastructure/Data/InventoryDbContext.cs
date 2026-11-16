@@ -25,6 +25,8 @@ public sealed class InventoryDbContext : DbContext
     public DbSet<InventoryLocation> Locations => Set<InventoryLocation>();
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<InventoryPolicy> InventoryPolicies => Set<InventoryPolicy>();
+    public DbSet<InventoryWarningSettings> InventoryWarningSettings => Set<InventoryWarningSettings>();
+    public DbSet<InventoryWarning> InventoryWarnings => Set<InventoryWarning>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<StockTransferLine> StockTransferLines => Set<StockTransferLine>();

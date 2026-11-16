@@ -646,6 +646,105 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryWarning", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("FirstDetectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTimeOffset>("LastDetectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("QuantityOnHand")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReorderPoint")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("StockEnteredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("IsActive", "LocationId", "Kind");
+
+                    b.HasIndex("ProductVariantId", "LocationId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("InventoryWarnings", "inventory");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryWarningSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AgeThresholdDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("AgeingEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("IntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("LastRunAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("LeaseUntil")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("LowStockEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset>("NextRunAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InventoryWarningSettings", "inventory");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("20c7176d-2d2f-4d20-99f0-a99ca2874d40"),
+                            AgeThresholdDays = 90,
+                            AgeingEnabled = true,
+                            Enabled = false,
+                            IntervalMinutes = 60,
+                            LowStockEnabled = true,
+                            NextRunAt = new DateTimeOffset(new DateTime(2026, 11, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockBalance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -990,6 +1089,21 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("Location");
 
                     b.Navigation("ProductVariant");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.InventoryWarning", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Stock.InventoryLocation", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductVariant", null)
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Stock.StockBalance", b =>

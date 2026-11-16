@@ -79,6 +79,12 @@ public static class PermissionNames
         public const string Print = "inventory-documents.print";
     }
 
+    public static class InventoryWarnings
+    {
+        public const string View = "inventory-warnings.view";
+        public const string Manage = "inventory-warnings.manage";
+    }
+
     public static class PriceLists
     {
         public const string View = "price-lists.view";
@@ -210,6 +216,8 @@ public static class PermissionNames
         new(InventoryDocuments.View, "View Inventory Document Templates", "Inventory"),
         new(InventoryDocuments.Manage, "Manage Inventory Document Templates", "Inventory"),
         new(InventoryDocuments.Print, "Print Inventory Documents", "Inventory"),
+        new(InventoryWarnings.View, "View Inventory Warnings", "Inventory"),
+        new(InventoryWarnings.Manage, "Manage Inventory Warning Schedule", "Inventory"),
         new(PriceLists.View,    "View Price Lists",   "Price Lists"),
         new(PriceLists.Manage,  "Manage Price Lists", "Price Lists"),
         new(Stock.View,         "View Stock",        "Stock"),

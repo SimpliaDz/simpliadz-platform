@@ -20,9 +20,9 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F14 | Category management | Available |
 | F15 | Purchase orders and goods receipts | Available |
 | F16 | Supplier management | Available |
-| F17 | Inventory analytics and warnings | Partial |
+| F17 | Inventory analytics and warnings | Available |
 | F18 | Scan a barcode for price and stock | Available |
-| F19 | Physical inventory counts | Partial |
+| F19 | Physical inventory counts | Available |
 | F20 | Worked-hours reporting | Needed |
 | F21 | HR access to user management | Partial |
 | F22 | Store and warehouse locations | Available |
@@ -331,11 +331,9 @@ sequenceDiagram
 
 ## F17 — Inventory analytics and warnings
 
-**Partial.** The backend can rank products by quantity or revenue sold, show variant performance, show low stock, and show today's summary. It does not yet identify the client's “old products” or other slow-moving and ageing stock warnings. Confirm what “old” means: time since receipt, time since last sale, or time on shelf.
+**Available.** The backend ranks products by quantity or revenue sold, shows variant performance and today's summary, and stores low-stock and ageing warnings. A configurable backend job checks the tenant's inventory on a schedule. Each variant/location ages from the first stock entry after its balance was last zero; replenishing after a zero balance starts a new age period. The warning threshold and run interval are configurable.
 
-**Current endpoints:** `GET /reports/products/performance?fromDate=...&toDate=...&rankBy=Quantity`; `GET /reports/products/{productId}/variants?fromDate=...&toDate=...`; `GET /reports/low-stock`; `GET /reports/dashboard/today`.
-
-**Proposed endpoint:** `GET /reports/inventory/ageing?locationId=...&asOfDate=...`.
+**Current endpoints:** `GET /reports/products/performance?fromDate=...&toDate=...&rankBy=Quantity`; `GET /reports/products/{productId}/variants?fromDate=...&toDate=...`; `GET /reports/low-stock`; `GET /reports/dashboard/today`; `GET /inventory-warnings`; `GET /inventory-warnings/settings`; `PUT /inventory-warnings/settings`; `POST /inventory-warnings/run`.
 
 ```mermaid
 sequenceDiagram
@@ -345,7 +343,7 @@ sequenceDiagram
     Manager->>App: Open inventory insights
     App->>API: GET /reports/products/performance
     App->>API: GET /reports/low-stock
-    App->>API: GET /reports/inventory/ageing (proposed)
+    App->>API: GET /inventory-warnings
     API-->>App: Rankings and warnings
     App-->>Manager: Review items needing action
 ```
@@ -375,11 +373,9 @@ sequenceDiagram
 
 ## F19 — Physical inventory counts
 
-**Partial.** Staff can start a count for a location, add variants, enter counted quantities, see differences, complete or cancel the count, and review count history. Completion reconciles stock through adjustments. There is no monthly, half-yearly, or yearly schedule or guided count plan, and no count-sheet printing.
+**Available.** Staff can start a count for a location, add variants, enter counted quantities, see differences, complete or cancel the count, and review count history. Completion reconciles stock through adjustments. Count sheets and difference documents can be printed. Monthly, half-yearly, and yearly guided plans are deferred beyond this MVP.
 
-**Current endpoints:** `POST /inventory-counts`; `POST /inventory-counts/{id}/lines`; `PUT /inventory-counts/{id}/lines/{productVariantId}/count`; `GET /inventory-counts/{id}`; `GET /inventory-counts?locationId=...`; `POST /inventory-counts/{id}/complete`; `POST /inventory-counts/{id}/cancel`.
-
-**Proposed endpoints:** `GET /inventory-count-plans`; `POST /inventory-count-plans`; `GET /inventory-counts/{id}/count-sheet`.
+**Current endpoints:** `POST /inventory-counts`; `POST /inventory-counts/{id}/lines`; `PUT /inventory-counts/{id}/lines/{productVariantId}/count`; `GET /inventory-counts/{id}`; `GET /inventory-counts?locationId=...`; `POST /inventory-counts/{id}/complete`; `POST /inventory-counts/{id}/cancel`; `GET /inventory-counts/{id}/count-sheet?templateId=...`; `GET /inventory-counts/{id}/difference-document?templateId=...`.
 
 ```mermaid
 sequenceDiagram

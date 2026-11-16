@@ -53,6 +53,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IDashboardSummaryService, DashboardSummaryService>();
         services.AddScoped<ICashRegisterService, CashRegisterService>();
         services.AddScoped<ICashSessionService, CashSessionService>();
+        services.AddScoped<InventoryWarningScanService>();
+        services.AddHostedService<InventoryWarningWorker>();
 
         var useCaseAssemblies = new[]
         {
