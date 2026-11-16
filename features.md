@@ -1,13 +1,13 @@
 # SimpliaDz MVP — current client workflow
 
-This is a **backend feature draft** for discussion with the client. **Available** means the backend has the stated behavior; it does not confirm that a screen or printer workflow exists. **Partial** means part of the client's workflow is available. **Needed** means the proposed workflow has no dedicated endpoint yet. Routes marked **Proposed** are ticket ideas, not working API routes. Here, “remove” means deactivate and keep past business records unless the client confirms a need for permanent deletion. Guided count schedules, one-call scan results, and dedicated HR profiles are discussion ideas; confirm them before treating them as MVP requirements.
+This is a **backend feature draft** for discussion with the client. **Available** means the backend has the stated behavior; it does not confirm that a screen or printer workflow exists. **Partial** means part of the client's workflow is available. **Needed** means the proposed workflow has no dedicated endpoint yet. Routes marked **Proposed** are ticket ideas, not working API routes. “Remove” means soft deletion through deactivation; full deletion by an administrator is outside this MVP and will be scoped later. Guided count schedules, one-call scan results, and dedicated HR profiles are discussion ideas; confirm them before treating them as MVP requirements.
 
 | Ticket | Feature | Backend status |
 | --- | --- | --- |
 | F01 | User rights and roles | Available |
-| F02 | Admin user management | Partial |
-| F03 | Product catalog | Partial |
-| F04 | Customer management | Partial |
+| F02 | Admin user management | Available |
+| F03 | Product catalog | Available |
+| F04 | Customer management | Available |
 | F05 | Sell products and record payment | Available |
 | F06 | Sale discounts | Available |
 | F07 | Open and close the cash register | Available |
@@ -16,16 +16,16 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F10 | Print barcode labels | Needed |
 | F11 | Consult inventory | Available |
 | F12 | Print inventory documents | Needed |
-| F13 | Brand management | Partial |
-| F14 | Category management | Partial |
+| F13 | Brand management | Available |
+| F14 | Category management | Available |
 | F15 | Purchase orders and goods receipts | Available |
-| F16 | Supplier management | Partial |
+| F16 | Supplier management | Available |
 | F17 | Inventory analytics and warnings | Partial |
 | F18 | Scan a barcode for price and stock | Available |
 | F19 | Physical inventory counts | Partial |
 | F20 | Worked-hours reporting | Needed |
 | F21 | HR access to user management | Partial |
-| F22 | Store and warehouse locations | Partial |
+| F22 | Store and warehouse locations | Available |
 
 ## F01 — User rights and roles
 
@@ -48,7 +48,7 @@ sequenceDiagram
 
 ## F02 — Admin user management
 
-**Partial.** Admins can create users, list and view them, assign roles, and activate or deactivate accounts. Permanent deletion is not offered. Confirm whether the client's “delete user” means deactivation, especially for staff linked to past sales and stock actions.
+**Available.** Admins can create users, list and view them, assign roles, and activate or deactivate accounts. Deactivation is the MVP's soft deletion; full deletion is deferred.
 
 **Current endpoints:** `GET /users`; `GET /users/{id}`; `POST /users`; `POST /users/{id}/roles`; `DELETE /users/{id}/roles`; `PUT /users/{id}/activate`; `PUT /users/{id}/deactivate`.
 
@@ -67,11 +67,9 @@ sequenceDiagram
 
 ## F03 — Product catalog
 
-**Partial.** Products can be created, updated, searched, viewed, and deactivated. Sellable variants can be created and deactivated. There is no hard-delete product endpoint and no endpoint to edit an existing variant's SKU or barcode. Confirm whether deactivation covers the client's “delete product” workflow.
+**Available.** Products can be created, updated, searched, viewed, and deactivated. Sellable variants can be created, have their SKU and barcode corrected, and be deactivated. Deactivation is the MVP's soft deletion. Variant attribute combinations stay fixed so historical transactions keep their meaning.
 
-**Current endpoints:** `GET /products?search=...`; `GET /products/{id}`; `POST /products`; `PUT /products/{id}`; `PUT /products/{id}/deactivate`; `POST /variants/products/{productId}`; `GET /variants/{id}`; `PUT /variants/{id}/deactivate`.
-
-**Proposed if needed:** `PUT /variants/{id}` for corrections to an existing variant.
+**Current endpoints:** `GET /products?search=...`; `GET /products/{id}`; `POST /products`; `PUT /products/{id}`; `PUT /products/{id}/deactivate`; `POST /variants/products/{productId}`; `GET /variants/{id}`; `PUT /variants/{id}`; `PUT /variants/{id}/deactivate`.
 
 ```mermaid
 sequenceDiagram
@@ -88,7 +86,7 @@ sequenceDiagram
 
 ## F04 — Customer management
 
-**Partial.** Customers can be created, updated, searched, viewed, and deactivated. Past transactions keep their customer link. There is no permanent-delete endpoint; confirm whether deactivation meets the client's “remove client” need.
+**Available.** Customers can be created, updated, searched, viewed, and deactivated. Past transactions keep their customer link. Deactivation is the MVP's soft deletion.
 
 **Current endpoints:** `GET /customers?search=...`; `GET /customers/{id}`; `POST /customers`; `PUT /customers/{id}`; `PUT /customers/{id}/deactivate`.
 
@@ -260,7 +258,7 @@ sequenceDiagram
 
 ## F13 — Brand management
 
-**Partial.** Brands can be created, updated, viewed, listed, and deactivated. Products can reference a brand. There is no permanent-delete endpoint; confirm the client's meaning of “remove brand.”
+**Available.** Brands can be created, updated, viewed, listed, and deactivated. Products can reference a brand. Deactivation is the MVP's soft deletion.
 
 **Current endpoints:** `GET /brands`; `GET /brands/{id}`; `POST /brands`; `PUT /brands/{id}`; `PUT /brands/{id}/deactivate`.
 
@@ -279,7 +277,7 @@ sequenceDiagram
 
 ## F14 — Category management
 
-**Partial.** Categories can be created, updated, listed, viewed, organized under parent categories, and deactivated. Existing products keep their category reference. There is no permanent-delete endpoint; confirm the client's meaning of “delete category.”
+**Available.** Categories can be created, updated, listed, viewed, organized under parent categories, and deactivated. Existing products keep their category reference. Deactivation is the MVP's soft deletion.
 
 **Current endpoints:** `GET /categories`; `GET /categories/{id}`; `POST /categories`; `PUT /categories/{id}`; `PUT /categories/{id}/deactivate`.
 
@@ -317,7 +315,7 @@ sequenceDiagram
 
 ## F16 — Supplier management
 
-**Partial.** Suppliers can be created, updated, searched, viewed, and deactivated. Past purchases keep their supplier reference. There is no permanent-delete endpoint; confirm whether deactivation is sufficient.
+**Available.** Suppliers can be created, updated, searched, viewed, and deactivated. Past purchases keep their supplier reference. Deactivation is the MVP's soft deletion.
 
 **Current endpoints:** `GET /suppliers?search=...`; `GET /suppliers/{id}`; `POST /suppliers`; `PUT /suppliers/{id}`; `PUT /suppliers/{id}/deactivate`.
 
@@ -442,7 +440,7 @@ sequenceDiagram
 
 ## F22 — Store and warehouse locations
 
-**Partial.** Admins can create, update, list, view, and deactivate stores or warehouses. Stock and sales use locations. There is no permanent-delete endpoint; confirm whether deactivation meets the client's “CRUD location” expectation.
+**Available.** Admins can create, update, list, view, and deactivate stores or warehouses. Stock and sales use locations. Deactivation is the MVP's soft deletion.
 
 **Current endpoints:** `GET /locations`; `GET /locations/{id}`; `POST /locations`; `PUT /locations/{id}`; `PUT /locations/{id}/deactivate`.
 

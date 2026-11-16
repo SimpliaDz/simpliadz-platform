@@ -74,6 +74,17 @@ public sealed class GeneratedBarcodeIntegrationTests
                 new GenerateVariantBarcodeCommand(factory.Id), CancellationToken.None).AsTask());
             await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
                 new GenerateVariantBarcodeCommand(collision.Id), CancellationToken.None).AsTask());
+            var update = new UpdateVariantIdentifiersHandler(products);
+            var corrected = await update.Handle(new UpdateVariantIdentifiersCommand(target.Id,
+                "BC-RENAMED", "CORRECTED-BC"), CancellationToken.None);
+            Assert.Equal("BC-RENAMED", corrected.Sku);
+            Assert.Equal("CORRECTED-BC", corrected.Barcode);
+            await using (var verify = NewDb(connection))
+                Assert.Equal("CORRECTED-BC", (await verify.ProductVariants.SingleAsync(x =>
+                    x.Id == target.Id)).Barcode);
+            await Assert.ThrowsAsync<ConflictException>(() => update.Handle(
+                new UpdateVariantIdentifiersCommand(target.Id, "BC-FACTORY", null),
+                CancellationToken.None).AsTask());
             await using (var verify = NewDb(connection))
                 Assert.Equal("FACTORY-BC", (await verify.ProductVariants.SingleAsync(x => x.Id == factory.Id)).Barcode);
         }

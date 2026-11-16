@@ -8,6 +8,8 @@ SKU is required and unique across the tenant database. Barcode is optional and u
 
 For a variant without a factory barcode, `POST /variants/{id}/generate-barcode` assigns an internal barcode. It uses `SDZ` followed by the variant's 32 hexadecimal ID characters and can be encoded as Code 128. The operation requires an active product and variant, never replaces an existing barcode, and uses a conditional database update so concurrent requests cannot overwrite one another. The barcode is unique inside the tenant database. No new migration is needed for this operation.
 
+`PUT /variants/{id}` corrects the SKU and barcode of an active variant. Both remain unique across the tenant database. It does not change the variant ID, product, attribute combination, stock, or sale history. The update uses a conditional database write and records the old and new identifiers in the business audit trail. An administrator may deactivate variants; full deletion is outside this MVP.
+
 | Route | Permission | Purpose |
 |---|---|---|
 | `POST /variants/products/{productId}` | `variants.create` | Create a variant. |
@@ -15,6 +17,7 @@ For a variant without a factory barcode, `POST /variants/{id}/generate-barcode` 
 | `GET /variants/by-sku/{sku}` | `variants.view` | Find by SKU. |
 | `GET /variants/by-barcode/{barcode}` | `variants.view` | Find by barcode. |
 | `POST /variants/{id}/generate-barcode` | `variants.edit` | Generate and assign an internal barcode if absent. |
+| `PUT /variants/{id}` | `variants.edit` | Correct SKU and barcode. |
 | `PUT /variants/{id}/deactivate` | `variants.edit` | Deactivate while preserving history. |
 
 Create body:

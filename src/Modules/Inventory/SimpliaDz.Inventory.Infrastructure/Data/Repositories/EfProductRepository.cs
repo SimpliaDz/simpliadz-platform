@@ -54,6 +54,23 @@ internal sealed class EfProductRepository : IProductRepository
         }
     }
 
+    public async Task<bool> TryUpdateVariantIdentifiersAsync(Guid variantId, string currentSku,
+        string? currentBarcode, string sku, string? barcode, CancellationToken ct)
+    {
+        try
+        {
+            return await _db.ProductVariants.Where(v => v.Id == variantId && v.IsActive &&
+                    v.Sku == new Core.ValueObjects.Sku(currentSku) && v.Barcode == currentBarcode)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(v => v.Sku, new Core.ValueObjects.Sku(sku))
+                    .SetProperty(v => v.Barcode, barcode), ct) == 1;
+        }
+        catch (SqlException exception) when (exception.Number is 2601 or 2627)
+        {
+            throw new ConflictException("Variant SKU or barcode already exists.");
+        }
+    }
+
     public async Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
         await _db.AttributeValues.AsNoTracking().Where(v => ids.Contains(v.Id)).ToListAsync(ct);
 

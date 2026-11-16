@@ -1,5 +1,7 @@
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
+using SimpliaDz.Audit.UseCases;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.Contracts.Variants;
@@ -34,6 +36,21 @@ public static class VariantEndpoints
                 request.Barcode, request.RetailPrice, request.WholesalePrice, request.AttributeValueIds), ct);
             return Results.Created($"/variants/{variant.Id}", variant);
         }).RequireAuthorization(PermissionNames.Variants.Create);
+
+        group.MapPut("/{id:guid}", async (Guid id, [FromBody] UpdateVariantRequest request,
+            HttpContext http, [FromServices] ISender sender, [FromServices] IAuditTrail audit,
+            CancellationToken ct) =>
+        {
+            var before = await sender.Send(new GetVariantQuery(id), ct);
+            var updated = await sender.Send(new UpdateVariantIdentifiersCommand(id,
+                request.Sku, request.Barcode), ct);
+            if (before.Sku != updated.Sku || before.Barcode != updated.Barcode)
+                await BusinessAudit.RecordAsync(audit, http, "VariantIdentifiersUpdated",
+                    "ProductVariant", id,
+                    new Dictionary<string, object?> { ["sku"] = before.Sku, ["barcode"] = before.Barcode },
+                    new Dictionary<string, object?> { ["sku"] = updated.Sku, ["barcode"] = updated.Barcode }, ct);
+            return Results.Ok(updated);
+        }).RequireAudit().RequireAuthorization(PermissionNames.Variants.Edit);
 
         group.MapPut("/{id:guid}/deactivate", async (Guid id, [FromServices] ISender sender, CancellationToken ct) =>
         {

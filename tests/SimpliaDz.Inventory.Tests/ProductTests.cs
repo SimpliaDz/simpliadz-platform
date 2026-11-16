@@ -35,6 +35,35 @@ public sealed class ProductTests
     }
 
     [Fact]
+    public async Task Variant_sku_and_barcode_can_be_corrected_without_changing_its_identity()
+    {
+        var repository = new InMemoryProductRepository();
+        var product = new Product("T-Shirt");
+        var variant = product.AddVariant("OLD-SKU", 100m, barcode: "OLD-BARCODE");
+        var other = product.AddVariant("TAKEN-SKU", 100m, barcode: "TAKEN-BARCODE");
+        repository.Seed(product);
+        var handler = new UpdateVariantIdentifiersHandler(repository);
+
+        var updated = await handler.Handle(new UpdateVariantIdentifiersCommand(variant.Id,
+            "NEW-SKU", "NEW-BARCODE"), CancellationToken.None);
+        Assert.Equal(variant.Id, updated.Id);
+        Assert.Equal("NEW-SKU", updated.Sku);
+        Assert.Equal("NEW-BARCODE", updated.Barcode);
+        Assert.Equal(other.Id, (await repository.GetVariantBySkuAsync("TAKEN-SKU",
+            CancellationToken.None))!.Id);
+        await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
+            new UpdateVariantIdentifiersCommand(variant.Id, "TAKEN-SKU", null),
+            CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
+            new UpdateVariantIdentifiersCommand(variant.Id, "NEW-SKU", "TAKEN-BARCODE"),
+            CancellationToken.None).AsTask());
+        variant.Deactivate();
+        await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
+            new UpdateVariantIdentifiersCommand(variant.Id, "OTHER", null),
+            CancellationToken.None).AsTask());
+    }
+
+    [Fact]
     public void Product_is_a_catalog_definition_without_stock_quantity()
     {
         var propertyNames = typeof(Product).GetProperties().Select(property => property.Name).ToArray();
@@ -195,6 +224,17 @@ public sealed class ProductTests
         public Task<bool> TryAssignGeneratedBarcodeAsync(Guid variantId, string barcode, CancellationToken ct) =>
             Task.FromResult(_products.SelectMany(x => x.Variants).Any(x =>
                 x.Id == variantId && x.Barcode == barcode));
+        public Task<bool> TryUpdateVariantIdentifiersAsync(Guid variantId, string currentSku,
+            string? currentBarcode, string sku, string? barcode, CancellationToken ct)
+        {
+            var variant = _products.SelectMany(x => x.Variants).FirstOrDefault(x =>
+                x.Id == variantId && x.IsActive && x.Sku.Value == currentSku &&
+                x.Barcode == currentBarcode);
+            if (variant is null) return Task.FromResult(false);
+            variant.SetSku(new SimpliaDz.Inventory.Core.ValueObjects.Sku(sku));
+            variant.SetBarcode(barcode);
+            return Task.FromResult(true);
+        }
         public Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<AttributeValue>>([]);
 

@@ -3,6 +3,7 @@ using Mediator;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Contracts.Variants;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
+using SimpliaDz.Inventory.Core.ValueObjects;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 
 namespace SimpliaDz.Inventory.UseCases.Variants;
@@ -14,6 +15,8 @@ public sealed record GetVariantByBarcodeQuery(string Barcode) : IRequest<Variant
 public sealed record GetVariantQuery(Guid Id) : IRequest<VariantResponse>;
 public sealed record DeactivateVariantCommand(Guid Id) : IRequest;
 public sealed record GenerateVariantBarcodeCommand(Guid Id) : IRequest<VariantResponse>;
+public sealed record UpdateVariantIdentifiersCommand(Guid Id, string Sku, string? Barcode)
+    : IRequest<VariantResponse>;
 
 public sealed class CreateVariantValidator : AbstractValidator<CreateVariantCommand>
 {
@@ -24,6 +27,16 @@ public sealed class CreateVariantValidator : AbstractValidator<CreateVariantComm
         RuleFor(x => x.RetailPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.WholesalePrice).GreaterThanOrEqualTo(0).When(x => x.WholesalePrice.HasValue);
         RuleFor(x => x.AttributeValueIds).NotEmpty();
+    }
+}
+
+public sealed class UpdateVariantIdentifiersValidator : AbstractValidator<UpdateVariantIdentifiersCommand>
+{
+    public UpdateVariantIdentifiersValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Sku).NotEmpty().MaximumLength(Sku.MaxLength);
+        RuleFor(x => x.Barcode).MaximumLength(64);
     }
 }
 
@@ -133,6 +146,42 @@ public sealed class GenerateVariantBarcodeHandler(IProductRepository products)
         var barcode = variant.GenerateInternalBarcode();
         if (!await products.TryAssignGeneratedBarcodeAsync(variant.Id, barcode, ct))
             throw new ConflictException("Variant barcode changed concurrently. Reload the variant.");
+        return variant.ToResponse();
+    }
+}
+
+public sealed class UpdateVariantIdentifiersHandler(IProductRepository products)
+    : IRequestHandler<UpdateVariantIdentifiersCommand, VariantResponse>
+{
+    public async ValueTask<VariantResponse> Handle(UpdateVariantIdentifiersCommand request,
+        CancellationToken ct)
+    {
+        var variant = await products.GetVariantByIdAsync(request.Id, ct)
+            ?? throw new NotFoundException("Variant", request.Id);
+        if (!variant.IsActive)
+            throw new ConflictException("Cannot edit an inactive variant.");
+        var sku = new Sku(request.Sku.Trim()).Value;
+        var barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim();
+        if (barcode is { Length: > 64 })
+            throw new ArgumentException("Barcode cannot exceed 64 characters.", nameof(request));
+        if (variant.Sku.Value == sku && variant.Barcode == barcode)
+            return variant.ToResponse();
+
+        var existingSku = await products.GetVariantBySkuAsync(sku, ct);
+        if (existingSku is not null && existingSku.Id != variant.Id)
+            throw new ConflictException($"SKU '{sku}' already exists.");
+        if (barcode is not null)
+        {
+            var existingBarcode = await products.GetVariantByBarcodeAsync(barcode, ct);
+            if (existingBarcode is not null && existingBarcode.Id != variant.Id)
+                throw new ConflictException($"Barcode '{barcode}' already exists.");
+        }
+
+        if (!await products.TryUpdateVariantIdentifiersAsync(variant.Id, variant.Sku.Value,
+                variant.Barcode, sku, barcode, ct))
+            throw new ConflictException("Variant changed concurrently. Reload the variant.");
+        variant.SetSku(new Sku(sku));
+        variant.SetBarcode(barcode);
         return variant.ToResponse();
     }
 }
