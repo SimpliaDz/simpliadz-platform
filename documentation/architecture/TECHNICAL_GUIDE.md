@@ -1,10 +1,10 @@
 # SimpliaDz — Technical Guide
 
-> **Purpose of this document:** explain, in plain language, how this solution is put together — so you (a human still learning this stack) and future Claude Code sessions make changes that fit the existing architecture instead of introducing new patterns.
+> **Purpose of this document:** explain, in plain language, how this solution is put together so contributors can make changes that fit the existing architecture.
 >
 > This is a **snapshot of what the code actually does today** (verified by reading the source, not guessed). Where something looks unfinished or inconsistent, it's called out explicitly in [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap) rather than glossed over.
 >
-> This document does not change any production code. See also `CLAUDE.md` at the repo root for command references and a more compact spec — this guide is the "why and how it fits together" companion to it.
+> This document does not change any production code. See also [CLAUDE.md](../../CLAUDE.md) at the repo root for command references and a more compact spec — this guide is the "why and how it fits together" companion to it.
 
 ---
 
@@ -29,7 +29,7 @@
 
 ## 1. Big picture: what kind of app is this
 
-This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent **modules** (Identity, Inventory, Organization, and six not-yet-implemented ones), each structured using **Clean Architecture** layers, with **CQRS via Mediator** inside each module.
+This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent modules. Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, and Audit have implemented behavior; Notifications remains a scaffold. Each module follows Clean Architecture layers, with CQRS via Mediator where applicable.
 
 Why this combination, in plain terms:
 
@@ -47,7 +47,7 @@ If you remember one thing from this section: **every module repeats the same fou
 src/
 ├── SimpliaDz.Api/                 # The ONE web application that gets deployed/run.
 ├── SimpliaDz.BuildingBlocks/       # Shared plumbing code used by every module (not business logic).
-├── SimpliaDz.SharedKernel/         # Reserved for shared domain concepts — currently EMPTY (no code yet).
+├── SimpliaDz.SharedKernel/         # Shared types, including authorization permission names.
 ├── SimpliaDz.ModuleCatalog/         # Shared installed-module list used by both executable hosts.
 ├── SimpliaDz.DatabaseMigrator/     # A separate CLI tool that runs migrations + seed data per tenant.
 └── Modules/
@@ -106,7 +106,7 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Eight modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**, **Accounting**, **Reporting**, **Audit**) have real code. **Notifications** remains a scaffold — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](CUSTOMERS.md), [Suppliers](SUPPLIERS.md), [Business Audit Trail](BUSINESS_AUDIT_TRAIL.md), and the feature-specific module guides for contracts and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Eight modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**, **Accounting**, **Reporting**, **Audit**) have real code. **Notifications** remains a scaffold — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](../sales/CUSTOMERS.md), [Suppliers](../purchasing/SUPPLIERS.md), [Business Audit Trail](../audit/BUSINESS_AUDIT_TRAIL.md), and the feature-specific module guides for contracts and rules.
 
 ### `tests/`
 
@@ -360,19 +360,19 @@ This is the trick that lets `Product.Name` be a rich `ProductName` value object 
 
 **API endpoints** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `GET /products` supports `search` and `isActive` filters; `GET /products/{id}`, `POST /products`, `PUT /products/{id}`, and `PUT /products/{id}/deactivate` complete the catalog workflow. Read/create/edit operations require the matching `PermissionNames.Products` permission.
 
-`Product` contains commercial information and owns `ProductVariant` children, but contains no stock quantity. A variant is the sellable/stockable item. Quantity is stored separately by `StockItem` using `(VariantId, LocationId)`, so the same SKU can hold different quantities in different stores or warehouses. Product hard deletion is not exposed, and the database uses restrictive foreign keys so variants and their transaction/stock history cannot be removed through a cascading product delete. See [Product Catalog](PRODUCT_CATALOG.md) for the complete contract and rules.
+`Product` contains commercial information and owns `ProductVariant` children, but contains no stock quantity. A variant is the sellable/stockable item. Quantity is stored separately by `StockItem` using `(VariantId, LocationId)`, so the same SKU can hold different quantities in different stores or warehouses. Product hard deletion is not exposed, and the database uses restrictive foreign keys so variants and their transaction/stock history cannot be removed through a cascading product delete. See [Product Catalog](../inventory/PRODUCT_CATALOG.md) for the complete contract and rules.
 
 Business locations extend the same Inventory module rather than introducing another module. `GET/POST/PUT /locations` and `PUT /locations/{id}/deactivate` expose the `InventoryLocation` aggregate. Codes are normalized and unique inside each tenant database, deactivation retains stock history, and `StockService` rejects inactive or unknown locations before receiving or adjusting stock. See `BUSINESS_LOCATIONS.md` for the complete contract.
 
-Product categories also stay inside Inventory. `ProductCategory` has an optional self-reference, sibling-level name uniqueness, restrictive deletion, and application-level ancestry checks that prevent circular relationships. `GET /categories` returns the hierarchy recursively; create, update, retrieve, and deactivate operations use the `categories.view/create/edit` permissions. Deactivation never changes existing product references. See [Product Categories](PRODUCT_CATEGORIES.md).
+Product categories also stay inside Inventory. `ProductCategory` has an optional self-reference, sibling-level name uniqueness, restrictive deletion, and application-level ancestry checks that prevent circular relationships. `GET /categories` returns the hierarchy recursively; create, update, retrieve, and deactivate operations use the `categories.view/create/edit` permissions. Deactivation never changes existing product references. See [Product Categories](../inventory/PRODUCT_CATEGORIES.md).
 
-Brand management uses the same Inventory layers. `GET/POST/PUT /brands` and `PUT /brands/{id}/deactivate` expose the existing `Brand` entity through `brands.view/create/edit` permissions. Its unique name index applies to active and inactive records; deactivation preserves product references. See [Brands](BRANDS.md).
+Brand management uses the same Inventory layers. `GET/POST/PUT /brands` and `PUT /brands/{id}/deactivate` expose the existing `Brand` entity through `brands.view/create/edit` permissions. Its unique name index applies to active and inactive records; deactivation preserves product references. See [Brands](../inventory/BRANDS.md).
 
-Generic product attributes live in Inventory as `ProductAttribute` and `AttributeValue`. `GET/POST /attributes` and nested value creation/order endpoints expose Size, Color, and future attribute types through `attributes.view/manage` permissions. The existing variant text fields remain compatible with stock data. See [Product Attributes](PRODUCT_ATTRIBUTES.md).
+Generic product attributes live in Inventory as `ProductAttribute` and `AttributeValue`. `GET/POST /attributes` and nested value creation/order endpoints expose Size, Color, and future attribute types through `attributes.view/manage` permissions. The existing variant text fields remain compatible with stock data. See [Product Attributes](../inventory/PRODUCT_ATTRIBUTES.md).
 
-New product variants link to multiple attribute values through `VariantAttributeValues`. A unique product and combination key prevents duplicate selections regardless of value order. SKU and barcode lookup and deactivation are exposed through `/variants`; stock continues to reference variant IDs. See [Product Variants](PRODUCT_VARIANTS.md).
+New product variants link to multiple attribute values through `VariantAttributeValues`. A unique product and combination key prevents duplicate selections regardless of value order. SKU and barcode lookup and deactivation are exposed through `/variants`; stock continues to reference variant IDs. See [Product Variants](../inventory/PRODUCT_VARIANTS.md).
 
-Retail and wholesale prices can be managed in tenant price lists. The price list migration copies existing variant prices into default DZD lists, and the API resolves a variant's price through a list. See [Price Lists](PRICE_LISTS.md).
+Retail and wholesale prices can be managed in tenant price lists. The price list migration copies existing variant prices into default DZD lists, and the API resolves a variant's price through a list. See [Price Lists](../inventory/PRICE_LISTS.md).
 
 ---
 
@@ -548,7 +548,7 @@ This is genuinely tenant-aware: a different tenant with a different `Modules` ma
 5. Root, health, and Swagger endpoints are system-scoped and do not carry tenant metadata.
 6. Login issues a JWT containing a `tenant_id` claim. JWT validation compares it with the configured API tenant on tenant endpoints, preventing a token issued by one tenant environment from being used by another.
 
-For local testing, `src/tenants.json` can hold several descriptors. Change `ActiveTenantId` or set the `Tenancy__ActiveTenantId` environment variable to run the API as another tenant. The migrator always uses its explicit `--tenant` argument. See `documentation/LOCAL_TENANCY.md` for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
+For local testing, `src/tenants.json` can hold several descriptors. Change `ActiveTenantId` or set the `Tenancy__ActiveTenantId` environment variable to run the API as another tenant. The migrator always uses its explicit `--tenant` argument. See [Local Tenancy](../getting-started/LOCAL_TENANCY.md) for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
 
 ---
 
@@ -556,9 +556,9 @@ For local testing, `src/tenants.json` can hold several descriptors. Change `Acti
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **One scaffold module still has no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Notifications remains a scaffold. Audit exposes an authorized business history query and records the sensitive actions listed in [Business Audit Trail](BUSINESS_AUDIT_TRAIL.md). Reporting exposes sales summary, product performance, inventory, low stock, and dashboard reports; Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
+1. **One scaffold module still has no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Notifications remains a scaffold. Audit exposes an authorized business history query and records the sensitive actions listed in [Business Audit Trail](../audit/BUSINESS_AUDIT_TRAIL.md). Reporting exposes sales summary, product performance, inventory, low stock, and dashboard reports; Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, transfers, and physical counts are available through tenant-scoped endpoints.
-3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See `AUTHENTICATION.md`.
+3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See [Authentication](../identity/AUTHENTICATION.md).
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
 5. **Automated coverage is still partial.** Module-catalog, Organization, Inventory location, Inventory product, and Inventory category tests exist. The Identity session lifecycle has been exercised against the local API and SQL Server, but repeatable Identity/API integration tests should still be added to CI.
 6. **The JSON tenant catalog is temporary local infrastructure.** Automated tenant provisioning, a control-plane tenant store, secret management, and tenant-specific routing/invitation links remain future work.
@@ -588,21 +588,21 @@ Distilled from the patterns above — follow these to stay consistent with the r
 ## 14. Implementation status recap
 
 **Working today:**
-- Identity module: login, rotating refresh tokens, logout/session revocation, account lockout, user operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, and change/forgot/reset password. See [Authentication and session lifecycle](AUTHENTICATION.md).
-- Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories and brands; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](PRODUCT_CATALOG.md), [Product Categories](PRODUCT_CATEGORIES.md), and [Brands](BRANDS.md).
+- Identity module: login, rotating refresh tokens, logout/session revocation, account lockout, user operations (create, activate/deactivate, role assignment), role management, permission-based authorization, `/auth/me`, and change/forgot/reset password. See [Authentication and session lifecycle](../identity/AUTHENTICATION.md).
+- Inventory module: create, update, retrieve, search, and deactivate products; manage hierarchical categories and brands; validate brand/category references; expose variants without coupling products to stock quantities; and preserve history through restrictive deletion rules. See [Product Catalog](../inventory/PRODUCT_CATALOG.md), [Product Categories](../inventory/PRODUCT_CATEGORIES.md), and [Brands](../inventory/BRANDS.md).
 - Organization module: tenant-isolated profile retrieval and authorized upsert, DZD default currency, validation, permissions, migration, and focused domain/use-case tests.
-- Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt, adjustment, opening stock, transfer, and physical count workflows. See [Physical Inventory Counts](PHYSICAL_INVENTORY_COUNTS.md).
-- Purchasing module: manage suppliers; create, place, list, and cancel purchase orders without changing stock; post partial or complete goods receipts atomically with stock movements. See [Suppliers](SUPPLIERS.md), [Purchase Orders](PURCHASE_ORDERS.md), and [Goods Receipts](GOODS_RECEIPTS.md).
-- Sales module: create, update, search, retrieve, and deactivate tenant-scoped retail or wholesale customers. See [Customers](CUSTOMERS.md).
-- Sales module: create sale drafts, snapshot price and cost, calculate discounts and totals, and complete atomically with inventory deduction. See [Sales](SALES.md).
-- Sales discounts: authorized fixed or percentage discounts on draft lines and sales. See [Sale Discounts](SALE_DISCOUNTS.md).
-- Sales payments: immutable payment history and atomic paid-total updates on completed sales. See [Sale Payments](SALE_PAYMENTS.md).
-- Cash registers: multiple registers per location, shared cashier sessions, payment attribution, cash movements, and closing differences. See [Cash Registers](CASH_REGISTERS.md).
-- Barcode labels: tenant-stored page and label templates with printable Code 128 documents. See [Barcode Labels](BARCODE_LABELS.md).
-- Inventory documents: tenant-stored stock list and count templates with printable reports. See [Inventory Documents](INVENTORY_DOCUMENTS.md).
-- Inventory warnings: tenant-configured scheduled low-stock and ageing scans with a database lease. See [Inventory Warnings](INVENTORY_WARNINGS.md).
-- Worked hours: organization time zone, staff work sessions, audited manager corrections, and daily reports. See [Worked Hours](WORKED_HOURS.md).
-- Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](POS_PRODUCT_LOOKUP.md).
+- Inventory module: manage/deactivate business locations, seeded catalog/reference data, and location-validated stock receipt, adjustment, opening stock, transfer, and physical count workflows. See [Physical Inventory Counts](../inventory/PHYSICAL_INVENTORY_COUNTS.md).
+- Purchasing module: manage suppliers; create, place, list, and cancel purchase orders without changing stock; post partial or complete goods receipts atomically with stock movements. See [Suppliers](../purchasing/SUPPLIERS.md), [Purchase Orders](../purchasing/PURCHASE_ORDERS.md), and [Goods Receipts](../purchasing/GOODS_RECEIPTS.md).
+- Sales module: create, update, search, retrieve, and deactivate tenant-scoped retail or wholesale customers. See [Customers](../sales/CUSTOMERS.md).
+- Sales module: create sale drafts, snapshot price and cost, calculate discounts and totals, and complete atomically with inventory deduction. See [Sales](../sales/SALES.md).
+- Sales discounts: authorized fixed or percentage discounts on draft lines and sales. See [Sale Discounts](../sales/SALE_DISCOUNTS.md).
+- Sales payments: immutable payment history and atomic paid-total updates on completed sales. See [Sale Payments](../sales/SALE_PAYMENTS.md).
+- Cash registers: multiple registers per location, shared cashier sessions, payment attribution, cash movements, and closing differences. See [Cash Registers](../sales/CASH_REGISTERS.md).
+- Barcode labels: tenant-stored page and label templates with printable Code 128 documents. See [Barcode Labels](../inventory/BARCODE_LABELS.md).
+- Inventory documents: tenant-stored stock list and count templates with printable reports. See [Inventory Documents](../inventory/INVENTORY_DOCUMENTS.md).
+- Inventory warnings: tenant-configured scheduled low-stock and ageing scans with a database lease. See [Inventory Warnings](../inventory/INVENTORY_WARNINGS.md).
+- Worked hours: organization time zone, staff work sessions, audited manager corrections, and daily reports. See [Worked Hours](../organization/WORKED_HOURS.md).
+- Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](../sales/POS_PRODUCT_LOOKUP.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
 **Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit.

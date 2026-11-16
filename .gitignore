@@ -314,7 +314,9 @@ Thumbs.db
 .DS_Store
 Thumbs.db
 
-# Keep generated/editor-specific documentation content ignored, while allowing
-# the repository's root-level technical Markdown documents to be versioned.
-/documentation/*
+# Keep documentation Markdown at any depth, but ignore editor-specific files.
+/documentation/**
+!/documentation/**/
 !/documentation/*.md
+!/documentation/**/*.md
+/documentation/.obsidian/

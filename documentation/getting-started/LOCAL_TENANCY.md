@@ -1,5 +1,7 @@
 # Local tenant configuration
 
+For the full startup sequence, see [Start SimpliaDz locally](LOCAL_START_GUIDE.md).
+
 SimpliaDz currently uses one database per tenant. During development, the shared
 `src/tenants.json` file is the local tenant catalog used by both the API and the
 database migrator. This avoids duplicating connection strings and module flags
