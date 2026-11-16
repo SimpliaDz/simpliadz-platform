@@ -39,6 +39,21 @@ internal sealed class EfProductRepository : IProductRepository
     public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken ct) =>
         _db.ProductVariants.AnyAsync(v => v.Barcode == barcode, ct);
 
+    public async Task<bool> TryAssignGeneratedBarcodeAsync(Guid variantId, string barcode,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await _db.ProductVariants.Where(v => v.Id == variantId &&
+                    v.Barcode == null && v.IsActive)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(v => v.Barcode, barcode), ct) == 1;
+        }
+        catch (SqlException exception) when (exception.Number is 2601 or 2627)
+        {
+            throw new ConflictException("Generated barcode conflicts with an existing barcode.");
+        }
+    }
+
     public async Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
         await _db.AttributeValues.AsNoTracking().Where(v => ids.Contains(v.Id)).ToListAsync(ct);
 

@@ -68,6 +68,14 @@ public sealed class ProductVariant
         Barcode = trimmed;
     }
 
+    public string GenerateInternalBarcode()
+    {
+        if (!IsActive) throw new InvalidOperationException("Cannot generate a barcode for an inactive variant.");
+        if (Barcode is not null) throw new InvalidOperationException("Variant already has a barcode.");
+        SetBarcode($"SDZ{Id:N}".ToUpperInvariant());
+        return Barcode!;
+    }
+
     public void SetColor(string? color)
     {
         if (string.IsNullOrWhiteSpace(color))

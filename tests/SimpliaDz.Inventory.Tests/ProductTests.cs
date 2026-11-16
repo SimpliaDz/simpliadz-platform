@@ -6,12 +6,34 @@ using SimpliaDz.Inventory.UseCases.Products.Commands.DeactivateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Commands.UpdateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Queries.GetProduct;
 using SimpliaDz.Inventory.UseCases.Products.Queries.GetProducts;
+using SimpliaDz.Inventory.UseCases.Variants;
 using Xunit;
 
 namespace SimpliaDz.Inventory.Tests;
 
 public sealed class ProductTests
 {
+    [Fact]
+    public async Task Generate_barcode_only_for_an_active_variant_without_a_barcode()
+    {
+        var repository = new InMemoryProductRepository();
+        var product = new Product("T-Shirt");
+        var variant = product.AddVariant("TS-S", 100m);
+        var factory = product.AddVariant("TS-M", 100m, barcode: "FACTORY-1");
+        repository.Seed(product);
+        var handler = new GenerateVariantBarcodeHandler(repository);
+
+        var generated = await handler.Handle(new GenerateVariantBarcodeCommand(variant.Id),
+            CancellationToken.None);
+        Assert.Equal(variant.Barcode, generated.Barcode);
+        Assert.Equal(variant.Id, (await repository.GetVariantByBarcodeAsync(generated.Barcode!,
+            CancellationToken.None))!.Id);
+        await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
+            new GenerateVariantBarcodeCommand(factory.Id), CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
+            new GenerateVariantBarcodeCommand(variant.Id), CancellationToken.None).AsTask());
+    }
+
     [Fact]
     public void Product_is_a_catalog_definition_without_stock_quantity()
     {
@@ -170,6 +192,9 @@ public sealed class ProductTests
             Task.FromResult(_products.SelectMany(x => x.Variants).Any(x => x.Sku.Value == sku));
         public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken ct) =>
             Task.FromResult(_products.SelectMany(x => x.Variants).Any(x => x.Barcode == barcode));
+        public Task<bool> TryAssignGeneratedBarcodeAsync(Guid variantId, string barcode, CancellationToken ct) =>
+            Task.FromResult(_products.SelectMany(x => x.Variants).Any(x =>
+                x.Id == variantId && x.Barcode == barcode));
         public Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<AttributeValue>>([]);
 

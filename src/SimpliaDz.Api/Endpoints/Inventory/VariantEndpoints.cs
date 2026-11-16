@@ -41,6 +41,11 @@ public static class VariantEndpoints
             return Results.NoContent();
         }).RequireAuthorization(PermissionNames.Variants.Edit);
 
+        group.MapPost("/{id:guid}/generate-barcode", async (Guid id,
+            [FromServices] ISender sender, CancellationToken ct) =>
+            Results.Ok(await sender.Send(new GenerateVariantBarcodeCommand(id), ct)))
+            .RequireAuthorization(PermissionNames.Variants.Edit);
+
         return app;
     }
 }

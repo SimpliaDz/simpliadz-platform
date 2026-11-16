@@ -13,6 +13,7 @@ public sealed record GetVariantBySkuQuery(string Sku) : IRequest<VariantResponse
 public sealed record GetVariantByBarcodeQuery(string Barcode) : IRequest<VariantResponse>;
 public sealed record GetVariantQuery(Guid Id) : IRequest<VariantResponse>;
 public sealed record DeactivateVariantCommand(Guid Id) : IRequest;
+public sealed record GenerateVariantBarcodeCommand(Guid Id) : IRequest<VariantResponse>;
 
 public sealed class CreateVariantValidator : AbstractValidator<CreateVariantCommand>
 {
@@ -110,5 +111,28 @@ public sealed class DeactivateVariantHandler(IProductRepository products)
         variant.Deactivate();
         await products.SaveChangesAsync(ct);
         return default;
+    }
+}
+
+public sealed class GenerateVariantBarcodeHandler(IProductRepository products)
+    : IRequestHandler<GenerateVariantBarcodeCommand, VariantResponse>
+{
+    public async ValueTask<VariantResponse> Handle(GenerateVariantBarcodeCommand request,
+        CancellationToken ct)
+    {
+        var variant = await products.GetVariantByIdAsync(request.Id, ct)
+            ?? throw new NotFoundException("Variant", request.Id);
+        var product = await products.GetByIdAsync(variant.ProductId, ct)
+            ?? throw new NotFoundException("Product", variant.ProductId);
+        if (!product.IsActive)
+            throw new ConflictException("Cannot generate a barcode for an inactive product.");
+        if (!variant.IsActive)
+            throw new ConflictException("Cannot generate a barcode for an inactive variant.");
+        if (variant.Barcode is not null)
+            throw new ConflictException("Variant already has a barcode.");
+        var barcode = variant.GenerateInternalBarcode();
+        if (!await products.TryAssignGeneratedBarcodeAsync(variant.Id, barcode, ct))
+            throw new ConflictException("Variant barcode changed concurrently. Reload the variant.");
+        return variant.ToResponse();
     }
 }

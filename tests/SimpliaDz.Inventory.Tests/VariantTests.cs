@@ -48,6 +48,26 @@ public sealed class VariantTests
         Assert.Throws<ArgumentException>(() => product.AddVariant("SHIRT-1", 1000,
             attributeValueIds: [id, id]));
     }
+
+    [Fact]
+    public void Generated_barcode_is_unique_to_variant_and_does_not_replace_factory_barcode()
+    {
+        var product = new Product("Shirt");
+        var first = product.AddVariant("SHIRT-S", 100m);
+        var second = product.AddVariant("SHIRT-M", 100m);
+        var firstBarcode = first.GenerateInternalBarcode();
+        Assert.StartsWith("SDZ", firstBarcode);
+        Assert.Equal(35, firstBarcode.Length);
+        Assert.NotEqual(firstBarcode, second.GenerateInternalBarcode());
+        Assert.Throws<InvalidOperationException>(() => first.GenerateInternalBarcode());
+
+        var factory = product.AddVariant("SHIRT-L", 100m, barcode: "FACTORY-123");
+        Assert.Throws<InvalidOperationException>(() => factory.GenerateInternalBarcode());
+        Assert.Equal("FACTORY-123", factory.Barcode);
+        var inactive = product.AddVariant("SHIRT-XL", 100m);
+        inactive.Deactivate();
+        Assert.Throws<InvalidOperationException>(() => inactive.GenerateInternalBarcode());
+    }
 }
 
 internal static class VariantTestExtensions

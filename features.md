@@ -12,7 +12,7 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F06 | Sale discounts | Available |
 | F07 | Open and close the cash register | Available |
 | F08 | Search products by name, SKU, or barcode | Available |
-| F09 | Generate a barcode | Needed |
+| F09 | Generate a barcode | Available |
 | F10 | Print barcode labels | Needed |
 | F11 | Consult inventory | Available |
 | F12 | Print inventory documents | Needed |
@@ -184,11 +184,11 @@ sequenceDiagram
 
 ## F09 — Generate a barcode for an item
 
-**Needed.** A barcode may be entered when a variant is created, and existing barcodes can be looked up. The backend does not generate one automatically. Add a unique generated barcode for a variant with no factory barcode; confirm the barcode format with the client's scanners and printers.
+**Available.** Staff can generate a unique internal barcode for an active variant that has no barcode. The generated value uses a Code 128-compatible `SDZ` prefix followed by the variant identifier. A factory barcode is never replaced. Confirm scanner and label compatibility with the client before printing labels.
 
 **Current endpoints:** `POST /variants/products/{productId}`; `GET /variants/by-barcode/{barcode}`.
 
-**Proposed endpoint:** `POST /variants/{id}/generate-barcode`.
+**Current endpoint:** `POST /variants/{id}/generate-barcode`.
 
 ```mermaid
 sequenceDiagram
