@@ -1,7 +1,6 @@
 {
   "Tenancy": {
     "ActiveTenantId": "dev",
-
     "Tenants": {
       "dev": {
         "Name": "Development Business",
@@ -13,7 +12,7 @@
           "Sales": true,
           "Purchasing": true,
           "Accounting": true,
-          "Notifications": false,
+          "Notifications": true,
           "Reporting": true,
           "Audit": true
         }

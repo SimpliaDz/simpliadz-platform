@@ -33,6 +33,14 @@ The migrator connects to the `dev` database, iterates over its enabled modules, 
 
 **Run the migrator before starting the API after pulling code with new migrations.** If it fails, resolve the reported SQL Server or migration error before testing the API. A successful `dotnet build` or `dotnet test` does not apply migrations to your local `dev` database.
 
+To add sample users and connected business records for testing, include `--seed-demo`:
+
+```powershell
+dotnet run --project src\SimpliaDz.DatabaseMigrator -- --tenant dev --seed-demo
+```
+
+See [Local demo data](DEMO_DATA.md) for the records and sign-ins. This option is for local test tenants and is not part of the normal migration command.
+
 ## 4. Start the API
 
 Open a **second PowerShell terminal** in the repository root and leave it running:

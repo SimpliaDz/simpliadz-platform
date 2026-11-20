@@ -64,3 +64,9 @@ foreach (var installer in serviceProvider.GetRequiredService<IEnumerable<IModule
 }
 
 Console.WriteLine("Migration completed.");
+
+if (args.Any(arg => string.Equals(arg, "--seed-demo", StringComparison.OrdinalIgnoreCase)))
+{
+    await DemoDataSeeder.SeedAsync(serviceProvider, tenant, CancellationToken.None);
+    Console.WriteLine("Demo seed completed.");
+}
