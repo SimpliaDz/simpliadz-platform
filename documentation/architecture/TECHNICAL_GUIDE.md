@@ -29,7 +29,7 @@
 
 ## 1. Big picture: what kind of app is this
 
-This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent modules. Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, and Audit have implemented behavior; Notifications remains a scaffold. Each module follows Clean Architecture layers, with CQRS via Mediator where applicable.
+This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent modules. Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit, and CRM have implemented behavior; Notifications remains a scaffold. Each module follows Clean Architecture layers, with CQRS via Mediator where applicable.
 
 Why this combination, in plain terms:
 
@@ -58,6 +58,7 @@ src/
     ├── Accounting/                 # ACTIVE — expense categories and expenses.
     ├── Reporting/                  # ACTIVE — sales, product, inventory, low stock, and dashboard reports.
     ├── Audit/                      # ACTIVE — business audit trail.
+    ├── Crm/                        # ACTIVE — loyalty program, cards, points, rewards.
     └── Notifications/              # SCAFFOLDED, NOT IMPLEMENTED.
 tests/                              # Module integration and unit tests, including Audit and Reporting.
 ```
@@ -106,7 +107,7 @@ A separate console app (not the web API) whose only job is: for a given `--tenan
 
 ### `Modules/<ModuleName>/`
 
-Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Eight modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**, **Accounting**, **Reporting**, **Audit**) have real code. **Notifications** remains a scaffold — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](../sales/CUSTOMERS.md), [Suppliers](../purchasing/SUPPLIERS.md), [Business Audit Trail](../audit/BUSINESS_AUDIT_TRAIL.md), and the feature-specific module guides for contracts and rules.
+Each module is four separate class-library projects — see [Section 4](#4-clean-architecture-inside-a-module) for what goes in each and why. Nine modules (**Identity**, **Inventory**, **Organization**, **Purchasing**, **Sales**, **Accounting**, **Reporting**, **Audit**, **CRM**) have real code. **Notifications** remains a scaffold — see [Section 12](#12-whats-unfinished-inconsistent-or-a-known-gap). See [Customers](../sales/CUSTOMERS.md), [CRM](../crm/CRM_TECHNICAL.md), [Suppliers](../purchasing/SUPPLIERS.md), and the feature-specific module guides for contracts and rules.
 
 ### `tests/`
 
@@ -116,7 +117,7 @@ Contains module-level test projects, including Purchasing and Sales tests.
 
 ## 3. The modular monolith: how modules are organized
 
-**Isolation rule:** each module owns its own `DbContext`, its own database schema (e.g. `identity`, `inventory`), and its own EF Core migrations. Verified check: no module's code references another module's `DbContext`, entities, or project — every module's `.csproj` only has `ProjectReference`s to its own sibling projects (`Core`/`UseCases`/`Infrastructure`/`Contracts`) plus the two shared projects `SharedKernel` and `BuildingBlocks`. There are zero cross-module `using` statements anywhere in `src/Modules/**`.
+**Isolation rule:** each module owns its own `DbContext`, database schema (e.g. `identity`, `inventory`, `crm`), and EF Core migrations. CRM reads customer and sale facts through `Sales.Contracts.ILoyaltySalesReader`, implemented by Sales Infrastructure; it does not use the Sales DbContext or domain entities. Cross-module contracts are allowed when they keep storage and domain ownership clear.
 
 **How a module plugs into the host — `IModuleInstaller`:**
 
@@ -135,7 +136,7 @@ Every module has exactly one class implementing this (e.g. `IdentityModuleInstal
 
 **Where modules get listed — one shared catalog:**
 
-`SimpliaDz.ModuleCatalog/ModuleCatalog.cs` is the one place that constructs all nine installed installers (Identity, Inventory, Organization, Sales, Purchasing, Accounting, Notifications, Reporting, Audit). The API's `ModuleRegistry` delegates to this catalog, and the migrator registers its `IModuleInstaller` instances from the same catalog.
+`SimpliaDz.ModuleCatalog/ModuleCatalog.cs` is the one place that constructs all ten installed installers (Identity, Inventory, Organization, Sales, Purchasing, Accounting, Notifications, Reporting, Audit, CRM). The API's `ModuleRegistry` delegates to this catalog, and the migrator registers its `IModuleInstaller` instances from the same catalog.
 
 Each host then applies its tenant configuration:
 
@@ -605,9 +606,9 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Sales POS lookup: exact SKU/barcode retrieval and indexed product-name prefix search with selected-list prices and optional location stock. See [POS Product Lookup](../sales/POS_PRODUCT_LOOKUP.md).
 - Cross-cutting: Mediator + FluentValidation pipeline, global exception handling, JWT bearer auth, permission-based authorization policies, Docker Compose SQL Server for local dev, a working CLI migrator that is genuinely tenant- and module-aware, and one shared installed-module catalog for the API and migrator.
 
-**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit.
+**Modules that exist (with real code):** Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit, CRM.
 
-**Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Audit, Notifications.
+**Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Notifications.
 
 **Partially implemented / worth knowing about:**
 - Purchasing goods receipts update received quantities and Inventory movements in one SQL Server transaction. The optional SQL Server integration test verifies partial/full receipt, duplicate prevention, and rollback after a forced stock write failure; set `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` to run it.

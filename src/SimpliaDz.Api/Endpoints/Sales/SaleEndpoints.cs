@@ -5,6 +5,8 @@ using SimpliaDz.Audit.UseCases;
 using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.Crm.UseCases.Loyalty;
 using SimpliaDz.Sales.Core.Entities;
 using SimpliaDz.Sales.UseCases.Services;
 using SimpliaDz.SharedKernel.Authorization;
@@ -102,8 +104,22 @@ public static class SaleEndpoints
             PermissionNames.SaleDiscounts.Apply);
 
         group.MapPost("/{id:guid}/complete", async (Guid id, ClaimsPrincipal principal,
-            [FromServices] ISaleService sales, CancellationToken ct) =>
-            Results.Ok(await sales.CompleteAsync(id, RequireActor(principal), ct)))
+            [FromServices] ISaleService sales, [FromServices] ITenantContext tenant,
+            [FromServices] ILoyaltyService loyalty, [FromServices] ILoggerFactory loggerFactory,
+            CancellationToken ct) =>
+        {
+            var sale = await sales.CompleteAsync(id, RequireActor(principal), ct);
+            if (tenant.IsModuleEnabled("Crm") && sale.CustomerId.HasValue)
+            {
+                try { await loyalty.SyncSaleAsync(sale.Id, ct); }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    loggerFactory.CreateLogger("SaleLoyaltySync").LogError(ex,
+                        "Loyalty sync failed for sale {SaleId}; CRM read or sync can retry.", sale.Id);
+                }
+            }
+            return Results.Ok(sale);
+        })
             .RequireAuthorization(PermissionNames.Sales.Manage);
 
         group.MapPost("/{id:guid}/cancel", async (Guid id,

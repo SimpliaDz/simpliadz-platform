@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SimpliaDz.Sales.Core\SimpliaDz.Sales.Core.csproj" />
     <ProjectReference Include="..\SimpliaDz.Sales.UseCases\SimpliaDz.Sales.UseCases.csproj" />
+    <ProjectReference Include="..\SimpliaDz.Sales.Contracts\SimpliaDz.Sales.Contracts.csproj" />
     <ProjectReference Include="..\..\..\SimpliaDz.SharedKernel\SimpliaDz.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\SimpliaDz.BuildingBlocks\SimpliaDz.BuildingBlocks.csproj" />
   </ItemGroup>

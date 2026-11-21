@@ -22,7 +22,8 @@ public sealed class ModuleCatalogTests
             "Accounting",
             "Notifications",
             "Reporting",
-            "Audit"
+            "Audit",
+            "Crm"
         ],
         moduleNames);
 

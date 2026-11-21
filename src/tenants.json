@@ -14,7 +14,8 @@
           "Accounting": true,
           "Notifications": true,
           "Reporting": true,
-          "Audit": true
+          "Audit": true,
+          "Crm": true
         }
       },
       "demo": {
@@ -29,7 +30,8 @@
           "Accounting": true,
           "Notifications": false,
           "Reporting": true,
-          "Audit": true
+          "Audit": true,
+          "Crm": true
         }
       }
     }

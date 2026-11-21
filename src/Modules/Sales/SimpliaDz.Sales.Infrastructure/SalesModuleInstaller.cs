@@ -5,6 +5,7 @@ using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Sales.Infrastructure.Data;
 using SimpliaDz.Sales.Infrastructure.Services;
+using SimpliaDz.Sales.Contracts.Loyalty;
 using SimpliaDz.Sales.UseCases.Services;
 
 namespace SimpliaDz.Sales.Infrastructure;
@@ -22,6 +23,7 @@ public sealed class SalesModuleInstaller : IModuleInstaller
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", "sales");
             }));
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<ILoyaltySalesReader, LoyaltySalesReader>();
         services.AddScoped<IPaymentService, PaymentService>();
     }
 

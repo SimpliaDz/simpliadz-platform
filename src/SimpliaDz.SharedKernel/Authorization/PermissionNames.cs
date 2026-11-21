@@ -4,6 +4,13 @@ public sealed record PermissionDefinition(string Name, string DisplayName, strin
 
 public static class PermissionNames
 {
+    public static class Crm
+    {
+        public const string View = "crm.view";
+        public const string Manage = "crm.manage";
+        public const string Redeem = "crm.redeem";
+    }
+
     public static class LoginAttempts
     {
         public const string View = "login-attempts.view";
@@ -200,6 +207,9 @@ public static class PermissionNames
 
     public static IReadOnlyList<PermissionDefinition> Catalog { get; } =
     [
+        new(Crm.View, "View Loyalty Cards and Rewards", "CRM"),
+        new(Crm.Manage, "Manage Loyalty Program and Cards", "CRM"),
+        new(Crm.Redeem, "Redeem Loyalty Rewards", "CRM"),
         new(LoginAttempts.View, "View Login History", "Identity"),
         new(Users.View,         "View Users",         "Users"),
         new(Users.Create,       "Create Users",       "Users"),

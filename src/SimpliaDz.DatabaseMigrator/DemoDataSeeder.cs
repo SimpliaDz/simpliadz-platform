@@ -8,6 +8,8 @@ using SimpliaDz.Accounting.Infrastructure.Data;
 using SimpliaDz.Audit.Core;
 using SimpliaDz.Audit.Infrastructure.Data;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.Crm.Core.Entities;
+using SimpliaDz.Crm.Infrastructure.Data;
 using SimpliaDz.Identity.Core.Entities;
 using SimpliaDz.Identity.Infrastructure.Data;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
@@ -62,6 +64,10 @@ internal static class DemoDataSeeder
             completedSaleId = await SeedSalesAsync(services.GetRequiredService<SalesDbContext>(),
                 tenant.ConnectionString, mainId, Variant("TSHIRT-BLK-M"),
                 users.CashierId, inventory, ct);
+
+        if (tenant.IsModuleEnabled("Crm") && tenant.IsModuleEnabled("Sales"))
+            await SeedCrmAsync(services.GetRequiredService<CrmDbContext>(),
+                services.GetRequiredService<SalesDbContext>(), ct);
 
         if (tenant.IsModuleEnabled("Accounting"))
             await SeedAccountingAsync(services.GetRequiredService<AccountingDbContext>(),
@@ -132,7 +138,8 @@ internal static class DemoDataSeeder
             PermissionNames.Sales.View, PermissionNames.Sales.Manage,
             PermissionNames.SalePayments.Manage, PermissionNames.Customers.View,
             PermissionNames.Customers.Manage, PermissionNames.CashSessions.View,
-            PermissionNames.CashSessions.Manage);
+            PermissionNames.CashSessions.Manage, PermissionNames.Crm.View,
+            PermissionNames.Crm.Redeem);
         var businessPermissions = PermissionNames.Catalog
             .Where(x => x.Category is not ("Users" or "Roles" or "Permissions"))
             .Select(x => x.Name).ToArray();
@@ -306,6 +313,21 @@ internal static class DemoDataSeeder
         await purchasing.SaveChangesAsync(ct);
         await stock.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+    }
+
+    private static async Task SeedCrmAsync(CrmDbContext crm, SalesDbContext sales,
+        CancellationToken ct)
+    {
+        if (!await crm.Programs.AnyAsync(ct))
+            crm.Programs.Add(new LoyaltyProgram("Demo Loyalty", 100m));
+        if (!await crm.Rewards.AnyAsync(x => x.Name == "Demo Gift", ct))
+            crm.Rewards.Add(new LoyaltyReward("Demo Gift", 10));
+        var customerId = await sales.Customers.AsNoTracking()
+            .Where(x => x.Email == "sale.demo@local.test")
+            .Select(x => x.Id).SingleAsync(ct);
+        if (!await crm.Cards.AnyAsync(x => x.CustomerId == customerId, ct))
+            crm.Cards.Add(new LoyaltyCard(customerId));
+        await crm.SaveChangesAsync(ct);
     }
 
     private static async Task<Guid?> SeedSalesAsync(SalesDbContext db,

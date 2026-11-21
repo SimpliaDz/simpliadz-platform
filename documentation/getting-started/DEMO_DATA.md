@@ -19,6 +19,7 @@ The ordinary module seeders already provide the local Admin user, permissions, t
 | Inventory | An older stock entry for `NK-HOOD-GRY-L` at `MAIN`, a low-stock policy, a draft transfer, a draft physical count, and an unlabelled `DEMO-CAP-BLK` variant for testing barcode generation. On a fresh fixture, scheduled low-stock and ageing warnings are enabled. |
 | Purchasing | Demo supplier, draft PO, ordered PO ready for receiving, and a partially received PO with an immutable goods receipt and matching stock movement. |
 | Sales | Retail and wholesale customers, two registers, an open cash session, a draft sale, and a completed paid sale with line and sale discounts and a matching stock movement. The completed sale can be used to test returns. |
+| CRM | A DZD loyalty program, one demo gift reward, and a card for the demo sale customer. The card starts at zero points because the sample sale predates enrollment. Complete a new named sale to test earning. |
 | Accounting | Rent and utilities categories, plus one dated shop expense. |
 | Reporting | No separate rows: the completed sale, expense, receipt, and stock provide data for report endpoints. |
 | Audit | A demo seed entry so audit history has an example. |

@@ -45,7 +45,7 @@ It also should not live in `SimpliaDz.Api` or `SimpliaDz.DatabaseMigrator`: thos
 The catalog answers **what is installed in the codebase**. Tenant configuration answers **what is enabled for a host and tenant**.
 
 ```text
-catalog contains all 9 installers
+catalog contains all 10 installers
              │
              ▼
 host reads Tenancy:Tenants:<tenant>:Modules
@@ -71,7 +71,7 @@ An installed scaffold module can be enabled and have its infrastructure register
 
 ## Test coverage
 
-`tests/SimpliaDz.ModuleCatalog.Tests` asserts that the catalog returns the expected nine modules exactly once. Run it with:
+`tests/SimpliaDz.ModuleCatalog.Tests` asserts that the catalog returns the expected ten modules exactly once. Run it with:
 
 ```powershell
 dotnet test tests\SimpliaDz.ModuleCatalog.Tests\SimpliaDz.ModuleCatalog.Tests.csproj

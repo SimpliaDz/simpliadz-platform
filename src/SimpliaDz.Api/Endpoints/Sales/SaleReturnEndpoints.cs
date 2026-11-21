@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.Crm.UseCases.Loyalty;
 using SimpliaDz.Sales.UseCases.Services;
 using SimpliaDz.SharedKernel.Authorization;
 
@@ -18,7 +20,9 @@ public static class SaleReturnEndpoints
 
         group.MapPost("/{saleId:guid}/returns", async (Guid saleId,
             [FromBody] ProcessSaleReturnRequest request, ClaimsPrincipal principal,
-            [FromServices] ISaleReturnService returns, CancellationToken ct) =>
+            [FromServices] ISaleReturnService returns, [FromServices] ITenantContext tenant,
+            [FromServices] ILoyaltyService loyalty, [FromServices] ILoggerFactory loggerFactory,
+            CancellationToken ct) =>
         {
             var errors = new Dictionary<string, string[]>();
             if (request.Id == Guid.Empty) errors["id"] = ["Return ID is required for safe retries."];
@@ -40,6 +44,15 @@ public static class SaleReturnEndpoints
             if (actor == Guid.Empty) throw new UnauthorizedAccessException("Authenticated user ID is required.");
             var result = await returns.ProcessAsync(request.Id, saleId, request.LocationId,
                 request.Reason, actor, request.Lines!, ct);
+            if (tenant.IsModuleEnabled("Crm"))
+            {
+                try { await loyalty.SyncSaleAsync(saleId, ct); }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    loggerFactory.CreateLogger("ReturnLoyaltySync").LogError(ex,
+                        "Loyalty sync failed for return {ReturnId}; CRM read or sync can retry.", result.Id);
+                }
+            }
             return Results.Created($"/returns/{result.Id}", result);
         }).RequireAuthorization(PermissionNames.Sales.Manage,
             PermissionNames.SaleReturns.Manage);

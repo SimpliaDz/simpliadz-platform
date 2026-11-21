@@ -1,5 +1,6 @@
 using SimpliaDz.Accounting.Infrastructure;
 using SimpliaDz.Audit.Infrastructure;
+using SimpliaDz.Crm.Infrastructure;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.Identity.Infrastructure;
 using SimpliaDz.Inventory.Infrastructure;
@@ -27,6 +28,7 @@ public static class ModuleCatalog
         new AccountingModuleInstaller(),
         new NotificationsModuleInstaller(),
         new ReportingModuleInstaller(),
-        new AuditModuleInstaller()
+        new AuditModuleInstaller(),
+        new CrmModuleInstaller()
     ];
 }

@@ -43,6 +43,11 @@ Start with [Run the backend locally](getting-started/LOCAL_START_GUIDE.md). The 
 - [Returns](sales/SALE_RETURNS.md)
 - [Cash registers](sales/CASH_REGISTERS.md)
 
+## CRM
+
+- [CRM and loyalty business MVP](crm/CRM_BUSINESS_MVP.md)
+- [CRM technical guide](crm/CRM_TECHNICAL.md)
+
 ## Accounting, reporting, and audit
 
 - Accounting: [Expense categories](accounting/EXPENSE_CATEGORIES.md) and [Expenses](accounting/EXPENSES.md).

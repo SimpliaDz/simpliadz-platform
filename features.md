@@ -26,6 +26,7 @@ This is a **backend feature draft** for discussion with the client. **Available*
 | F20 | Worked-hours reporting | Available |
 | F21 | HR access to user management | Available |
 | F22 | Store and warehouse locations | Available |
+| F23 | Customer loyalty cards and points | Available |
 
 ## F01 — User rights and roles
 
@@ -448,4 +449,22 @@ sequenceDiagram
     Admin->>App: Update or deactivate location
     App->>API: PUT /locations/{id} or PUT /locations/{id}/deactivate
     API-->>App: Location updated
+```
+
+## F23 — Customer loyalty cards and points
+
+**Available.** A manager configures one DZD points program and rewards. Staff enroll an existing customer, find the card by number, and inspect its balance. Completed customer sales earn points; returns reverse them. An authorized cashier can redeem points for a staff-fulfilled reward. Cards and rewards can be deactivated without deleting history. Card printing, coupons, marketing messages, and tiers are later work.
+
+**Current endpoints:** `GET/PUT /crm/loyalty/program`; `POST /crm/loyalty/cards`; `GET /crm/loyalty/customers/{customerId}/card`; `GET /crm/loyalty/cards/by-number/{cardNumber}`; `GET /crm/loyalty/cards/{cardId}/transactions`; `GET/POST /crm/loyalty/rewards`; `PUT /crm/loyalty/rewards/{id}`; `POST /crm/loyalty/cards/{cardId}/redemptions`; `POST /crm/loyalty/sales/{saleId}/sync`.
+
+```mermaid
+sequenceDiagram
+    actor Cashier
+    participant API
+    Cashier->>API: Scan card number
+    API-->>Cashier: Customer card and points
+    Cashier->>API: Complete sale for customer
+    API-->>Cashier: Sale complete and points recorded
+    Cashier->>API: Redeem selected reward
+    API-->>Cashier: Points debited and reward issued
 ```

@@ -1,5 +1,6 @@
 using SimpliaDz.Api.Endpoints.Accounting;
 using SimpliaDz.Api.Endpoints.Audit;
+using SimpliaDz.Api.Endpoints.Crm;
 using SimpliaDz.Api.Endpoints.Identity;
 using SimpliaDz.Api.Endpoints.Inventory;
 using SimpliaDz.Api.Endpoints.Organization;
@@ -55,6 +56,7 @@ public static class EndpointExtensions
         app.MapCashRegisterEndpoints();
         app.MapCashSessionEndpoints();
         app.MapAuditEndpoints();
+        app.MapCrmEndpoints();
 
         return app;
     }
