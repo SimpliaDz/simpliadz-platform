@@ -14,6 +14,9 @@ The following successful API actions generate entries when they change business 
 | `GoodsReceived` | GoodsReceipt | Purchase order, location, line count, received quantity. |
 | `InventoryCountCompleted` | InventoryCount | Location, status, line count, adjusted line count. |
 | `UserDeactivated` | User | Active flag only. |
+| `UserLoggedIn` | User | Successful password authentication method. |
+
+Password login attempts, including failures, are retained separately in `identity.LoginAttempts`. See [Authentication and session lifecycle](../identity/AUTHENTICATION.md). A successful login writes `UserLoggedIn` only when Audit is enabled for the tenant.
 
 `GET /audit/entries` requires `audit.view` permission. Optional filters are `userId`, `action`, `entityType`, `entityId`, `from`, and `to` (date-time with offset); `page` and `pageSize` default to 1 and 50, with page size capped at 100. Only the server can append entries. The Audit DbContext rejects modifications and deletions of existing entries. There is no audit update or delete endpoint.
 

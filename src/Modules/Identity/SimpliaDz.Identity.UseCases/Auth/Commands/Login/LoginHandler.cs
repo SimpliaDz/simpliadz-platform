@@ -15,7 +15,8 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
 
     public async ValueTask<LoginResponse> Handle(LoginCommand request, CancellationToken ct)
     {
-        var result = await _authService.LoginAsync(request.Email, request.Password, ct);
+        var result = await _authService.LoginAsync(request.Email, request.Password,
+            request.IpAddress, request.UserAgent, ct);
 
         if (result is null)
             throw new UnauthorizedAccessException("Invalid email or password.");

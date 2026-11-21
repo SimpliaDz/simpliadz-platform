@@ -4,7 +4,9 @@ using Mediator;
 
 using Microsoft.AspNetCore.Mvc;
 
+using SimpliaDz.Audit.UseCases;
 using SimpliaDz.Identity.Contracts.Auth;
+using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ChangePassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ForgotPassword;
 using SimpliaDz.Identity.UseCases.Auth.Commands.Login;
@@ -13,6 +15,8 @@ using SimpliaDz.Identity.UseCases.Auth.Commands.RefreshToken;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ResetPassword;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
+using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Identity;
 
@@ -27,12 +31,42 @@ public static class AuthEndpoints
 
         group.MapPost("/login", async (
             [FromBody] LoginRequest request,
+            HttpContext http,
             [FromServices] ISender sender,
+            [FromServices] ITenantContext tenant,
             CancellationToken ct) =>
         {
-            var result = await sender.Send(new LoginCommand(request.Email, request.Password), ct);
+            var result = await sender.Send(new LoginCommand(request.Email, request.Password,
+                http.Connection.RemoteIpAddress?.ToString(),
+                http.Request.Headers.UserAgent.ToString()), ct);
+            if (tenant.IsModuleEnabled("Audit"))
+            {
+                var audit = http.RequestServices.GetRequiredService<IAuditTrail>();
+                await audit.AppendAsync(result.UserId, "UserLoggedIn", "User",
+                    result.UserId, null,
+                    new Dictionary<string, object?> { ["method"] = "Password" },
+                    http.TraceIdentifier, ct);
+            }
             return Results.Ok(result);
         });
+
+        group.MapGet("/login-attempts", async (Guid? userId, string? email,
+            bool? succeeded, DateTimeOffset? from, DateTimeOffset? to,
+            int? page, int? pageSize,
+            [FromServices] ILoginAttemptReader reader, CancellationToken ct) =>
+            Results.Ok(await reader.QueryAsync(userId, email, succeeded, from, to,
+                page ?? 1, pageSize ?? 50, ct)))
+            .RequireAuthorization(PermissionNames.LoginAttempts.View);
+
+        group.MapGet("/me/login-attempts", async (ClaimsPrincipal principal,
+            bool? succeeded, DateTimeOffset? from, DateTimeOffset? to,
+            int? page, int? pageSize,
+            [FromServices] ILoginAttemptReader reader, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Results.Ok(await reader.QueryAsync(userId, null, succeeded,
+                from, to, page ?? 1, pageSize ?? 50, ct));
+        }).RequireAuthorization();
 
         group.MapPost("/refresh", async (
             [FromBody] RefreshTokenRequest request,

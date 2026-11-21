@@ -4,7 +4,8 @@ namespace SimpliaDz.Identity.UseCases.Auth.Abstractions;
 
 public interface IIdentityAuthService
 {
-    Task<LoginResponse?> LoginAsync(string email, string password, CancellationToken ct);
+    Task<LoginResponse?> LoginAsync(string email, string password,
+        string? ipAddress, string? userAgent, CancellationToken ct);
     Task<LoginResponse> RefreshAsync(string refreshToken, CancellationToken ct);
     Task RevokeRefreshTokenAsync(string refreshToken, CancellationToken ct);
     Task ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct);

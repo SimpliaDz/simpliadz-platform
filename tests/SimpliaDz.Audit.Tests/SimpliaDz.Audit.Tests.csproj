@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Audit\SimpliaDz.Audit.Infrastructure\SimpliaDz.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\SimpliaDz.Identity.Infrastructure\SimpliaDz.Identity.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

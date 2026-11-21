@@ -46,6 +46,7 @@ public sealed class IdentityModuleInstaller : IModuleInstaller
         services.AddScoped<IdentityAuthService>();
         services.AddScoped<IIdentityAuthService>(sp => sp.GetRequiredService<IdentityAuthService>());
         services.AddScoped<IIdentityAccessTokenValidator>(sp => sp.GetRequiredService<IdentityAuthService>());
+        services.AddScoped<ILoginAttemptReader, LoginAttemptReader>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IIdentityUserService, IdentityUserService>();
         services.AddScoped<IIdentityRoleService, IdentityRoleService>();

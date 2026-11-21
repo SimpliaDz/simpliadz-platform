@@ -4,6 +4,11 @@ public sealed record PermissionDefinition(string Name, string DisplayName, strin
 
 public static class PermissionNames
 {
+    public static class LoginAttempts
+    {
+        public const string View = "login-attempts.view";
+    }
+
     public static class Users
     {
         public const string View = "users.view";
@@ -195,6 +200,7 @@ public static class PermissionNames
 
     public static IReadOnlyList<PermissionDefinition> Catalog { get; } =
     [
+        new(LoginAttempts.View, "View Login History", "Identity"),
         new(Users.View,         "View Users",         "Users"),
         new(Users.Create,       "Create Users",       "Users"),
         new(Users.Edit,         "Edit Users",         "Users"),

@@ -7,4 +7,5 @@ public sealed record LoginResponse(
     string RefreshToken,
     DateTime RefreshTokenExpiresAtUtc,
     string Email,
-    string[] Roles);
+    string[] Roles,
+    Guid UserId);
