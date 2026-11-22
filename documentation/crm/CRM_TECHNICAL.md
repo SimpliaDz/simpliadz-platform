@@ -38,11 +38,10 @@ The earning calculation is `floor(sale.Total / spendAmountPerPoint)`. The rate i
 The installed module is listed in `SimpliaDz.ModuleCatalog`, mapped by the API, and explicitly enabled by `Crm: true` under the local tenant flags. Run the migrator before starting the updated API:
 
 ```powershell
-dotnet run --project src/SimpliaDz.DatabaseMigrator -- --tenant demo
-$env:Tenancy__ActiveTenantId = "demo"
-dotnet run --project src/SimpliaDz.Api
+.\scripts\migrate-tenant.ps1 -TenantId demo
+.\scripts\start-api.ps1 -TenantId demo
 ```
 
-Add `--seed-demo` after the tenant arguments to create an example DZD program, one gift reward, and a card for the demo sale customer. The seed is repeatable and does not grant points for sales completed before card enrollment. It also gives the demo cashier view and redemption permissions.
+Run these commands from `simpliadz-runner`. Add `-SeedDemo` to the migrator script to create an example DZD program, one gift reward, and a card for the demo sale customer. The seed is repeatable and does not grant points for sales completed before card enrollment. It also gives the demo cashier view and redemption permissions.
 
 For the SQL integration test, set `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` to a local SQL Server connection with database creation permission, then run `dotnet test tests/SimpliaDz.Crm.Tests/SimpliaDz.Crm.Tests.csproj -c Release`. It creates and removes its own database and covers enrollment, sale/return idempotency, redemption retries, negative balances, and append-only history.

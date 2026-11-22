@@ -54,7 +54,7 @@ host reads Tenancy:Tenants:<tenant>:Modules
 only enabled installers are registered, migrated, and seeded
 ```
 
-The API registers the installed modules once at startup and serves the tenant selected by `Tenancy:ActiveTenantId`. The migrator independently selects a tenant with `--tenant`. Both read the shared local `src/tenants.json` catalog and activate or reject modules using the selected tenant's flags.
+The API registers the installed modules once at startup and serves the tenant selected by `Tenancy:ActiveTenantId`. The migrator independently selects a tenant with `--tenant`. The runner passes the same private catalog path to both processes through `SIMPLIADZ_TENANTS_FILE`; each activates or rejects modules using the selected tenant's flags.
 
 ## Adding a module
 
@@ -63,7 +63,7 @@ When a new module is created:
 1. Implement `IModuleInstaller` in the module's Infrastructure project.
 2. Add the Infrastructure project reference to `SimpliaDz.ModuleCatalog.csproj`.
 3. Add the installer to `ModuleCatalog.GetModules()`.
-4. Add an explicit flag for the module under every relevant tenant in `src/tenants.json`.
+4. Add an explicit flag for the module under every relevant tenant in the runner's private `config/tenants.local.json`.
 5. Add the module's UseCases assembly to the API Mediator/FluentValidation scan and map its endpoints when it has HTTP behavior.
 6. Update the catalog test's expected module list.
 

@@ -68,6 +68,7 @@ public sealed class CreateAttributeValueHandler(IAttributeRepository repository)
         if (attribute.Values.Any(x => x.Value.Equals(request.Value.Trim(), StringComparison.OrdinalIgnoreCase)))
             throw new ConflictException($"Value '{request.Value.Trim()}' already exists for this attribute.");
         var value = attribute.AddValue(request.Value, request.DisplayOrder);
+        await repository.AddValueAsync(value, ct);
         await repository.SaveChangesAsync(ct);
         return value.ToResponse();
     }

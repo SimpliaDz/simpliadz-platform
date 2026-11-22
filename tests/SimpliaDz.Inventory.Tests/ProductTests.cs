@@ -262,6 +262,9 @@ public sealed class ProductTests
             return Task.CompletedTask;
         }
 
+        public Task AddVariantAsync(ProductVariant variant, CancellationToken ct) =>
+            Task.CompletedTask;
+
         public Task<bool> ExistsByCodeAsync(string code, Guid? excludingId, CancellationToken ct) =>
             Task.FromResult(_products.Any(product =>
                 product.Code == code && (!excludingId.HasValue || product.Id != excludingId.Value)));

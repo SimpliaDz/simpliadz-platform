@@ -70,6 +70,8 @@ public sealed class AttributeTests
             Task.FromResult(_attributes.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
         public Task AddAsync(ProductAttribute attribute, CancellationToken ct)
         { _attributes.Add(attribute); return Task.CompletedTask; }
+        public Task AddValueAsync(AttributeValue value, CancellationToken ct) =>
+            Task.CompletedTask;
         public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
     }
 }

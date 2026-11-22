@@ -54,8 +54,8 @@ public static class WorkSessionEndpoints
                 "WorkSession", id, null,
                 new Dictionary<string, object?>
                 {
-                    ["clockInAt"] = updated.ClockInAt,
-                    ["clockOutAt"] = updated.ClockOutAt,
+                    ["clockInAt"] = updated.ClockInAt.ToString("O"),
+                    ["clockOutAt"] = updated.ClockOutAt?.ToString("O"),
                     ["reason"] = request.Reason
                 }, ct);
             return Results.Ok(updated);

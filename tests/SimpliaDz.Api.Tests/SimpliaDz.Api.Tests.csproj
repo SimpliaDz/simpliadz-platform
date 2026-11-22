@@ -17,8 +17,4 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SimpliaDz.Api\SimpliaDz.Api.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="..\..\src\tenants.json" Link="tenants.json"
-             CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
 </Project>

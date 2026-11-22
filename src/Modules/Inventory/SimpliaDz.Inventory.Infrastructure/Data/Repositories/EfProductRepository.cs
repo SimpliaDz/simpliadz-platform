@@ -108,6 +108,9 @@ internal sealed class EfProductRepository : IProductRepository
     public async Task AddAsync(Product product, CancellationToken ct)
         => await _db.Products.AddAsync(product, ct);
 
+    public async Task AddVariantAsync(ProductVariant variant, CancellationToken ct)
+        => await _db.ProductVariants.AddAsync(variant, ct);
+
     public Task<bool> ExistsByCodeAsync(string code, Guid? excludingId, CancellationToken ct)
         => _db.Products.AnyAsync(
             product => product.Code == code && (!excludingId.HasValue || product.Id != excludingId.Value),

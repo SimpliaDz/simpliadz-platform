@@ -12,7 +12,11 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg =>
     {
         cfg.AddJsonFile("appsettings.json", optional: false);
-        cfg.AddJsonFile("tenants.json", optional: false, reloadOnChange: false);
+        var tenantCatalogPath = Environment.GetEnvironmentVariable("SIMPLIADZ_TENANTS_FILE");
+        if (!string.IsNullOrWhiteSpace(tenantCatalogPath))
+            cfg.AddJsonFile(Path.GetFullPath(tenantCatalogPath), optional: false,
+                reloadOnChange: false);
+        cfg.AddEnvironmentVariables();
     })
     .ConfigureServices((ctx, services) =>
     {

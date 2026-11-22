@@ -18,6 +18,7 @@ public interface IProductRepository
     Task<IReadOnlyList<Product>> SearchAsync(string? search, bool? isActive, CancellationToken ct);
 
     Task AddAsync(Product product, CancellationToken ct);
+    Task AddVariantAsync(ProductVariant variant, CancellationToken ct);
 
     Task<bool> ExistsByCodeAsync(string code, Guid? excludingId, CancellationToken ct);
 

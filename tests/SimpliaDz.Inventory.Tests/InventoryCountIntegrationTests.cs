@@ -103,6 +103,20 @@ public sealed class InventoryCountIntegrationTests
             Assert.Equal(19, (await db.StockBalances.SingleAsync()).QuantityOnHand);
             Assert.Equal(3, (await service.ListAsync(location.Id, 1, 50,
                 CancellationToken.None)).Count);
+
+            var newVariant = new ProductVariant(product.Id, new Sku("COUNT-NEW"), 0);
+            db.ProductVariants.Add(newVariant);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var countWithNewVariant = await service.StartAsync(location.Id, "user", CancellationToken.None);
+            countWithNewVariant = await service.AddVariantAsync(countWithNewVariant.Id,
+                newVariant.Id, CancellationToken.None);
+            Assert.Contains(countWithNewVariant.Lines, x =>
+                x.ProductVariantId == newVariant.Id && x.ExpectedQuantity == 0);
+            db.ChangeTracker.Clear();
+            Assert.True(await db.InventoryCountLines.AnyAsync(x =>
+                x.InventoryCountId == countWithNewVariant.Id &&
+                x.ProductVariantId == newVariant.Id));
         }
         finally
         {

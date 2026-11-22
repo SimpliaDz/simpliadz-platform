@@ -74,7 +74,7 @@ When Audit is enabled for the tenant, each successful password login also create
 Run the database migrator for each tenant before deploying the updated API. Migration `Identity_UserLanguage` adds the user preference with an `en` default; `Identity_LoginAttempts` creates the login-history table and indexes; earlier migration `Identity_RefreshTokens` creates the refresh-token table.
 
 ```powershell
-dotnet run --project src/SimpliaDz.DatabaseMigrator -- --tenant dev
+.\scripts\migrate-tenant.ps1 -TenantId dev
 ```
 
 ## Intentionally deferred capabilities

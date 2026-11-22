@@ -44,7 +44,8 @@ public sealed class InventoryCountService(InventoryDbContext db) : IInventoryCou
             var expected = await db.StockBalances.AsNoTracking()
                 .Where(x => x.LocationId == count.LocationId && x.VariantId == productVariantId)
                 .Select(x => (int?)x.QuantityOnHand).SingleOrDefaultAsync(ct) ?? 0;
-            count.AddLine(productVariantId, expected);
+            var line = count.AddLine(productVariantId, expected);
+            db.InventoryCountLines.Add(line);
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             return Map(count);

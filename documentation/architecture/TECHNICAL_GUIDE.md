@@ -150,7 +150,7 @@ This removes installer-list drift. It does **not** make scaffolded modules funct
 1. Create the four projects: `SimpliaDz.<Module>.Core`, `.UseCases`, `.Infrastructure`, `.Contracts`.
 2. In `Infrastructure`, implement `IModuleInstaller`.
 3. Add the Infrastructure project reference and installer to `SimpliaDz.ModuleCatalog/ModuleCatalog.cs`.
-4. Enable the module for the relevant tenant(s) in the shared local `src/tenants.json` catalog under `Tenancy:Tenants:<tenant>:Modules`.
+4. Enable the module for the relevant tenant(s) in the runner's private `config/tenants.local.json` catalog under `Tenancy:Tenants:<tenant>:Modules`.
 5. Update `tests/SimpliaDz.ModuleCatalog.Tests` with the expected module name.
 6. Add its `UseCases` assembly to the Mediator/FluentValidation assembly-scan list in `DependencyInjectionExtensions.cs`.
 7. Add its endpoint-mapping call in `EndpointExtensions.cs`.
@@ -516,10 +516,9 @@ public interface ITenantResolver { string ResolveTenantId(); }
 public interface ITenantStore    { TenantDescriptor GetTenant(string tenantId); }
 public interface ITenantContext  { string TenantId; string Name; string ConnectionString; bool IsModuleEnabled(string moduleName); }
 ```
-Local config shape (`src/tenants.json`):
+Local catalog shape (`simpliadz-runner/config/tenants.local.json`):
 ```json
 "Tenancy": {
-  "ActiveTenantId": "dev",
   "Tenants": {
     "dev": {
       "Name": "Development",
@@ -549,7 +548,7 @@ This is genuinely tenant-aware: a different tenant with a different `Modules` ma
 5. Root, health, and Swagger endpoints are system-scoped and do not carry tenant metadata.
 6. Login issues a JWT containing a `tenant_id` claim. JWT validation compares it with the configured API tenant on tenant endpoints, preventing a token issued by one tenant environment from being used by another.
 
-For local testing, `src/tenants.json` can hold several descriptors. Change `ActiveTenantId` or set the `Tenancy__ActiveTenantId` environment variable to run the API as another tenant. The migrator always uses its explicit `--tenant` argument. See [Local Tenancy](../getting-started/LOCAL_TENANCY.md) for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
+For local testing, the runner's private catalog can hold several descriptors. Set `api.activeTenantId` in the runner's `config/local.json` or pass `-TenantId` to its API script. The runner supplies `SIMPLIADZ_TENANTS_FILE` to both backend processes. The migrator always uses its explicit `--tenant` argument. See [Local Tenancy](../getting-started/LOCAL_TENANCY.md) for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
 
 ---
 
@@ -580,7 +579,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - **Endpoints stay thin**: bind and validate request shape, call a module use case through Mediator or a module service, then map the result to an HTTP response. Business rules stay in the module rather than in the route.
 - **New exception types need a home in the global exception handler** (`MiddlewareExtensions.cs`) or they'll fall through to a generic 500 — don't add a new domain exception without checking whether it needs a status-code mapping.
 - **Module-specific DI registrations belong in that module's `IModuleInstaller.Register(...)`**, never added ad hoc to `DependencyInjectionExtensions.cs`.
-- **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in `src/tenants.json`. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
+- **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in the private local tenant catalog. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
 - **Every write endpoint that isn't a public entry point (login, register) should carry `.RequireAuthorization(PermissionNames.<Area>.<Action>)`**. Add new constants to `PermissionNames.All` and add their display metadata to `IdentitySeeder`.
 - **Don't create cross-module `ProjectReference`s or `using` statements.** If two modules need to share something, it goes in `SimpliaDz.SharedKernel`, not by referencing one module from another. As of today there is no cross-module communication mechanism (no events, no shared contracts bus) — when a real cross-module workflow is needed (e.g. Sales needing Inventory stock levels), that mechanism will need to be designed; it doesn't exist yet.
 

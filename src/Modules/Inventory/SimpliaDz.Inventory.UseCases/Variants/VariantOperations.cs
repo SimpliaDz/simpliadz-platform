@@ -84,6 +84,7 @@ public sealed class CreateVariantHandler(IProductRepository products)
         {
             throw new ConflictException(exception.Message);
         }
+        await products.AddVariantAsync(variant, ct);
         await products.SaveChangesAsync(ct);
         return (await products.GetVariantByIdAsync(variant.Id, ct)
             ?? throw new NotFoundException("Variant", variant.Id)).ToResponse();

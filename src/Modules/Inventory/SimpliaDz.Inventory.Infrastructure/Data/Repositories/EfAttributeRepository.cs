@@ -24,6 +24,9 @@ internal sealed class EfAttributeRepository : IAttributeRepository
     public async Task AddAsync(ProductAttribute attribute, CancellationToken ct) =>
         await _db.ProductAttributes.AddAsync(attribute, ct);
 
+    public async Task AddValueAsync(AttributeValue value, CancellationToken ct) =>
+        await _db.AttributeValues.AddAsync(value, ct);
+
     public async Task SaveChangesAsync(CancellationToken ct)
     {
         try { await _db.SaveChangesAsync(ct); }

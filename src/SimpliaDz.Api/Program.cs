@@ -2,10 +2,10 @@ using SimpliaDz.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile(
-    Path.Combine(AppContext.BaseDirectory, "tenants.json"),
-    optional: false,
-    reloadOnChange: false);
+var tenantCatalogPath = Environment.GetEnvironmentVariable("SIMPLIADZ_TENANTS_FILE");
+if (!string.IsNullOrWhiteSpace(tenantCatalogPath))
+    builder.Configuration.AddJsonFile(Path.GetFullPath(tenantCatalogPath), optional: false,
+        reloadOnChange: false);
 builder.Configuration.AddEnvironmentVariables();
 builder.Configuration.AddCommandLine(args);
 
