@@ -48,6 +48,11 @@ public sealed class CashSessionIntegrationTests
             var registers = new CashRegisterService(sales, inventory);
             var first = await registers.CreateAsync(location.Id, "R1", "Front", CancellationToken.None);
             var second = await registers.CreateAsync(location.Id, "R2", "Back", CancellationToken.None);
+            Assert.Equal(2, (await registers.ListAsync(location.Id, CancellationToken.None)).Count);
+            first = await registers.UpdateAsync(first.Id, "R1", "Front desk", CancellationToken.None);
+            Assert.Equal("Front desk", first.Name);
+            await Assert.ThrowsAsync<ConflictException>(() => registers.CreateAsync(location.Id,
+                "R1", "Duplicate", CancellationToken.None));
             var sessions = new CashSessionService(sales, inventory);
             var opener = Guid.NewGuid();
             var firstSession = await sessions.OpenAsync(first.Id, 100m, opener, CancellationToken.None);
@@ -95,6 +100,10 @@ public sealed class CashSessionIntegrationTests
             await Assert.ThrowsAsync<ConflictException>(() => payments.RecordAsync(Guid.NewGuid(),
                 sale.Id, 1m, PaymentMethod.Cash, cashier1, CancellationToken.None, firstSession.Id));
             await registers.DeactivateAsync(first.Id, CancellationToken.None);
+            Assert.False((await registers.ListAsync(location.Id, CancellationToken.None))
+                .Single(x => x.Id == first.Id).IsActive);
+            await Assert.ThrowsAsync<ConflictException>(() => registers.UpdateAsync(first.Id,
+                "R1", "Closed register", CancellationToken.None));
             await Assert.ThrowsAsync<ConflictException>(() => registers.DeactivateAsync(second.Id,
                 CancellationToken.None));
         }

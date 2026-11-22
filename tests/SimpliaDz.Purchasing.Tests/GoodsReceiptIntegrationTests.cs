@@ -11,7 +11,6 @@ using SimpliaDz.Purchasing.Core.Entities;
 using SimpliaDz.Purchasing.Infrastructure.Data;
 using SimpliaDz.Purchasing.Infrastructure.Services;
 using SimpliaDz.Purchasing.UseCases.Services;
-using SimpliaDz.Purchasing.UseCases.Services;
 using Xunit;
 
 namespace SimpliaDz.Purchasing.Tests;
@@ -106,6 +105,22 @@ public sealed class GoodsReceiptIntegrationTests
             Assert.All(movements, x => Assert.Equal(StockMovementType.PurchaseReceipt, x.MovementType));
             Assert.Contains(movements, x => x.ReferenceId == firstId && x.QuantityDelta == 70);
             Assert.Contains(movements, x => x.ReferenceId == secondId && x.QuantityDelta == 30);
+
+            purchasing.ChangeTracker.Clear();
+            var cancelled = await orders.CreateDraftAsync(supplier.Id, location.Id,
+                "Original note", "buyer", CancellationToken.None);
+            cancelled = await orders.UpdateNotesAsync(cancelled.Id, "Revised note",
+                CancellationToken.None);
+            Assert.Equal("Revised note", (await orders.GetByIdAsync(cancelled.Id,
+                CancellationToken.None)).Notes);
+            Assert.Contains(await orders.ListAsync(supplier.Id, "Draft", 1, 20,
+                CancellationToken.None), x => x.Id == cancelled.Id);
+            await orders.CancelAsync(cancelled.Id, CancellationToken.None);
+            Assert.Equal("Cancelled", (await orders.GetByIdAsync(cancelled.Id,
+                CancellationToken.None)).Status);
+            await Assert.ThrowsAsync<ConflictException>(() => orders.PlaceOrderAsync(
+                cancelled.Id, CancellationToken.None));
+            Assert.Equal(2, await inventory.StockMovements.CountAsync());
         }
         finally
         {

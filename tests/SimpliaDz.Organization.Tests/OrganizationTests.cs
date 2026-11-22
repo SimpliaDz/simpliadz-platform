@@ -6,6 +6,8 @@ using SimpliaDz.Organization.Infrastructure;
 using SimpliaDz.Organization.Infrastructure.Data;
 using SimpliaDz.Organization.UseCases.Abstractions;
 using SimpliaDz.Organization.UseCases.Commands.UpdateOrganization;
+using SimpliaDz.Organization.UseCases.Queries.GetOrganization;
+using SimpliaDz.BuildingBlocks.Exceptions;
 using Xunit;
 using OrganizationEntity = SimpliaDz.Organization.Core.Entities.Organization;
 
@@ -56,6 +58,10 @@ public sealed class OrganizationTests
     {
         var repository = new InMemoryOrganizationRepository();
         var handler = new UpdateOrganizationHandler(repository);
+        var reader = new GetOrganizationHandler(repository);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => reader.Handle(
+            new GetOrganizationQuery(), CancellationToken.None).AsTask());
 
         var created = await handler.Handle(CreateCommand("First name", null), CancellationToken.None);
         var updated = await handler.Handle(CreateCommand("Updated name", "CAD"), CancellationToken.None);
@@ -63,6 +69,8 @@ public sealed class OrganizationTests
         Assert.Equal(created.Id, updated.Id);
         Assert.Equal("Updated name", updated.Name);
         Assert.Equal("CAD", updated.CurrencyCode);
+        Assert.Equal("Updated name", (await reader.Handle(new GetOrganizationQuery(),
+            CancellationToken.None)).Name);
         Assert.Equal(1, repository.AddCount);
         Assert.Equal(2, repository.SaveCount);
     }

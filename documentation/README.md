@@ -7,6 +7,7 @@ Start with [Run the backend locally](getting-started/LOCAL_START_GUIDE.md). The 
 - [Run the backend locally](getting-started/LOCAL_START_GUIDE.md) — Docker, migrations, API, and login.
 - [Local demo data](getting-started/DEMO_DATA.md) — repeatable sample users and business records for API testing.
 - [Local tenancy](getting-started/LOCAL_TENANCY.md) — tenant configuration and API selection.
+- [Functional backend tests](getting-started/FUNCTIONAL_TESTS.md) — run the SQL-backed regression suite and understand its scope.
 
 ## Architecture
 

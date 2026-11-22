@@ -10,6 +10,8 @@ using SimpliaDz.Inventory.UseCases.Locations.Abstractions;
 using SimpliaDz.Inventory.UseCases.Locations.Commands.CreateLocation;
 using SimpliaDz.Inventory.UseCases.Locations.Commands.DeactivateLocation;
 using SimpliaDz.Inventory.UseCases.Locations.Commands.UpdateLocation;
+using SimpliaDz.Inventory.UseCases.Locations.Queries.GetLocation;
+using SimpliaDz.Inventory.UseCases.Locations.Queries.GetLocations;
 using SimpliaDz.SharedKernel.Authorization;
 using Xunit;
 
@@ -76,6 +78,10 @@ public sealed class LocationTests
         Assert.Equal("WH-1", response.Code);
         Assert.Equal("Warehouse", response.Type);
         Assert.Equal(1, repository.Count);
+        Assert.Equal("WH-1", (await new GetLocationHandler(repository).Handle(
+            new GetLocationQuery(location.Id), CancellationToken.None)).Code);
+        Assert.Single(await new GetLocationsHandler(repository).Handle(
+            new GetLocationsQuery(), CancellationToken.None));
     }
 
     [Fact]

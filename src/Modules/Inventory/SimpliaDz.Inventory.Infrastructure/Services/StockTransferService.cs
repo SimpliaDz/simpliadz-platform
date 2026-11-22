@@ -43,7 +43,8 @@ internal sealed class StockTransferService(InventoryDbContext db) : IStockTransf
                 if (transfer.Lines.Any(line => line.ProductVariantId == productVariantId))
                     throw new ConflictException("This variant is already in the transfer.");
 
-                transfer.AddLine(productVariantId, quantity);
+                var line = transfer.AddLine(productVariantId, quantity);
+                db.StockTransferLines.Add(line);
                 await db.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
                 return Map(transfer);

@@ -5,6 +5,7 @@ using SimpliaDz.Inventory.UseCases.Categories.Commands.CreateCategory;
 using SimpliaDz.Inventory.UseCases.Categories.Commands.DeactivateCategory;
 using SimpliaDz.Inventory.UseCases.Categories.Commands.UpdateCategory;
 using SimpliaDz.Inventory.UseCases.Categories.Queries.GetCategories;
+using SimpliaDz.Inventory.UseCases.Categories.Queries.GetCategory;
 using SimpliaDz.SharedKernel.Authorization;
 using Xunit;
 
@@ -34,6 +35,10 @@ public sealed class CategoryTests
 
         Assert.Null(men.ParentCategoryId);
         Assert.Equal(men.Id, shirts.ParentCategoryId);
+        Assert.Equal("Shirts", (await new GetCategoryHandler(repository).Handle(
+            new GetCategoryQuery(shirts.Id), CancellationToken.None)).Name);
+        await Assert.ThrowsAsync<NotFoundException>(() => new GetCategoryHandler(repository)
+            .Handle(new GetCategoryQuery(Guid.NewGuid()), CancellationToken.None).AsTask());
         Assert.Equal(2, repository.Count);
     }
 

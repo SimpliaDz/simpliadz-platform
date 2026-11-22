@@ -40,11 +40,32 @@ public sealed class LoyaltyIntegrationTests
             var secondReturnId = Guid.NewGuid();
             var sales = new FakeSalesReader(customerId);
             var service = new LoyaltyService(db, sales);
+            Assert.Null(await service.GetProgramAsync(CancellationToken.None));
             await service.ConfigureProgramAsync("Simplia Points", 100m, true, CancellationToken.None);
+            Assert.Equal("Simplia Points", (await service.GetProgramAsync(CancellationToken.None))!.Name);
             var card = await service.EnrollAsync(customerId, CancellationToken.None);
             Assert.StartsWith("LDZ", card.CardNumber);
+            await Assert.ThrowsAsync<ConflictException>(() => service.EnrollAsync(customerId,
+                CancellationToken.None));
+            Assert.Equal(card.Id, (await service.GetCardByIdAsync(card.Id,
+                CancellationToken.None)).Id);
             Assert.Equal(card.Id, (await service.GetCardByNumberAsync(card.CardNumber,
                 CancellationToken.None)).Id);
+            Assert.False((await service.SetCardActiveAsync(card.Id, false,
+                CancellationToken.None)).IsActive);
+            Assert.True((await service.SetCardActiveAsync(card.Id, true,
+                CancellationToken.None)).IsActive);
+
+            var inactiveReward = await service.CreateRewardAsync("Old gift", 3,
+                CancellationToken.None);
+            inactiveReward = await service.UpdateRewardAsync(inactiveReward.Id,
+                "Updated gift", 4, false, CancellationToken.None);
+            Assert.False((await service.GetRewardByIdAsync(inactiveReward.Id,
+                CancellationToken.None)).IsActive);
+            Assert.DoesNotContain(await service.ListRewardsAsync(false, CancellationToken.None),
+                reward => reward.Id == inactiveReward.Id);
+            Assert.Contains(await service.ListRewardsAsync(true, CancellationToken.None),
+                reward => reward.Id == inactiveReward.Id);
 
             sales.Sale = new LoyaltySaleSnapshot(saleId, customerId, actorId,
                 "Completed", DateTimeOffset.UtcNow.AddSeconds(1), 250m, []);
@@ -73,6 +94,8 @@ public sealed class LoyaltyIntegrationTests
             await Assert.ThrowsAsync<ConflictException>(() => service.RedeemAsync(
                 card.Id, reward.Id, Guid.NewGuid(), actorId, CancellationToken.None));
             Assert.Equal(4, await db.Transactions.CountAsync());
+            Assert.Equal(4, (await service.GetHistoryAsync(card.Id, 1, 20,
+                CancellationToken.None)).Count);
 
             var stored = await db.Transactions.FirstAsync();
             db.Transactions.Remove(stored);
