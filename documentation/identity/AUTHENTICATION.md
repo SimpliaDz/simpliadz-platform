@@ -12,11 +12,26 @@ The Identity module authenticates users inside the API instance's configured ten
 | `POST /auth/refresh` | Public | Rotate a valid refresh token and issue a new token pair. |
 | `POST /auth/logout` | Public | Revoke a refresh token. It remains usable when the access token has expired. |
 | `GET /auth/me` | Bearer token | Return the current token identity, roles, and permissions. |
+| `PUT /auth/me/language` | Bearer token | Set the current user's language preference. |
 | `POST /auth/change-password` | Bearer token | Change the current user's password and revoke all sessions. |
 | `POST /auth/forgot-password` | Public | Generate a reset token. The token is returned only when the development-only exposure option is enabled. |
 | `POST /auth/reset-password` | Public | Reset a password with a valid ASP.NET Identity reset token and revoke all sessions. |
 
 User, role, and permission management remains under `/users`, `/roles`, and `/permissions` and is protected by permission policies.
+
+## User language preference
+
+Each user has a `languageCode` stored in the tenant's Identity database. Supported values are `en`, `ar`, and `fr`. New and existing users default to `en`. `GET /auth/me` returns the saved value alongside the user's identity and permissions; user management responses also include it. An authenticated user can change only their own preference:
+
+```http
+PUT /auth/me/language
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{"languageCode":"fr"}
+```
+
+The response is `200 OK` with `{"languageCode":"fr"}`. Codes are case-insensitive on input and stored in lowercase. Unsupported or empty codes return a validation error. The frontend should load `/auth/me` after sign-in and use this value to select its UI language. Updating the preference does not invalidate the session; the next `/auth/me` request reflects the new value. This preference controls client presentation and does not change server timestamps or the organization's default language.
 
 ## Token behavior
 
@@ -56,7 +71,7 @@ When Audit is enabled for the tenant, each successful password login also create
 
 ## Database deployment
 
-Run the database migrator for each tenant before deploying the updated API. Migration `Identity_LoginAttempts` creates the login-history table and indexes; earlier migration `Identity_RefreshTokens` creates the refresh-token table.
+Run the database migrator for each tenant before deploying the updated API. Migration `Identity_UserLanguage` adds the user preference with an `en` default; `Identity_LoginAttempts` creates the login-history table and indexes; earlier migration `Identity_RefreshTokens` creates the refresh-token table.
 
 ```powershell
 dotnet run --project src/SimpliaDz.DatabaseMigrator -- --tenant dev

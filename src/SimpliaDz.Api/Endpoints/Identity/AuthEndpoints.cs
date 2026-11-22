@@ -13,6 +13,8 @@ using SimpliaDz.Identity.UseCases.Auth.Commands.Login;
 using SimpliaDz.Identity.UseCases.Auth.Commands.Logout;
 using SimpliaDz.Identity.UseCases.Auth.Commands.RefreshToken;
 using SimpliaDz.Identity.UseCases.Auth.Commands.ResetPassword;
+using SimpliaDz.Identity.UseCases.Users.Commands.UpdateLanguage;
+using SimpliaDz.Identity.UseCases.Users.Queries.GetUserById;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
@@ -88,14 +90,27 @@ public static class AuthEndpoints
             return Results.NoContent();
         });
 
-        group.MapGet("/me", (ClaimsPrincipal principal) =>
+        group.MapGet("/me", async (ClaimsPrincipal principal,
+            [FromServices] ISender sender, CancellationToken ct) =>
         {
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
             var email = principal.FindFirstValue(ClaimTypes.Email);
             var roles = principal.FindAll(ClaimTypes.Role).Select(r => r.Value).ToArray();
             var permissions = principal.FindAll("permission").Select(c => c.Value).ToArray();
+            var user = await sender.Send(new GetUserByIdQuery(Guid.Parse(userId!)), ct);
 
-            return Results.Ok(new { userId, email, roles, permissions });
+            return Results.Ok(new { userId, email, roles, permissions, languageCode = user.LanguageCode });
+        }).RequireAuthorization();
+
+        group.MapPut("/me/language", async (
+            [FromBody] UpdateLanguageRequest request,
+            ClaimsPrincipal principal,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var user = await sender.Send(new UpdateLanguageCommand(userId, request.LanguageCode), ct);
+            return Results.Ok(new { user.LanguageCode });
         }).RequireAuthorization();
 
         group.MapPost("/change-password", async (

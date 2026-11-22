@@ -9,6 +9,7 @@ using SimpliaDz.Identity.UseCases.Auth.Abstractions;
 using SimpliaDz.Identity.UseCases.Permissions.Abstractions;
 using SimpliaDz.Identity.UseCases.Roles.Abstractions;
 using SimpliaDz.Identity.UseCases.Users.Abstractions;
+using SimpliaDz.Identity.UseCases.Users.Commands.UpdateLanguage;
 using Xunit;
 
 namespace SimpliaDz.Identity.Tests;
@@ -16,6 +17,42 @@ namespace SimpliaDz.Identity.Tests;
 public sealed class IdentityFunctionalIntegrationTests
 {
     private const string TestPassword = "TestPassword123!";
+
+    [Theory]
+    [InlineData("en", true)]
+    [InlineData("ar", true)]
+    [InlineData("fr", true)]
+    [InlineData("FR", true)]
+    [InlineData("de", false)]
+    [InlineData("fr-CA", false)]
+    [InlineData("", false)]
+    public void Language_preference_accepts_only_supported_codes(string code, bool valid)
+    {
+        var result = new UpdateLanguageValidator().Validate(new UpdateLanguageCommand(Guid.NewGuid(), code));
+        Assert.Equal(valid, result.IsValid);
+    }
+
+    [Fact]
+    public async Task Each_user_can_change_own_language_without_affecting_other_users()
+    {
+        await InDatabaseAsync(async provider =>
+        {
+            await using var scope = provider.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<IIdentityUserService>();
+            var first = await users.CreateUserAsync("language1@test.local", "First", "User",
+                TestPassword, null, CancellationToken.None);
+            var second = await users.CreateUserAsync("language2@test.local", "Second", "User",
+                TestPassword, null, CancellationToken.None);
+
+            Assert.Equal("en", (await users.GetUserByIdAsync(first, CancellationToken.None))!.LanguageCode);
+            await users.UpdateLanguageAsync(first, "ar", CancellationToken.None);
+
+            await using var nextScope = provider.CreateAsyncScope();
+            var nextUsers = nextScope.ServiceProvider.GetRequiredService<IIdentityUserService>();
+            Assert.Equal("ar", (await nextUsers.GetUserByIdAsync(first, CancellationToken.None))!.LanguageCode);
+            Assert.Equal("en", (await nextUsers.GetUserByIdAsync(second, CancellationToken.None))!.LanguageCode);
+        });
+    }
 
     [Fact]
     public async Task Roles_users_and_permissions_can_be_managed_without_losing_user_history()

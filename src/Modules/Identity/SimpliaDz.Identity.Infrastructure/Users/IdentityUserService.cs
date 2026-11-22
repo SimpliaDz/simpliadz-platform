@@ -76,6 +76,17 @@ internal sealed class IdentityUserService : IIdentityUserService
         return result;
     }
 
+    public async Task<UserResponse> UpdateLanguageAsync(Guid userId, string languageCode, CancellationToken ct)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new SimpliaDz.BuildingBlocks.Exceptions.NotFoundException("User", userId);
+        user.LanguageCode = languageCode;
+        var result = await _userManager.UpdateAsync(user);
+        EnsureSucceeded(result, "update language");
+        var roles = await _userManager.GetRolesAsync(user);
+        return Map(user, roles);
+    }
+
     public async Task AssignRolesAsync(Guid userId, IList<string> roles, CancellationToken ct)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString())
@@ -143,7 +154,7 @@ internal sealed class IdentityUserService : IIdentityUserService
     }
 
     private static UserResponse Map(AppUser user, IList<string> roles) =>
-        new(user.Id, user.Email ?? string.Empty, user.FirstName, user.LastName, user.IsActive, user.EmailConfirmed, roles.ToArray());
+        new(user.Id, user.Email ?? string.Empty, user.FirstName, user.LastName, user.IsActive, user.EmailConfirmed, roles.ToArray(), user.LanguageCode);
 
     private async Task InvalidateSessionsAsync(AppUser user, CancellationToken ct)
     {

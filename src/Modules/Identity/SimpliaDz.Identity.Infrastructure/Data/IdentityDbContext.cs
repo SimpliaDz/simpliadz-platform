@@ -23,6 +23,12 @@ public sealed class IdentityDbContext
 
         base.OnModelCreating(builder);
 
+        builder.Entity<AppUser>()
+            .Property(user => user.LanguageCode)
+            .HasMaxLength(2)
+            .IsUnicode(false)
+            .HasDefaultValue("en");
+
         builder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
     }
 

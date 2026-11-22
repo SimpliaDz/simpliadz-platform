@@ -7,4 +7,5 @@ public sealed record UserResponse(
     string LastName,
     bool IsActive,
     bool EmailConfirmed,
-    string[] Roles);
+    string[] Roles,
+    string LanguageCode);
