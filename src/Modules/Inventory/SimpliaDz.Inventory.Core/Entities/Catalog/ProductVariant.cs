@@ -72,7 +72,7 @@ public sealed class ProductVariant
     {
         if (!IsActive) throw new InvalidOperationException("Cannot generate a barcode for an inactive variant.");
         if (Barcode is not null) throw new InvalidOperationException("Variant already has a barcode.");
-        SetBarcode($"SDZ{Id:N}".ToUpperInvariant());
+        SetBarcode(InternalBarcode.Generate());
         return Barcode!;
     }
 

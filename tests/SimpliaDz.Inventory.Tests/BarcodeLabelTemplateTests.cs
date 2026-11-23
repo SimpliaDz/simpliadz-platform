@@ -22,4 +22,19 @@ public sealed class BarcodeLabelTemplateTests
         Assert.Contains("&lt;script&gt;Shirt&lt;/script&gt;", html);
         Assert.DoesNotContain("<script>", html);
     }
+
+    [Fact]
+    public void Generated_ean13_barcode_can_be_printed()
+    {
+        var template = new BarcodeLabelTemplate("A4 labels", 210, 297,
+            90, 40, 5, 3, true, true);
+        var barcode = InternalBarcode.Generate();
+
+        var html = BarcodeLabelDocumentRenderer.Render(template,
+            [new BarcodeLabelItem("Shirt", "TS-M", barcode)]);
+
+        Assert.True(InternalBarcode.IsValidEan13(barcode));
+        Assert.Contains(barcode, html);
+        Assert.Contains("<rect", html);
+    }
 }

@@ -35,6 +35,22 @@ public sealed class ProductTests
     }
 
     [Fact]
+    public async Task Generated_barcode_retries_a_unique_index_collision()
+    {
+        var repository = new InMemoryProductRepository();
+        var product = new Product("T-Shirt");
+        var variant = product.AddVariant("TS-M", 100m);
+        repository.Seed(product);
+        repository.RejectNextGeneratedBarcode();
+
+        var result = await new GenerateVariantBarcodeHandler(repository).Handle(
+            new GenerateVariantBarcodeCommand(variant.Id), CancellationToken.None);
+
+        Assert.Equal(2, repository.GeneratedBarcodeAttempts);
+        Assert.True(InternalBarcode.IsValidEan13(result.Barcode));
+    }
+
+    [Fact]
     public async Task Variant_sku_and_barcode_can_be_corrected_without_changing_its_identity()
     {
         var repository = new InMemoryProductRepository();
@@ -189,10 +205,13 @@ public sealed class ProductTests
         private readonly List<Product> _products = [];
         private readonly HashSet<Guid> _brands = [];
         private readonly HashSet<Guid> _categories = [];
+        private bool _rejectNextGeneratedBarcode;
 
         public int Count => _products.Count;
+        public int GeneratedBarcodeAttempts { get; private set; }
 
         public void Seed(Product product) => _products.Add(product);
+        public void RejectNextGeneratedBarcode() => _rejectNextGeneratedBarcode = true;
 
         public Guid AddValidBrand()
         {
@@ -221,9 +240,17 @@ public sealed class ProductTests
             Task.FromResult(_products.SelectMany(x => x.Variants).Any(x => x.Sku.Value == sku));
         public Task<bool> BarcodeExistsAsync(string barcode, CancellationToken ct) =>
             Task.FromResult(_products.SelectMany(x => x.Variants).Any(x => x.Barcode == barcode));
-        public Task<bool> TryAssignGeneratedBarcodeAsync(Guid variantId, string barcode, CancellationToken ct) =>
-            Task.FromResult(_products.SelectMany(x => x.Variants).Any(x =>
+        public Task<bool> TryAssignGeneratedBarcodeAsync(Guid variantId, string barcode, CancellationToken ct)
+        {
+            GeneratedBarcodeAttempts++;
+            if (_rejectNextGeneratedBarcode)
+            {
+                _rejectNextGeneratedBarcode = false;
+                throw new ConflictException("Generated barcode conflicts with an existing barcode.");
+            }
+            return Task.FromResult(_products.SelectMany(x => x.Variants).Any(x =>
                 x.Id == variantId && x.Barcode == barcode));
+        }
         public Task<bool> TryUpdateVariantIdentifiersAsync(Guid variantId, string currentSku,
             string? currentBarcode, string sku, string? barcode, CancellationToken ct)
         {

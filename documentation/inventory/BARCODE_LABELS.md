@@ -37,4 +37,4 @@ Example print body:
 }
 ```
 
-The print endpoint returns a standalone HTML document containing vector SVG pages. It renders the barcode using Code 128 and supports up to 500 labels per request. The selected variants and their products must be active and have a barcode. If a barcode is too dense for the selected label width, the API rejects the request so the admin can select or configure a wider template. The endpoint does not contact a printer; the consuming app can display or print the returned document.
+The print endpoint returns a standalone HTML document containing vector SVG pages and supports up to 500 labels per request. Valid 13-digit EAN-13 values, including newly generated internal numbers, render as EAN-13. Existing alphanumeric barcodes and other formats render as Code 128. The selected variants and their products must be active and have a barcode. If a barcode is too dense for the selected label width, the API rejects the request so the admin can select or configure a wider template. The endpoint does not contact a printer; the consuming app can display or print the returned document.

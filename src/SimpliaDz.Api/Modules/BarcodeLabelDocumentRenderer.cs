@@ -22,13 +22,16 @@ public static class BarcodeLabelDocumentRenderer
         var capacity = checked(columns * rows);
         if (capacity < 1) throw new ArgumentException("No labels fit on the selected page.");
         var matrices = new Dictionary<string, BitMatrix>(StringComparer.Ordinal);
-        var writer = new Code128Writer();
+        var code128Writer = new Code128Writer();
+        var ean13Writer = new EAN13Writer();
         foreach (var item in items)
         {
             if (string.IsNullOrWhiteSpace(item.Barcode))
                 throw new ArgumentException("Every selected variant needs a barcode.");
             if (!matrices.ContainsKey(item.Barcode))
-                matrices[item.Barcode] = writer.encode(item.Barcode, BarcodeFormat.CODE_128, 0, 1);
+                matrices[item.Barcode] = InternalBarcode.IsValidEan13(item.Barcode)
+                    ? ean13Writer.encode(item.Barcode, BarcodeFormat.EAN_13, 0, 1)
+                    : code128Writer.encode(item.Barcode, BarcodeFormat.CODE_128, 0, 1);
             if ((template.LabelWidthMm - 4m) / matrices[item.Barcode].Width < 0.18m)
                 throw new ArgumentException($"Barcode '{item.Barcode}' needs a wider label for reliable printing.");
         }

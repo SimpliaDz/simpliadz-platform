@@ -46,7 +46,7 @@ public sealed class GeneratedBarcodeIntegrationTests
                 var collisionTarget = new ProductVariant(product.Id, new Sku("BC-COLLISION"), 0);
                 db.ProductVariants.Add(collisionTarget);
                 db.ProductVariants.Add(new ProductVariant(product.Id, new Sku("BC-RESERVED"), 0,
-                    barcode: $"SDZ{collisionTarget.Id:N}".ToUpperInvariant()));
+                    barcode: "2000000000008"));
                 await db.SaveChangesAsync();
             }
 
@@ -66,6 +66,7 @@ public sealed class GeneratedBarcodeIntegrationTests
 
             var result = await handler.Handle(new GenerateVariantBarcodeCommand(target.Id),
                 CancellationToken.None);
+            Assert.True(InternalBarcode.IsValidEan13(result.Barcode));
             Assert.Equal(target.Id, (await products.GetVariantByBarcodeAsync(result.Barcode!,
                 CancellationToken.None))!.Id);
             await using (var verify = NewDb(connection))
@@ -74,8 +75,12 @@ public sealed class GeneratedBarcodeIntegrationTests
                 new GenerateVariantBarcodeCommand(target.Id), CancellationToken.None).AsTask());
             await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
                 new GenerateVariantBarcodeCommand(factory.Id), CancellationToken.None).AsTask());
-            await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
-                new GenerateVariantBarcodeCommand(collision.Id), CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<ConflictException>(() => products.TryAssignGeneratedBarcodeAsync(
+                collision.Id, "2000000000008", CancellationToken.None));
+            var collisionResult = await handler.Handle(new GenerateVariantBarcodeCommand(collision.Id),
+                CancellationToken.None);
+            Assert.True(InternalBarcode.IsValidEan13(collisionResult.Barcode));
+            Assert.NotEqual("2000000000008", collisionResult.Barcode);
             var update = new UpdateVariantIdentifiersHandler(products);
             var corrected = await update.Handle(new UpdateVariantIdentifiersCommand(target.Id,
                 "BC-RENAMED", "CORRECTED-BC"), CancellationToken.None);

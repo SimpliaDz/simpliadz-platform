@@ -183,7 +183,7 @@ sequenceDiagram
 
 ## F09 — Generate a barcode for an item
 
-**Available.** Staff can generate a unique internal barcode for an active variant that has no barcode. The generated value uses a Code 128-compatible `SDZ` prefix followed by the variant identifier. A factory barcode is never replaced. Confirm scanner and label compatibility with the client before printing labels.
+**Available.** Staff can generate a unique 13-digit internal barcode for an active variant that has no barcode. It uses the restricted-circulation prefix `20` and an EAN-13 check digit. A factory barcode is never replaced. These internal numbers are for the tenant's own business, not globally assigned GS1 identifiers. Confirm scanner and label compatibility with the client before printing labels.
 
 **Current endpoints:** `POST /variants/products/{productId}`; `GET /variants/by-barcode/{barcode}`.
 
@@ -202,7 +202,7 @@ sequenceDiagram
 
 ## F10 — Print barcode labels
 
-**Available.** Authorized staff can choose variants and quantities, select a saved label template, and receive a printable HTML document with vector Code 128 barcodes. Templates are stored in the tenant database and can be created, updated, or deactivated by an authorized manager. Page and label dimensions, margins, gaps, product name, and SKU are configurable. A standard A4 90 × 40 mm template is supplied. Printer-specific layouts and prices on labels can be added later.
+**Available.** Authorized staff can choose variants and quantities, select a saved label template, and receive a printable HTML document with vector EAN-13 barcodes for valid 13-digit values or Code 128 for existing alphanumeric values. Templates are stored in the tenant database and can be created, updated, or deactivated by an authorized manager. Page and label dimensions, margins, gaps, product name, and SKU are configurable. A standard A4 90 × 40 mm template is supplied. Printer-specific layouts and prices on labels can be added later.
 
 **Current endpoints:** `GET /barcode-label-templates`; `POST /barcode-label-templates`; `PUT /barcode-label-templates/{id}`; `PUT /barcode-label-templates/{id}/deactivate`; `POST /barcode-labels/print-document`.
 

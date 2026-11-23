@@ -144,10 +144,27 @@ public sealed class GenerateVariantBarcodeHandler(IProductRepository products)
             throw new ConflictException("Cannot generate a barcode for an inactive variant.");
         if (variant.Barcode is not null)
             throw new ConflictException("Variant already has a barcode.");
-        var barcode = variant.GenerateInternalBarcode();
-        if (!await products.TryAssignGeneratedBarcodeAsync(variant.Id, barcode, ct))
-            throw new ConflictException("Variant barcode changed concurrently. Reload the variant.");
-        return variant.ToResponse();
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var barcode = variant.GenerateInternalBarcode();
+            bool assigned;
+            try
+            {
+                assigned = await products.TryAssignGeneratedBarcodeAsync(variant.Id, barcode, ct);
+            }
+            catch (ConflictException)
+            {
+                // The tenant's unique barcode index rejected this candidate.
+                variant.SetBarcode(null);
+                continue;
+            }
+
+            if (!assigned)
+                throw new ConflictException("Variant barcode changed concurrently. Reload the variant.");
+            return variant.ToResponse();
+        }
+
+        throw new ConflictException("Could not allocate a unique internal barcode. Try again.");
     }
 }
 

@@ -598,7 +598,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - Sales discounts: authorized fixed or percentage discounts on draft lines and sales. See [Sale Discounts](../sales/SALE_DISCOUNTS.md).
 - Sales payments: immutable payment history and atomic paid-total updates on completed sales. See [Sale Payments](../sales/SALE_PAYMENTS.md).
 - Cash registers: multiple registers per location, shared cashier sessions, payment attribution, cash movements, and closing differences. See [Cash Registers](../sales/CASH_REGISTERS.md).
-- Barcode labels: tenant-stored page and label templates with printable Code 128 documents. See [Barcode Labels](../inventory/BARCODE_LABELS.md).
+- Barcode labels: tenant-stored page and label templates with printable EAN-13 or Code 128 documents. See [Barcode Labels](../inventory/BARCODE_LABELS.md).
 - Inventory documents: tenant-stored stock list and count templates with printable reports. See [Inventory Documents](../inventory/INVENTORY_DOCUMENTS.md).
 - Inventory warnings: tenant-configured scheduled low-stock and ageing scans with a database lease. See [Inventory Warnings](../inventory/INVENTORY_WARNINGS.md).
 - Worked hours: organization time zone, staff work sessions, audited manager corrections, and daily reports. See [Worked Hours](../organization/WORKED_HOURS.md).

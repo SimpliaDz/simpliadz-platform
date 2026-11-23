@@ -56,8 +56,9 @@ public sealed class VariantTests
         var first = product.AddVariant("SHIRT-S", 100m);
         var second = product.AddVariant("SHIRT-M", 100m);
         var firstBarcode = first.GenerateInternalBarcode();
-        Assert.StartsWith("SDZ", firstBarcode);
-        Assert.Equal(35, firstBarcode.Length);
+        Assert.StartsWith("20", firstBarcode);
+        Assert.Equal(13, firstBarcode.Length);
+        Assert.True(InternalBarcode.IsValidEan13(firstBarcode));
         Assert.NotEqual(firstBarcode, second.GenerateInternalBarcode());
         Assert.Throws<InvalidOperationException>(() => first.GenerateInternalBarcode());
 
@@ -68,6 +69,14 @@ public sealed class VariantTests
         inactive.Deactivate();
         Assert.Throws<InvalidOperationException>(() => inactive.GenerateInternalBarcode());
     }
+
+    [Theory]
+    [InlineData("2000000000008", true)]
+    [InlineData("2000000000009", false)]
+    [InlineData("SDZ1234567890", false)]
+    [InlineData("20000000000A8", false)]
+    public void Ean13_check_digit_is_validated(string code, bool valid) =>
+        Assert.Equal(valid, InternalBarcode.IsValidEan13(code));
 }
 
 internal static class VariantTestExtensions
