@@ -6,6 +6,7 @@ using SimpliaDz.Inventory.Contracts.Brands;
 using SimpliaDz.Inventory.UseCases.Brands.Commands.CreateBrand;
 using SimpliaDz.Inventory.UseCases.Brands.Commands.UpdateBrand;
 using SimpliaDz.Inventory.UseCases.Brands.Commands.DeactivateBrand;
+using SimpliaDz.Inventory.UseCases.Brands.Commands.ActivateBrand;
 using SimpliaDz.Inventory.UseCases.Brands.Queries.GetBrand;
 using SimpliaDz.Inventory.UseCases.Brands.Queries.GetBrands;
 using SimpliaDz.SharedKernel.Authorization;
@@ -45,6 +46,10 @@ public static class BrandEndpoints
             await sender.Send(new DeactivateBrandCommand(id), ct);
             return Results.NoContent();
         }).RequireAuthorization(PermissionNames.Brands.Edit);
+
+        group.MapPut("/{id:guid}/activate", async (Guid id, [FromServices] ISender sender, CancellationToken ct) =>
+        { await sender.Send(new ActivateBrandCommand(id), ct); return Results.NoContent(); })
+            .RequireAuthorization(PermissionNames.Brands.Edit);
 
         return app;
     }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using SimpliaDz.Inventory.Contracts.Products;
 using SimpliaDz.Inventory.UseCases.Products.Commands.CreateProduct;
+using SimpliaDz.Inventory.UseCases.Products.Commands.ActivateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Commands.DeactivateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Commands.UpdateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Queries.GetProduct;
@@ -82,6 +83,15 @@ public static class ProductEndpoints
             CancellationToken ct) =>
         {
             await sender.Send(new DeactivateProductCommand(id), ct);
+            return Results.NoContent();
+        }).RequireAuthorization(PermissionNames.Products.Edit);
+
+        group.MapPut("/{id:guid}/activate", async (
+            Guid id,
+            [FromServices] ISender sender,
+            CancellationToken ct) =>
+        {
+            await sender.Send(new ActivateProductCommand(id), ct);
             return Results.NoContent();
         }).RequireAuthorization(PermissionNames.Products.Edit);
 

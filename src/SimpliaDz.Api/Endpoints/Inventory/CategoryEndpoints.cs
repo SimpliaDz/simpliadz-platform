@@ -5,6 +5,7 @@ using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.Contracts.Categories;
 using SimpliaDz.Inventory.UseCases.Categories.Commands.CreateCategory;
 using SimpliaDz.Inventory.UseCases.Categories.Commands.DeactivateCategory;
+using SimpliaDz.Inventory.UseCases.Categories.Commands.ActivateCategory;
 using SimpliaDz.Inventory.UseCases.Categories.Commands.UpdateCategory;
 using SimpliaDz.Inventory.UseCases.Categories.Queries.GetCategories;
 using SimpliaDz.Inventory.UseCases.Categories.Queries.GetCategory;
@@ -60,6 +61,10 @@ public static class CategoryEndpoints
 
             return Results.Ok(category);
         }).RequireAuthorization(PermissionNames.Categories.Edit);
+
+        group.MapPut("/{id:guid}/activate", async (Guid id, [FromServices] ISender sender, CancellationToken ct) =>
+        { await sender.Send(new ActivateCategoryCommand(id), ct); return Results.NoContent(); })
+            .RequireAuthorization(PermissionNames.Categories.Edit);
 
         group.MapPut("/{id:guid}/deactivate", async (
             Guid id,
