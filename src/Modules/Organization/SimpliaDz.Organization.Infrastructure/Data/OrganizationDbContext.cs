@@ -12,6 +12,7 @@ public sealed class OrganizationDbContext : DbContext
     }
 
     public DbSet<OrganizationEntity> Organizations => Set<OrganizationEntity>();
+    public DbSet<OrganizationSetting> OrganizationSettings => Set<OrganizationSetting>();
     public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
     public DbSet<WorkSessionCorrection> WorkSessionCorrections => Set<WorkSessionCorrection>();
 

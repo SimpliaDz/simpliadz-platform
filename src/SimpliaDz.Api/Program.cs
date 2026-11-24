@@ -10,6 +10,7 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Configuration.AddCommandLine(args);
 
 builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddDataProtection();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
