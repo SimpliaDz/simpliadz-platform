@@ -54,8 +54,6 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         if (!variant.IsActive || !await inventory.Products.AnyAsync(x =>
                 x.Id == variant.ProductId && x.IsActive, ct))
             throw new ConflictException("Product variant must be active.");
-        if (sale.Lines.Any(x => x.ProductVariantId == variant.Id))
-            throw new ConflictException("Variant already exists in this sale.");
         if (!await inventory.PriceLists.AnyAsync(x => x.Id == sale.PriceListId && x.IsActive, ct))
             throw new ConflictException("Price list must be active.");
         var price = await inventory.PriceListItems.AsNoTracking()
@@ -69,8 +67,10 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                 .OrderByDescending(x => x.GoodsReceipt.ReceivedAt).ThenByDescending(x => x.Id)
                 .Select(x => (decimal?)x.UnitCost).FirstOrDefaultAsync(ct) ?? 0m
             : 0m;
+        var hasExistingLine = sale.Lines.Any(x => x.ProductVariantId == variant.Id);
         var line = sale.AddLine(variant.Id, quantity, price.Value, cost, discountAmount);
-        sales.SaleLines.Add(line);
+        if (!hasExistingLine)
+            sales.SaleLines.Add(line);
         await SaveAsync(ct);
         return Map(sale);
     }
