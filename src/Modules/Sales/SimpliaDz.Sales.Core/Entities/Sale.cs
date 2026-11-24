@@ -82,6 +82,15 @@ public sealed class Sale
     public void SetDiscount(decimal discountAmount)
         => ApplySaleDiscount(SaleDiscountType.FixedAmount, discountAmount);
 
+    public void SetCustomer(Guid? customerId)
+    {
+        EnsureDraft();
+        if (customerId == Guid.Empty)
+            throw new ArgumentException("Customer ID must be valid.", nameof(customerId));
+        CustomerId = customerId;
+        Revision = checked(Revision + 1);
+    }
+
     public void ApplySaleDiscount(SaleDiscountType type, decimal value)
     {
         EnsureDraft();

@@ -75,6 +75,19 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         return Map(sale);
     }
 
+    public async Task<SaleDto> SetCustomerAsync(Guid saleId, Guid? customerId,
+        CancellationToken ct)
+    {
+        var sale = await LoadAsync(saleId, ct);
+        EnsureDraft(sale);
+        if (customerId.HasValue && !await sales.Customers.AnyAsync(x =>
+                x.Id == customerId.Value && x.IsActive, ct))
+            throw new NotFoundException("Active customer", customerId.Value);
+        sale.SetCustomer(customerId);
+        await SaveAsync(ct);
+        return Map(sale);
+    }
+
     public async Task<SaleDto> SetDiscountAsync(Guid saleId, decimal discountAmount,
         CancellationToken ct)
         => await ApplySaleDiscountAsync(saleId, SaleDiscountType.FixedAmount,

@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
+using SimpliaDz.Crm.UseCases.Loyalty;
 using SimpliaDz.Sales.Core.Entities;
 using SimpliaDz.Sales.UseCases.Services;
 using SimpliaDz.SharedKernel.Authorization;
@@ -65,6 +67,41 @@ public static class PosEndpoints
             }
         });
 
+        group.MapPut("/sales/{saleId:guid}/customer", async (Guid saleId,
+            [FromBody] PosSetCustomerRequest request, ClaimsPrincipal principal,
+            [FromServices] IPosService pos, [FromServices] ISaleService sales,
+            CancellationToken ct) =>
+        {
+            if (request.CustomerId == Guid.Empty)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                    { ["customerId"] = ["Customer ID must be valid."] });
+            var actor = Actor(principal);
+            var context = await pos.RequireContextAsync(actor, ct);
+            var sale = await sales.GetByIdAsync(saleId, ct);
+            if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
+                return Results.Conflict("This ticket is not available at the current register.");
+            return Results.Ok(await sales.SetCustomerAsync(saleId, request.CustomerId, ct));
+        });
+
+        group.MapGet("/customers", async (string? search,
+            [FromServices] ICustomerService customers, [FromServices] ILoyaltyService loyalty,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(search) || search.Trim().Length > 150)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                    { ["search"] = ["Enter 1 to 150 characters to find a customer."] });
+            var results = (await customers.SearchAsync(search.Trim(), null, true, 1, 20, ct)).ToList();
+            try
+            {
+                var card = await loyalty.GetCardByNumberAsync(search.Trim(), ct);
+                var cardCustomer = await customers.GetByIdAsync(card.CustomerId, ct);
+                if (cardCustomer.IsActive && results.All(x => x.Id != cardCustomer.Id))
+                    results.Insert(0, cardCustomer);
+            }
+            catch (NotFoundException) { }
+            return Results.Ok(results.Select(x => new PosCustomerDto(x.Id, x.Name, x.Phone, x.Email)));
+        });
+
         group.MapPost("/sales/{saleId:guid}/pay", async (Guid saleId,
             [FromBody] PosPaymentRequest request, ClaimsPrincipal principal, [FromServices] IPosService pos,
             [FromServices] ISaleService sales, [FromServices] IPaymentService payments, CancellationToken ct) =>
@@ -96,5 +133,7 @@ public static class PosEndpoints
 
 public sealed record PosCreateSaleRequest(Guid? CustomerId);
 public sealed record PosScanRequest(string Code);
+public sealed record PosSetCustomerRequest(Guid? CustomerId);
+public sealed record PosCustomerDto(Guid Id, string Name, string? Phone, string? Email);
 public sealed record PosPaymentRequest(Guid Id, decimal Amount, string PaymentMethod);
 public sealed record PosPaymentResult(SaleDto Sale, PaymentDto Payment);
