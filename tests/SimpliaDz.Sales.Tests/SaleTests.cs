@@ -90,6 +90,21 @@ public sealed class SaleTests
     }
 
     [Fact]
+    public void Draft_line_quantity_can_be_changed_and_recalculates_totals()
+    {
+        var sale = NewSale();
+        var line = sale.AddLine(Guid.NewGuid(), 1, 12m, 5m);
+        sale.ApplyLineDiscount(line.Id, SaleDiscountType.Percentage, 25m);
+
+        sale.SetLineQuantity(line.Id, 3);
+
+        Assert.Equal(3, line.Quantity);
+        Assert.Equal(36m, sale.Subtotal);
+        Assert.Equal(9m, line.DiscountAmount);
+        Assert.Equal(27m, sale.Total);
+    }
+
+    [Fact]
     public void Cancelled_sale_cannot_be_completed()
     {
         var sale = NewSale();

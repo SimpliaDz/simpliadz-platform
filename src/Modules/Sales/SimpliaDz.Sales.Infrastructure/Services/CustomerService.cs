@@ -46,9 +46,10 @@ public sealed class CustomerService(SalesDbContext db) : ICustomerService
         if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
-            query = query.Where(x => x.Name.Contains(term) ||
-                (x.Phone != null && x.Phone.Contains(term)));
+            var term = search.Trim().ToLowerInvariant();
+            query = query.Where(x => x.Name.ToLower().Contains(term) ||
+                (x.Phone != null && x.Phone.ToLower().Contains(term)) ||
+                (x.Email != null && x.Email.ToLower().Contains(term)));
         }
         var customers = await query.OrderBy(x => x.Name).ThenBy(x => x.Id)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);

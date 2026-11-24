@@ -9,6 +9,7 @@ public interface ISaleService
     Task<SaleDto> AddLineAsync(Guid saleId, string? sku, string? barcode, int quantity,
         decimal discountAmount, CancellationToken ct);
     Task<SaleDto> SetCustomerAsync(Guid saleId, Guid? customerId, CancellationToken ct);
+    Task<SaleDto> SetLineQuantityAsync(Guid saleId, Guid lineId, int quantity, CancellationToken ct);
     Task<SaleDto> SetDiscountAsync(Guid saleId, decimal discountAmount, CancellationToken ct);
     Task<SaleDto> ApplySaleDiscountAsync(Guid saleId, SaleDiscountType type,
         decimal value, CancellationToken ct);

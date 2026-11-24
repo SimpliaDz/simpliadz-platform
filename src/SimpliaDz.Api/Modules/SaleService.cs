@@ -88,6 +88,18 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         return Map(sale);
     }
 
+    public async Task<SaleDto> SetLineQuantityAsync(Guid saleId, Guid lineId, int quantity,
+        CancellationToken ct)
+    {
+        var sale = await LoadAsync(saleId, ct);
+        EnsureDraft(sale);
+        if (!sale.Lines.Any(x => x.Id == lineId))
+            throw new NotFoundException("Sale line", lineId);
+        sale.SetLineQuantity(lineId, quantity);
+        await SaveAsync(ct);
+        return Map(sale);
+    }
+
     public async Task<SaleDto> SetDiscountAsync(Guid saleId, decimal discountAmount,
         CancellationToken ct)
         => await ApplySaleDiscountAsync(saleId, SaleDiscountType.FixedAmount,

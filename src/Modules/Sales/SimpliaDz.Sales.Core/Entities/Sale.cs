@@ -126,6 +126,16 @@ public sealed class Sale
         Revision = checked(Revision + 1);
     }
 
+    public void SetLineQuantity(Guid lineId, int quantity)
+    {
+        EnsureDraft();
+        var line = _lines.FirstOrDefault(x => x.Id == lineId)
+            ?? throw new ArgumentException("Line does not belong to this sale.", nameof(lineId));
+        line.SetQuantity(quantity);
+        RecalculateTotals();
+        Revision = checked(Revision + 1);
+    }
+
     internal static decimal CalculateDiscount(decimal baseAmount, SaleDiscountType type, decimal value)
     {
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
@@ -270,6 +280,16 @@ public sealed class SaleLine
             DiscountValue!.Value);
         DiscountAmount = discount;
         LineTotal = GrossAmount - discount;
+    }
+
+    internal void SetQuantity(int quantity)
+    {
+        if (quantity <= 0 || (UnitPrice > 0 && quantity > MaxMoney / UnitPrice))
+            throw new ArgumentOutOfRangeException(nameof(quantity));
+        Quantity = quantity;
+        DiscountAmount = DiscountType is null ? 0 : Sale.CalculateDiscount(GrossAmount,
+            DiscountType.Value, DiscountValue!.Value);
+        LineTotal = GrossAmount - DiscountAmount;
     }
 
     internal void RecordReturn(int quantity)
