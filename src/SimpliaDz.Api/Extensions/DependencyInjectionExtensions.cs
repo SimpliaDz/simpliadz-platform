@@ -44,6 +44,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IExpenseLocationValidator, ExpenseLocationValidator>();
         services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
         services.AddScoped<ISaleService, SaleService>();
+        services.AddScoped<SalesPdfDocumentService>();
         services.AddScoped<ISaleReturnService, SaleReturnService>();
         services.AddScoped<IPosProductLookupService, PosProductLookupService>();
         services.AddScoped<ISalesSummaryReportService, SalesSummaryReportService>();

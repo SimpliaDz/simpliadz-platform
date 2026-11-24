@@ -1,6 +1,10 @@
 using SimpliaDz.Api.Extensions;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// QuestPDF Community is valid only for eligible organisations; change this setting when licensed otherwise.
+QuestPDF.Settings.License = LicenseType.Community;
 
 var tenantCatalogPath = Environment.GetEnvironmentVariable("SIMPLIADZ_TENANTS_FILE");
 if (!string.IsNullOrWhiteSpace(tenantCatalogPath))
