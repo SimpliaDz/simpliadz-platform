@@ -41,6 +41,11 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasForeignKey(v => v.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        b.HasMany(x => x.AttributeAssignments)
+            .WithOne(x => x.Product)
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         b.HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL");
         b.HasIndex(x => x.Name).HasDatabaseName("IX_Products_Name_PosLookup");
         b.HasIndex(x => x.BrandId);

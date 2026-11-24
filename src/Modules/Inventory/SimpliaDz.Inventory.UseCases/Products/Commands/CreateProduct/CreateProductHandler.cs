@@ -31,6 +31,9 @@ public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand,
             request.CategoryId,
             ct);
 
+        var attributeIds = request.AttributeIds ?? [];
+        await EnsureAttributesExistAsync(attributeIds, ct);
+
         var product = new Product(
             name: request.Name,
             code: request.Code,
@@ -38,10 +41,18 @@ public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand,
 
         product.AssignBrand(request.BrandId);
         product.AssignCategory(request.CategoryId);
+        product.AssignAttributes(attributeIds);
 
         await _products.AddAsync(product, ct);
         await _products.SaveChangesAsync(ct);
 
         return product.Id;
+    }
+
+    private async Task EnsureAttributesExistAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+    {
+        if (ids.Distinct().Count() != ids.Count || ids.Any(id => id == Guid.Empty) ||
+            (await _products.GetAttributesAsync(ids, ct)).Count != ids.Count)
+            throw new ConflictException("One or more attributes do not exist.");
     }
 }

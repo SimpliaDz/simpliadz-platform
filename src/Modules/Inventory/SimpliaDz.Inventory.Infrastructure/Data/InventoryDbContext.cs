@@ -18,6 +18,7 @@ public sealed class InventoryDbContext : DbContext
     public DbSet<ProductCategory> Categories => Set<ProductCategory>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<ProductAttribute> ProductAttributes => Set<ProductAttribute>();
+    public DbSet<ProductAttributeAssignment> ProductAttributeAssignments => Set<ProductAttributeAssignment>();
     public DbSet<AttributeValue> AttributeValues => Set<AttributeValue>();
     public DbSet<VariantAttributeValue> VariantAttributeValues => Set<VariantAttributeValue>();
     public DbSet<PriceList> PriceLists => Set<PriceList>();

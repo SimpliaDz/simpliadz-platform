@@ -32,12 +32,19 @@ public sealed class UpdateProductHandler : IRequestHandler<UpdateProductCommand,
             request.CategoryId == product.ProductCategoryId ? null : request.CategoryId,
             ct);
 
+        var attributeIds = request.AttributeIds ?? [];
+        if (attributeIds.Distinct().Count() != attributeIds.Count ||
+            attributeIds.Any(id => id == Guid.Empty) ||
+            (await _products.GetAttributesAsync(attributeIds, ct)).Count != attributeIds.Count)
+            throw new ConflictException("One or more attributes do not exist.");
+
         product.Update(
             request.Name,
             normalizedCode,
             request.Description,
             request.BrandId,
             request.CategoryId);
+        product.AssignAttributes(attributeIds);
 
         await _products.SaveChangesAsync(ct);
         return product.ToResponse();

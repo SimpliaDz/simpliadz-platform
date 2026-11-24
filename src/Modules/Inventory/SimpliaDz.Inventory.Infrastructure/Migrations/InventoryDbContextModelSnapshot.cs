@@ -374,6 +374,21 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.ToTable("ProductAttributes", "inventory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductAttributeAssignment", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AttributeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProductId", "AttributeId");
+
+                    b.HasIndex("AttributeId");
+
+                    b.ToTable("ProductAttributeAssignments", "inventory");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -420,10 +435,6 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("CombinationKey")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -455,10 +466,6 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
                     b.HasIndex("Sku")
                         .IsUnique();
-
-                    b.HasIndex("ProductId", "CombinationKey")
-                        .IsUnique()
-                        .HasFilter("[CombinationKey] IS NOT NULL");
 
                     b.HasIndex("ProductId", "Color", "Size");
 
@@ -1002,6 +1009,25 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Navigation("ProductCategory");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductAttributeAssignment", b =>
+                {
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductAttribute", "Attribute")
+                        .WithMany()
+                        .HasForeignKey("AttributeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.Product", "Product")
+                        .WithMany("AttributeAssignments")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Attribute");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", b =>
                 {
                     b.HasOne("SimpliaDz.Inventory.Core.Entities.Catalog.ProductCategory", "ParentCategory")
@@ -1189,6 +1215,8 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
 
             modelBuilder.Entity("SimpliaDz.Inventory.Core.Entities.Catalog.Product", b =>
                 {
+                    b.Navigation("AttributeAssignments");
+
                     b.Navigation("Variants");
                 });
 

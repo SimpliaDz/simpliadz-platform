@@ -10,6 +10,7 @@ public sealed record ProductResponse(
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
+    IReadOnlyList<Guid> AttributeIds,
     IReadOnlyList<ProductVariantResponse> Variants);
 
 public sealed record ProductVariantResponse(

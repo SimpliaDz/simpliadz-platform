@@ -16,6 +16,7 @@ internal static class ProductMapper
             product.IsActive,
             product.CreatedAt,
             product.UpdatedAt,
+            product.AttributeAssignments.Select(assignment => assignment.AttributeId).ToArray(),
             product.Variants
                 .OrderBy(variant => variant.Sku.Value)
                 .Select(variant => new ProductVariantResponse(

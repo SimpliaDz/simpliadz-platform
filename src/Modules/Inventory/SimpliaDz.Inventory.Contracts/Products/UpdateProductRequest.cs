@@ -5,4 +5,5 @@ public sealed record UpdateProductRequest(
     string? Code,
     string? Description,
     Guid? BrandId,
-    Guid? CategoryId);
+    Guid? CategoryId,
+    IReadOnlyList<Guid>? AttributeIds = null);

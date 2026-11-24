@@ -19,25 +19,22 @@ public sealed class VariantTests
 
         Assert.Equal(product.Id, first.ProductId);
         Assert.Equal(2, first.AttributeValues.Count);
-        Assert.NotEqual(first.CombinationKey, second.CombinationKey);
         Assert.Equal(2, product.Variants.Count);
         Assert.Equal("12345", first.Barcode);
     }
 
     [Fact]
-    public void Combination_is_independent_of_value_order_and_must_be_unique_per_product()
+    public void Attribute_combinations_can_repeat_when_skus_are_distinct()
     {
         var product = new Product("Classic T-Shirt");
         var black = Guid.NewGuid();
         var medium = Guid.NewGuid();
         var first = product.AddVariant("TS-BLK-M", 1000, attributeValueIds: [black, medium]);
 
-        Assert.Throws<InvalidOperationException>(() => product.AddVariant(
-            "TS-M-BLK", 1000, attributeValueIds: [medium, black]));
-        Assert.Single(product.Variants);
-        Assert.Equal(first.CombinationKey, new ProductVariant(product.Id,
-            new SimpliaDz.Inventory.Core.ValueObjects.Sku("TEMP"), 1000)
-            .WithValues(medium, black).CombinationKey);
+        var second = product.AddVariant("TS-M-BLK", 1000, attributeValueIds: [medium, black]);
+        Assert.Equal(2, product.Variants.Count);
+        Assert.Equal(first.AttributeValues.Select(value => value.AttributeValueId).Order(),
+            second.AttributeValues.Select(value => value.AttributeValueId).Order());
     }
 
     [Fact]
@@ -77,13 +74,4 @@ public sealed class VariantTests
     [InlineData("20000000000A8", false)]
     public void Ean13_check_digit_is_validated(string code, bool valid) =>
         Assert.Equal(valid, InternalBarcode.IsValidEan13(code));
-}
-
-internal static class VariantTestExtensions
-{
-    public static ProductVariant WithValues(this ProductVariant variant, params Guid[] ids)
-    {
-        variant.AssignAttributeValues(ids);
-        return variant;
-    }
 }

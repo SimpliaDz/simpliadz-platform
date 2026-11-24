@@ -14,6 +14,8 @@ public interface IProductRepository
     Task<bool> TryUpdateVariantIdentifiersAsync(Guid variantId, string currentSku,
         string? currentBarcode, string sku, string? barcode, CancellationToken ct);
     Task<IReadOnlyList<AttributeValue>> GetAttributeValuesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
+    Task<IReadOnlyList<ProductAttribute>> GetAttributesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<ProductAttribute>>([]);
 
     Task<IReadOnlyList<Product>> SearchAsync(string? search, bool? isActive, CancellationToken ct);
 

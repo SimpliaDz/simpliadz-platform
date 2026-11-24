@@ -43,7 +43,7 @@ public static class VariantEndpoints
         {
             var before = await sender.Send(new GetVariantQuery(id), ct);
             var updated = await sender.Send(new UpdateVariantIdentifiersCommand(id,
-                request.Sku, request.Barcode), ct);
+                request.Sku, request.Barcode, request.AttributeValueIds), ct);
             if (before.Sku != updated.Sku || before.Barcode != updated.Barcode)
                 await BusinessAudit.RecordAsync(audit, http, "VariantIdentifiersUpdated",
                     "ProductVariant", id,

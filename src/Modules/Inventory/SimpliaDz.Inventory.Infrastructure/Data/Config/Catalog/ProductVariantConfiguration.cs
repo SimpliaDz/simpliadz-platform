@@ -31,16 +31,12 @@ internal sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Pro
             .HasColumnType("decimal(18,2)");
 
         b.Property(x => x.IsActive).IsRequired();
-        b.Property(x => x.CombinationKey).HasMaxLength(64);
         b.HasMany(x => x.AttributeValues).WithOne(x => x.Variant)
             .HasForeignKey(x => x.VariantId).OnDelete(DeleteBehavior.Restrict);
 
         // Indexes
         b.HasIndex(x => x.ProductId);
         b.HasIndex(x => x.Sku).IsUnique();
-        b.HasIndex(x => new { x.ProductId, x.CombinationKey }).IsUnique()
-            .HasFilter("[CombinationKey] IS NOT NULL");
-
         b.HasIndex(x => x.Barcode)
             .IsUnique()
             .HasFilter("[Barcode] IS NOT NULL");

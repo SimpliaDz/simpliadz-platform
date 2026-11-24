@@ -15,7 +15,8 @@ public sealed record GetVariantByBarcodeQuery(string Barcode) : IRequest<Variant
 public sealed record GetVariantQuery(Guid Id) : IRequest<VariantResponse>;
 public sealed record DeactivateVariantCommand(Guid Id) : IRequest;
 public sealed record GenerateVariantBarcodeCommand(Guid Id) : IRequest<VariantResponse>;
-public sealed record UpdateVariantIdentifiersCommand(Guid Id, string Sku, string? Barcode)
+public sealed record UpdateVariantIdentifiersCommand(Guid Id, string Sku, string? Barcode,
+    IReadOnlyList<Guid>? AttributeValueIds = null)
     : IRequest<VariantResponse>;
 
 public sealed class CreateVariantValidator : AbstractValidator<CreateVariantCommand>
@@ -26,7 +27,6 @@ public sealed class CreateVariantValidator : AbstractValidator<CreateVariantComm
         RuleFor(x => x.Barcode).MaximumLength(64);
         RuleFor(x => x.RetailPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.WholesalePrice).GreaterThanOrEqualTo(0).When(x => x.WholesalePrice.HasValue);
-        RuleFor(x => x.AttributeValueIds).NotEmpty();
     }
 }
 
@@ -69,10 +69,7 @@ public sealed class CreateVariantHandler(IProductRepository products)
         var ids = request.AttributeValueIds;
         if (ids.Distinct().Count() != ids.Count || ids.Any(id => id == Guid.Empty))
             throw new ConflictException("Attribute values must be distinct and valid.");
-        var values = await products.GetAttributeValuesAsync(ids.ToArray(), ct);
-        if (values.Count != ids.Count) throw new ConflictException("One or more attribute values do not exist.");
-        if (values.Select(x => x.AttributeId).Distinct().Count() != values.Count)
-            throw new ConflictException("Select at most one value for each attribute.");
+        await VariantAttributeValidation.ValidateAsync(product, ids, products, ct);
 
         ProductVariant variant;
         try
@@ -182,7 +179,15 @@ public sealed class UpdateVariantIdentifiersHandler(IProductRepository products)
         var barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim();
         if (barcode is { Length: > 64 })
             throw new ArgumentException("Barcode cannot exceed 64 characters.", nameof(request));
-        if (variant.Sku.Value == sku && variant.Barcode == barcode)
+        var product = await products.GetByIdAsync(variant.ProductId, ct)
+            ?? throw new NotFoundException("Product", variant.ProductId);
+        var ids = request.AttributeValueIds ?? [];
+        if (ids.Distinct().Count() != ids.Count || ids.Any(id => id == Guid.Empty))
+            throw new ConflictException("Attribute values must be distinct and valid.");
+        await VariantAttributeValidation.ValidateAsync(product, ids, products, ct);
+
+        if (variant.Sku.Value == sku && variant.Barcode == barcode &&
+            variant.AttributeValues.Select(value => value.AttributeValueId).Order().SequenceEqual(ids.Order()))
             return variant.ToResponse();
 
         var existingSku = await products.GetVariantBySkuAsync(sku, ct);
@@ -200,6 +205,25 @@ public sealed class UpdateVariantIdentifiersHandler(IProductRepository products)
             throw new ConflictException("Variant changed concurrently. Reload the variant.");
         variant.SetSku(new Sku(sku));
         variant.SetBarcode(barcode);
+        variant.AssignAttributeValues(ids);
+        await products.SaveChangesAsync(ct);
         return variant.ToResponse();
+    }
+
+}
+
+internal static class VariantAttributeValidation
+{
+    public static async Task ValidateAsync(Product product, IReadOnlyList<Guid> ids,
+        IProductRepository products, CancellationToken ct)
+    {
+        if (ids.Count == 0) return;
+        var values = await products.GetAttributeValuesAsync(ids, ct);
+        if (values.Count != ids.Count) throw new ConflictException("One or more attribute values do not exist.");
+        if (values.Select(x => x.AttributeId).Distinct().Count() != values.Count)
+            throw new ConflictException("Select at most one value for each attribute.");
+        var enabledAttributeIds = product.AttributeAssignments.Select(assignment => assignment.AttributeId).ToHashSet();
+        if (values.Any(value => !enabledAttributeIds.Contains(value.AttributeId)))
+            throw new ConflictException("Selected attribute values are not configured for this product.");
     }
 }
