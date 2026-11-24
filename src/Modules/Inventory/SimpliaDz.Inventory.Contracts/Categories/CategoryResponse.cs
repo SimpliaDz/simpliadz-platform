@@ -6,4 +6,5 @@ public sealed record CategoryResponse(
     Guid? ParentCategoryId,
     bool IsActive,
     DateTimeOffset UpdatedAt,
+    IReadOnlyList<Guid> AttributeIds,
     IReadOnlyList<CategoryResponse> Children);

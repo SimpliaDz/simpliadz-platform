@@ -13,6 +13,8 @@ public interface ICategoryRepository
         Guid? excludingId,
         CancellationToken ct);
     Task<bool> WouldCreateCycleAsync(Guid categoryId, Guid parentCategoryId, CancellationToken ct);
+    Task<IReadOnlyList<ProductAttribute>> GetAttributesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<ProductAttribute>>([]);
     Task AddAsync(ProductCategory category, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }

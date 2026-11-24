@@ -54,8 +54,7 @@ public static class ProductEndpoints
                     request.Code,
                     request.Description,
                     request.BrandId,
-                    request.CategoryId,
-                    request.AttributeIds ?? []),
+                    request.CategoryId),
                 ct);
 
             return Results.Created($"/products/{id}", new CreateProductResponse(id));
@@ -73,8 +72,7 @@ public static class ProductEndpoints
                 request.Code,
                 request.Description,
                 request.BrandId,
-                request.CategoryId,
-                request.AttributeIds ?? []), ct);
+                request.CategoryId), ct);
 
             return Results.Ok(product);
         }).RequireAuthorization(PermissionNames.Products.Edit);

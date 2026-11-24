@@ -13,13 +13,17 @@ internal sealed class EfCategoryRepository : ICategoryRepository
     public EfCategoryRepository(InventoryDbContext db) => _db = db;
 
     public Task<ProductCategory?> GetByIdAsync(Guid id, CancellationToken ct) =>
-        _db.Categories.FirstOrDefaultAsync(category => category.Id == id, ct);
+        _db.Categories.Include(category => category.Attributes).FirstOrDefaultAsync(category => category.Id == id, ct);
 
     public async Task<IReadOnlyList<ProductCategory>> GetAllAsync(CancellationToken ct) =>
         await _db.Categories
             .AsNoTracking()
+            .Include(category => category.Attributes)
             .OrderBy(category => category.Name)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<ProductAttribute>> GetAttributesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        await _db.ProductAttributes.AsNoTracking().Where(attribute => ids.Contains(attribute.Id)).ToListAsync(ct);
 
     public Task<bool> ExistsAsync(Guid id, CancellationToken ct) =>
         _db.Categories.AnyAsync(category => category.Id == id, ct);

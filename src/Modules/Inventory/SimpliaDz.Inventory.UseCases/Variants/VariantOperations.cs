@@ -222,7 +222,7 @@ internal static class VariantAttributeValidation
         if (values.Count != ids.Count) throw new ConflictException("One or more attribute values do not exist.");
         if (values.Select(x => x.AttributeId).Distinct().Count() != values.Count)
             throw new ConflictException("Select at most one value for each attribute.");
-        var enabledAttributeIds = product.AttributeAssignments.Select(assignment => assignment.AttributeId).ToHashSet();
+        var enabledAttributeIds = product.ProductCategory?.Attributes.Select(attribute => attribute.AttributeId).ToHashSet() ?? [];
         if (values.Any(value => !enabledAttributeIds.Contains(value.AttributeId)))
             throw new ConflictException("Selected attribute values are not configured for this product.");
     }

@@ -18,8 +18,6 @@ public sealed class Product
     public bool IsActive { get; private set; } = true;
     private readonly List<ProductVariant> _variants = [];
     public IReadOnlyCollection<ProductVariant> Variants => _variants.AsReadOnly();
-    private readonly List<ProductAttributeAssignment> _attributeAssignments = [];
-    public IReadOnlyCollection<ProductAttributeAssignment> AttributeAssignments => _attributeAssignments.AsReadOnly();
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
 
@@ -103,18 +101,6 @@ public sealed class Product
     public void AssignCategory(Guid? categoryId)
     {
         ProductCategoryId = categoryId;
-        Touch();
-    }
-
-    public void AssignAttributes(IEnumerable<Guid> attributeIds)
-    {
-        var ids = attributeIds.Distinct().ToArray();
-        if (ids.Any(id => id == Guid.Empty))
-            throw new ArgumentException("Attributes must be valid.", nameof(attributeIds));
-
-        _attributeAssignments.Clear();
-        foreach (var id in ids)
-            _attributeAssignments.Add(new ProductAttributeAssignment(Id, id));
         Touch();
     }
 

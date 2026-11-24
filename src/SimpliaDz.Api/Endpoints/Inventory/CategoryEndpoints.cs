@@ -43,7 +43,7 @@ public static class CategoryEndpoints
             CancellationToken ct) =>
         {
             var category = await sender.Send(
-                new CreateCategoryCommand(request.Name, request.ParentCategoryId),
+                new CreateCategoryCommand(request.Name, request.ParentCategoryId, request.AttributeIds),
                 ct);
 
             return Results.Created($"/categories/{category.Id}", category);
@@ -56,7 +56,7 @@ public static class CategoryEndpoints
             CancellationToken ct) =>
         {
             var category = await sender.Send(
-                new UpdateCategoryCommand(id, request.Name, request.ParentCategoryId),
+                new UpdateCategoryCommand(id, request.Name, request.ParentCategoryId, request.AttributeIds),
                 ct);
 
             return Results.Ok(category);

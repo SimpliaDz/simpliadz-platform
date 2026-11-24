@@ -9,5 +9,4 @@ public sealed record UpdateProductCommand(
     string? Code,
     string? Description,
     Guid? BrandId,
-    Guid? CategoryId,
-    IReadOnlyList<Guid>? AttributeIds = null) : IRequest<ProductResponse>;
+    Guid? CategoryId) : IRequest<ProductResponse>;

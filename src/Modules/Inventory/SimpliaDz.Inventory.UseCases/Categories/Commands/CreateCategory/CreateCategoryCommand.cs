@@ -5,4 +5,4 @@ namespace SimpliaDz.Inventory.UseCases.Categories.Commands.CreateCategory;
 
 public sealed record CreateCategoryCommand(
     string Name,
-    Guid? ParentCategoryId) : IRequest<CategoryResponse>;
+    Guid? ParentCategoryId, IReadOnlyList<Guid>? AttributeIds = null) : IRequest<CategoryResponse>;

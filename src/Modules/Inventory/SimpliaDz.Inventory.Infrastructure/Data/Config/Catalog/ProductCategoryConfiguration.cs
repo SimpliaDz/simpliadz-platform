@@ -20,6 +20,8 @@ internal sealed class ProductCategoryConfiguration : IEntityTypeConfiguration<Pr
             .WithMany(x => x.Children)
             .HasForeignKey(x => x.ParentCategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+        b.HasMany(x => x.Attributes).WithOne(x => x.Category)
+            .HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
 
         b.HasIndex(x => new { x.ParentCategoryId, x.Name })
             .IsUnique()

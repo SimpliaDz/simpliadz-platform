@@ -21,6 +21,8 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
             throw new ConflictException($"Category '{name}' already exists under the selected parent.");
 
         var category = new ProductCategory(name, request.ParentCategoryId);
+        await EnsureAttributesExistAsync(request.AttributeIds ?? [], ct);
+        category.AssignAttributes(request.AttributeIds ?? []);
         await _categories.AddAsync(category, ct);
         await _categories.SaveChangesAsync(ct);
         return category.ToResponse();
@@ -30,5 +32,12 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
     {
         if (parentCategoryId.HasValue && !await _categories.ExistsAsync(parentCategoryId.Value, ct))
             throw new NotFoundException("Parent category", parentCategoryId.Value);
+    }
+
+    private async Task EnsureAttributesExistAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+    {
+        if (ids.Distinct().Count() != ids.Count || ids.Any(id => id == Guid.Empty) ||
+            (await _categories.GetAttributesAsync(ids, ct)).Count != ids.Count)
+            throw new ConflictException("One or more attributes do not exist.");
     }
 }

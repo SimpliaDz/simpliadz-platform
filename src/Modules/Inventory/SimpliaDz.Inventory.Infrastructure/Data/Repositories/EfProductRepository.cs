@@ -17,7 +17,7 @@ internal sealed class EfProductRepository : IProductRepository
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.Products
-            .Include(p => p.AttributeAssignments)
+            .Include(p => p.ProductCategory).ThenInclude(category => category!.Attributes)
             .Include(p => p.Variants).ThenInclude(v => v.AttributeValues)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
@@ -85,7 +85,7 @@ internal sealed class EfProductRepository : IProductRepository
     {
         var query = _db.Products
             .AsNoTracking()
-            .Include(product => product.AttributeAssignments)
+            .Include(product => product.ProductCategory).ThenInclude(category => category!.Attributes)
             .Include(product => product.Variants).ThenInclude(v => v.AttributeValues)
             .AsQueryable();
 

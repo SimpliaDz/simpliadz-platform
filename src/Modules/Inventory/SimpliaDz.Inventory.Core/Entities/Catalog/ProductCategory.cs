@@ -10,6 +10,8 @@ public sealed class ProductCategory
     public ProductCategory? ParentCategory { get; private set; }
     private readonly List<ProductCategory> _children = [];
     public IReadOnlyCollection<ProductCategory> Children => _children.AsReadOnly();
+    private readonly List<CategoryAttribute> _attributes = [];
+    public IReadOnlyCollection<CategoryAttribute> Attributes => _attributes.AsReadOnly();
     public bool IsActive { get; private set; } = true;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
 
@@ -49,6 +51,17 @@ public sealed class ProductCategory
             throw new InvalidOperationException("A category cannot be its own parent.");
 
         ParentCategoryId = parentCategoryId;
+        Touch();
+    }
+
+    public void AssignAttributes(IEnumerable<Guid> attributeIds)
+    {
+        var ids = attributeIds.Distinct().ToArray();
+        if (ids.Any(id => id == Guid.Empty))
+            throw new ArgumentException("Attributes must be valid.", nameof(attributeIds));
+        _attributes.Clear();
+        foreach (var id in ids)
+            _attributes.Add(new CategoryAttribute(Id, id));
         Touch();
     }
 

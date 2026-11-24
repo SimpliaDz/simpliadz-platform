@@ -5,5 +5,4 @@ public sealed record CreateProductRequest(
     string? Code,
     string? Description,
     Guid? BrandId,
-    Guid? CategoryId,
-    IReadOnlyList<Guid>? AttributeIds = null);
+    Guid? CategoryId);

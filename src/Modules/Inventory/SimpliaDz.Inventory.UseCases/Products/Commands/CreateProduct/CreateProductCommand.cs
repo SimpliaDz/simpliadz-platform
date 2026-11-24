@@ -7,6 +7,5 @@ public sealed record CreateProductCommand(
     string? Code,
     string? Description,
     Guid? BrandId,
-    Guid? CategoryId,
-    IReadOnlyList<Guid>? AttributeIds = null
+    Guid? CategoryId
 ) : IRequest<Guid>;
