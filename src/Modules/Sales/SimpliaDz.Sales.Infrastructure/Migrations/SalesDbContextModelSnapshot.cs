@@ -524,6 +524,53 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SalesDocumentNumber", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DisplayNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("IssueYear")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleId", "DocumentType")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentType", "IssueYear", "DisplayNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentType", "IssueYear", "SequenceNumber")
+                        .IsUnique();
+
+                    b.ToTable("SalesDocumentNumbers", "sales", t =>
+                        {
+                            t.HasCheckConstraint("CK_SalesDocumentNumbers_Sequence", "[SequenceNumber] > 0");
+
+                            t.HasCheckConstraint("CK_SalesDocumentNumbers_Year", "[IssueYear] >= 2000 AND [IssueYear] <= 9999");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashMovement", b =>
                 {
                     b.HasOne("SimpliaDz.Sales.Core.Entities.CashSession", "CashSession")
@@ -632,6 +679,15 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.Navigation("OriginalSaleLine");
 
                     b.Navigation("SaleReturn");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SalesDocumentNumber", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.Sale", null)
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.Sale", b =>

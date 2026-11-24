@@ -20,6 +20,7 @@ public sealed class SalesDbContext : DbContext
     public DbSet<CashSession> CashSessions => Set<CashSession>();
     public DbSet<CashMovement> CashMovements => Set<CashMovement>();
     public DbSet<CashRegisterAssignment> CashRegisterAssignments => Set<CashRegisterAssignment>();
+    public DbSet<SalesDocumentNumber> SalesDocumentNumbers => Set<SalesDocumentNumber>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,6 +67,9 @@ public sealed class SalesDbContext : DbContext
         if (ChangeTracker.Entries<SaleReturn>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted) ||
             ChangeTracker.Entries<SaleReturnLine>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
             throw new InvalidOperationException("Sale return history is immutable.");
+        if (ChangeTracker.Entries<SalesDocumentNumber>().Any(entry =>
+                entry.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("Issued sales document numbers are immutable.");
         if (ChangeTracker.Entries<CashMovement>().Any(entry =>
                 entry.State is EntityState.Modified or EntityState.Deleted))
             throw new InvalidOperationException("Cash movement history is immutable.");

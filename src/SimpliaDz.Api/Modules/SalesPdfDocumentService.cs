@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -19,6 +20,7 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
     public async Task<GeneratedPdf> ProFormaAsync(Guid saleId, CancellationToken ct)
     {
         var model = await LoadAsync(saleId, ct);
+        model = model with { DocumentNumber = await GetOrAssignDocumentNumberAsync(saleId, "ProForma", ct) };
         return new($"pro-forma-{model.DocumentNumber}.pdf", BuildA4(model, "PRO FORMA INVOICE"));
     }
 
@@ -50,6 +52,37 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
                 variants.GetValueOrDefault(line.ProductVariantId)?.ProductName ?? "Product",
                 variants.GetValueOrDefault(line.ProductVariantId)?.Sku ?? line.ProductVariantId.ToString(),
                 line.Quantity, line.UnitPrice, line.DiscountAmount, line.LineTotal)).ToList());
+    }
+
+    private async Task<string> GetOrAssignDocumentNumberAsync(Guid saleId, string documentType,
+        CancellationToken ct)
+    {
+        var issuedYear = DateTime.UtcNow.Year;
+        await using var transaction = await sales.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            var existing = await sales.SalesDocumentNumbers.SingleOrDefaultAsync(x =>
+                x.SaleId == saleId && x.DocumentType == documentType, ct);
+            if (existing is not null)
+            {
+                await transaction.CommitAsync(ct);
+                return existing.DisplayNumber;
+            }
+            var last = await sales.SalesDocumentNumbers.Where(x =>
+                    x.DocumentType == documentType && x.IssueYear == issuedYear)
+                .Select(x => (int?)x.SequenceNumber).MaxAsync(ct) ?? 0;
+            var number = new SalesDocumentNumber(saleId, documentType, issuedYear,
+                checked(last + 1));
+            sales.SalesDocumentNumbers.Add(number);
+            await sales.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return number.DisplayNumber;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
     }
 
     private static byte[] BuildA4(SalesDocumentModel model, string title) => Document.Create(doc =>

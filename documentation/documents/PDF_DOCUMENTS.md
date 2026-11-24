@@ -15,6 +15,10 @@ The API configures `QuestPDF.Settings.License = LicenseType.Community` at startu
 
 Both documents use the sale's stored line price, discount, and total snapshots. They do not use the current product price, so editing a product later cannot rewrite a historic sale document.
 
+## Numbering
+
+The first generation of a pro-forma assigns an immutable document number in the `sales.SalesDocumentNumbers` register, formatted as `F000000001`. Re-downloading the same sale always uses its original number. The sequence restarts at `F000000001` at the beginning of each calendar year and is protected by a serializable database transaction plus unique indexes, so concurrent requests cannot issue the same number in a year. The issue year and document type are stored with the number, allowing later invoice document types to use an independent series.
+
 ## Extension approach
 
 New document types should add a document-specific data model and renderer behind the PDF service, then expose a permission-protected endpoint. Planned candidates are a fiscal invoice (after tax/legal numbering is designed), purchase order, goods-receipt note, inventory count sheet, and financial-report export.
