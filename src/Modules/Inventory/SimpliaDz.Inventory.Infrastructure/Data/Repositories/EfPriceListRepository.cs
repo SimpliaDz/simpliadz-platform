@@ -14,6 +14,10 @@ internal sealed class EfPriceListRepository : IPriceListRepository
         _db.PriceLists.Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct);
     public async Task<IReadOnlyList<PriceList>> GetAllAsync(CancellationToken ct) =>
         await _db.PriceLists.AsNoTracking().OrderBy(x => x.Name).ToListAsync(ct);
+    public async Task<IReadOnlyList<PriceList>> GetActiveByTypeAsync(PriceListType type,
+        CancellationToken ct) =>
+        await _db.PriceLists.Include(x => x.Items)
+            .Where(x => x.IsActive && x.Type == type).ToListAsync(ct);
     public Task<bool> ExistsByNameAsync(string name, string currencyCode, CancellationToken ct) =>
         _db.PriceLists.AnyAsync(x => x.Name == name && x.CurrencyCode == currencyCode, ct);
     public Task<bool> VariantExistsAsync(Guid variantId, CancellationToken ct) =>

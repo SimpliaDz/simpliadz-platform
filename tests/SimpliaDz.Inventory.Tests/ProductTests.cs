@@ -1,6 +1,7 @@
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
+using SimpliaDz.Inventory.UseCases.Prices.Abstractions;
 using SimpliaDz.Inventory.UseCases.Products.Commands.CreateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Commands.DeactivateProduct;
 using SimpliaDz.Inventory.UseCases.Products.Commands.UpdateProduct;
@@ -77,6 +78,28 @@ public sealed class ProductTests
         await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(
             new UpdateVariantIdentifiersCommand(variant.Id, "OTHER", null),
             CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public async Task Creating_a_variant_prices_it_in_matching_active_price_lists()
+    {
+        var products = new InMemoryProductRepository();
+        var product = new Product("T-Shirt");
+        products.Seed(product);
+        var prices = new InMemoryPriceListRepository();
+        var retail = new PriceList("Retail", "DZD", PriceListType.Retail);
+        var wholesale = new PriceList("Wholesale", "DZD", PriceListType.Wholesale);
+        prices.Seed(retail);
+        prices.Seed(wholesale);
+
+        var variant = await new CreateVariantHandler(products, prices).Handle(
+            new CreateVariantCommand(product.Id, "SHIRT-M", null, 1500m, 900m, []),
+            CancellationToken.None);
+
+        Assert.Equal(1500m, retail.Items.Single().Price);
+        Assert.Equal(variant.Id, retail.Items.Single().ProductVariantId);
+        Assert.Equal(900m, wholesale.Items.Single().Price);
+        Assert.Equal(variant.Id, wholesale.Items.Single().ProductVariantId);
     }
 
     [Fact]
@@ -302,6 +325,30 @@ public sealed class ProductTests
         public Task<bool> IsValidCategoryAsync(Guid categoryId, CancellationToken ct) =>
             Task.FromResult(_categories.Contains(categoryId));
 
+        public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
+    }
+
+    private sealed class InMemoryPriceListRepository : IPriceListRepository
+    {
+        private readonly List<PriceList> _lists = [];
+
+        public void Seed(PriceList list) => _lists.Add(list);
+        public Task<PriceList?> GetByIdAsync(Guid id, CancellationToken ct) =>
+            Task.FromResult(_lists.FirstOrDefault(list => list.Id == id));
+        public Task<IReadOnlyList<PriceList>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<PriceList>>(_lists);
+        public Task<IReadOnlyList<PriceList>> GetActiveByTypeAsync(PriceListType type,
+            CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<PriceList>>(_lists
+                .Where(list => list.IsActive && list.Type == type).ToArray());
+        public Task<bool> ExistsByNameAsync(string name, string currencyCode, CancellationToken ct) =>
+            Task.FromResult(_lists.Any(list => list.Name == name && list.CurrencyCode == currencyCode));
+        public Task<bool> VariantExistsAsync(Guid variantId, CancellationToken ct) => Task.FromResult(true);
+        public Task AddAsync(PriceList list, CancellationToken ct)
+        {
+            _lists.Add(list);
+            return Task.CompletedTask;
+        }
         public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;
     }
 }

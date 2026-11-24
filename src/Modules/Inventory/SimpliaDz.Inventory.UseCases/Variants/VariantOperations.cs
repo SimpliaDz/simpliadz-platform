@@ -4,6 +4,7 @@ using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.Inventory.Contracts.Variants;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.Core.ValueObjects;
+using SimpliaDz.Inventory.UseCases.Prices.Abstractions;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
 
 namespace SimpliaDz.Inventory.UseCases.Variants;
@@ -51,7 +52,7 @@ internal static class VariantMapping
                     link.AttributeValue.Value, link.AttributeValue.DisplayOrder)).ToArray());
 }
 
-public sealed class CreateVariantHandler(IProductRepository products)
+public sealed class CreateVariantHandler(IProductRepository products, IPriceListRepository priceLists)
     : IRequestHandler<CreateVariantCommand, VariantResponse>
 {
     public async ValueTask<VariantResponse> Handle(CreateVariantCommand request, CancellationToken ct)
@@ -95,8 +96,27 @@ public sealed class CreateVariantHandler(IProductRepository products)
         }
         await products.AddVariantAsync(variant, ct);
         await products.SaveChangesAsync(ct);
+        await SeedPriceListsAsync(variant, request, priceLists, ct);
         return (await products.GetVariantByIdAsync(variant.Id, ct)
             ?? throw new NotFoundException("Variant", variant.Id)).ToResponse();
+    }
+
+    private static async Task SeedPriceListsAsync(ProductVariant variant, CreateVariantCommand request,
+        IPriceListRepository priceLists, CancellationToken ct)
+    {
+        var retailLists = await priceLists.GetActiveByTypeAsync(PriceListType.Retail, ct);
+        foreach (var list in retailLists)
+            list.SetPrice(variant.Id, request.RetailPrice);
+
+        if (request.WholesalePrice.HasValue)
+        {
+            var wholesaleLists = await priceLists.GetActiveByTypeAsync(PriceListType.Wholesale, ct);
+            foreach (var list in wholesaleLists)
+                list.SetPrice(variant.Id, request.WholesalePrice.Value);
+        }
+
+        if (retailLists.Count > 0 || request.WholesalePrice.HasValue)
+            await priceLists.SaveChangesAsync(ct);
     }
 }
 

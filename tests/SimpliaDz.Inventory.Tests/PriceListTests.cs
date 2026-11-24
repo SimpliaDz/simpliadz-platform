@@ -65,6 +65,10 @@ public sealed class PriceListTests
             Task.FromResult(_lists.FirstOrDefault(x => x.Id == id));
         public Task<IReadOnlyList<PriceList>> GetAllAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<PriceList>>(_lists);
+        public Task<IReadOnlyList<PriceList>> GetActiveByTypeAsync(PriceListType type,
+            CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<PriceList>>(_lists
+                .Where(list => list.IsActive && list.Type == type).ToArray());
         public Task<bool> ExistsByNameAsync(string name, string currencyCode, CancellationToken ct) =>
             Task.FromResult(_lists.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
                 x.CurrencyCode == currencyCode));

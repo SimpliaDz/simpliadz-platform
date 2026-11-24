@@ -8,6 +8,7 @@ using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.UseCases.Attributes;
 using SimpliaDz.Inventory.UseCases.Attributes.Abstractions;
 using SimpliaDz.Inventory.UseCases.Products.Abstractions;
+using SimpliaDz.Inventory.UseCases.Prices.Abstractions;
 using SimpliaDz.Inventory.UseCases.Variants;
 using Xunit;
 
@@ -52,7 +53,8 @@ public sealed class AttributePersistenceIntegrationTests
                 db.Products.Add(product);
                 await db.SaveChangesAsync();
                 var products = scope.ServiceProvider.GetRequiredService<IProductRepository>();
-                var variant = await new CreateVariantHandler(products).Handle(
+                var priceLists = scope.ServiceProvider.GetRequiredService<IPriceListRepository>();
+                var variant = await new CreateVariantHandler(products, priceLists).Handle(
                     new CreateVariantCommand(product.Id, "TEST-SHIRT-M", null,
                         1000m, null, [value.Id]), CancellationToken.None);
                 Assert.Equal(product.Id, variant.ProductId);
