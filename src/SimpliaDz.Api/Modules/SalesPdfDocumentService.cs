@@ -56,26 +56,74 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
     {
         doc.Page(page =>
         {
-            page.Size(PageSizes.A4); page.Margin(38); page.DefaultTextStyle(x => x.FontSize(10));
-            page.Header().Row(row =>
+            page.Size(PageSizes.A4); page.Margin(28); page.DefaultTextStyle(x => x.FontSize(8));
+            page.Content().Column(column =>
             {
-                row.RelativeItem().Column(c => { c.Item().Text(model.OrganizationName).Bold().FontSize(20).FontColor(Colors.Blue.Darken2); if (!string.IsNullOrWhiteSpace(model.OrganizationLegalName)) c.Item().Text(model.OrganizationLegalName!); if (!string.IsNullOrWhiteSpace(model.OrganizationAddress)) c.Item().Text(model.OrganizationAddress!); });
-                row.ConstantItem(180).AlignRight().Column(c => { c.Item().Text(title).Bold().FontSize(16); c.Item().Text(model.DocumentNumber).Bold().FontSize(12); c.Item().Text(model.Date.ToString("yyyy-MM-dd HH:mm")); });
-            });
-            page.Content().PaddingVertical(22).Column(column =>
-            {
-                column.Spacing(12);
-                column.Item().Row(row => { row.RelativeItem().Element(Card).Column(c => { c.Item().Text("BILL TO").SemiBold().FontColor(Colors.Grey.Darken1); c.Item().Text(model.CustomerName).Bold(); if (model.CustomerPhone is not null) c.Item().Text(model.CustomerPhone); if (model.CustomerAddress is not null) c.Item().Text(model.CustomerAddress); }); row.RelativeItem().PaddingLeft(12).Element(Card).Column(c => { c.Item().Text("ISSUED FROM").SemiBold().FontColor(Colors.Grey.Darken1); c.Item().Text(model.LocationName).Bold(); if (model.LocationAddress is not null) c.Item().Text(model.LocationAddress); }); });
+                column.Spacing(10);
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem(3).Column(c =>
+                    {
+                        c.Item().Text(model.OrganizationName).Bold().FontSize(11);
+                        if (model.OrganizationAddress is not null) c.Item().Text(model.OrganizationAddress);
+                        if (model.OrganizationPhone is not null) c.Item().Text($"Téléphone : {model.OrganizationPhone}");
+                        if (model.OrganizationEmail is not null) c.Item().Text($"Email : {model.OrganizationEmail}");
+                    });
+                    row.RelativeItem(2).AlignRight().Column(c =>
+                    {
+                        c.Item().Text("Destinataire").Bold(); c.Item().Text(model.CustomerName).Bold();
+                        if (model.CustomerAddress is not null) c.Item().Text(model.CustomerAddress);
+                        if (model.CustomerPhone is not null) c.Item().Text(model.CustomerPhone);
+                    });
+                });
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem(3).Background(Colors.Grey.Lighten3).Padding(8).AlignRight().Column(c =>
+                    {
+                        c.Item().Text($"Date d'émission   {model.Date:dd/MM/yyyy}");
+                        c.Item().Text($"Émis par   {model.LocationName}");
+                        c.Item().PaddingTop(5).Text("Délai de livraison   À réception du paiement");
+                        c.Item().Text("Mode de livraison   DHL");
+                        c.Item().Text("Modalité de paiement   30 jours");
+                    });
+                    row.RelativeItem(2);
+                });
+                column.Item().AlignRight().Text($"{title} n°{model.DocumentNumber}").Bold().FontSize(14);
                 column.Item().Table(table =>
                 {
-                    table.ColumnsDefinition(c => { c.RelativeColumn(4); c.RelativeColumn(2); c.ConstantColumn(45); c.ConstantColumn(75); c.ConstantColumn(85); });
-                    table.Header(h => { Header(h.Cell(), "Product"); Header(h.Cell(), "SKU"); Header(h.Cell().AlignRight(), "Qty"); Header(h.Cell().AlignRight(), "Unit price"); Header(h.Cell().AlignRight(), "Total"); });
-                    foreach (var line in model.Lines) { Cell(table.Cell(), line.ProductName); Cell(table.Cell(), line.Sku); Cell(table.Cell().AlignRight(), line.Quantity.ToString()); Cell(table.Cell().AlignRight(), Money(line.UnitPrice, model.Currency)); Cell(table.Cell().AlignRight(), Money(line.LineTotal, model.Currency)); }
+                    table.ColumnsDefinition(c => { c.RelativeColumn(4); c.ConstantColumn(52); c.ConstantColumn(48); c.ConstantColumn(78); c.ConstantColumn(48); c.ConstantColumn(90); });
+                    table.Header(h =>
+                    {
+                        FrenchHeader(h.Cell(), "Désignation des produits\nou prestations"); FrenchHeader(h.Cell(), "Quantité");
+                        FrenchHeader(h.Cell(), "Unité"); FrenchHeader(h.Cell(), "Prix unitaire HT");
+                        FrenchHeader(h.Cell(), "TVA\napplicable"); FrenchHeader(h.Cell(), "TOTAL HT");
+                    });
+                    foreach (var line in model.Lines)
+                    {
+                        FrenchCell(table.Cell(), $"{line.ProductName}\n{line.Sku}"); FrenchCell(table.Cell().AlignRight(), line.Quantity.ToString());
+                        FrenchCell(table.Cell().AlignCenter(), "u."); FrenchCell(table.Cell().AlignRight(), Money(line.UnitPrice, model.Currency));
+                        FrenchCell(table.Cell().AlignCenter(), "—"); FrenchCell(table.Cell().AlignRight(), Money(line.LineTotal, model.Currency));
+                    }
+                    if (model.Lines.Count < 4)
+                    {
+                        var remaining = 4 - model.Lines.Count;
+                        FrenchCell(table.Cell().MinHeight(remaining * 28), ""); FrenchCell(table.Cell(), ""); FrenchCell(table.Cell(), ""); FrenchCell(table.Cell(), ""); FrenchCell(table.Cell(), ""); FrenchCell(table.Cell(), "");
+                    }
                 });
-                column.Item().AlignRight().Width(260).Column(c => { Total(c, "Subtotal", model.Subtotal, model.Currency); if (model.DiscountAmount > 0) Total(c, "Discount", -model.DiscountAmount, model.Currency); c.Item().PaddingTop(5).BorderTop(1).BorderColor(Colors.Grey.Lighten1).PaddingTop(5).Row(r => { r.RelativeItem().Text("TOTAL").Bold().FontSize(12); r.ConstantItem(110).AlignRight().Text(Money(model.Total, model.Currency)).Bold().FontSize(12); }); });
-                column.Item().PaddingTop(10).Text("This is a pro forma document and is not a fiscal invoice.").Italic().FontColor(Colors.Grey.Darken1);
+                column.Item().Row(row =>
+                {
+                    row.RelativeItem().PaddingTop(12).Column(c => { c.Item().Text("Offre valable jusqu'au " + model.Date.AddDays(30).ToString("dd/MM/yyyy")); c.Item().PaddingTop(18).Text("Signature").Bold(); });
+                    row.ConstantItem(235).Column(c =>
+                    {
+                        FrenchTotal(c, "Total HT", model.Subtotal, model.Currency);
+                        FrenchTotalText(c, "TVA", "—");
+                        if (model.DiscountAmount > 0) FrenchTotal(c, "Remise", -model.DiscountAmount, model.Currency);
+                        FrenchTotal(c, "Frais de port", 0, model.Currency);
+                        c.Item().BorderTop(1).BorderColor(Colors.Grey.Darken2).PaddingTop(5).Row(r => { r.RelativeItem().Text("Total TTC").Bold().FontSize(10); r.ConstantItem(105).AlignRight().Text(Money(model.Total, model.Currency)).Bold().FontSize(10); });
+                    });
+                });
+                column.Item().PaddingTop(7).Text("Document pro forma — non valable comme facture fiscale.").Italic().FontColor(Colors.Grey.Darken1);
             });
-            page.Footer().AlignCenter().Text(x => { x.Span(model.OrganizationName); x.Span(" • Page "); x.CurrentPageNumber(); x.Span(" / "); x.TotalPages(); });
         });
     }).WithMetadata(new DocumentMetadata { Title = $"Pro forma {model.DocumentNumber}", Author = model.OrganizationName, Creator = "SimpliaDz" }).GeneratePdf();
 
@@ -98,6 +146,10 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
     private static IContainer Card(IContainer container) => container.Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10);
     private static void Header(IContainer cell, string value) => cell.Background(Colors.Blue.Darken2).Padding(6).Text(value).FontColor(Colors.White).SemiBold();
     private static void Cell(IContainer cell, string value) => cell.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Text(value);
+    private static void FrenchHeader(IContainer cell, string value) => cell.Border(1).BorderColor(Colors.Grey.Darken2).Background("D9E8F6").Padding(5).AlignCenter().Text(value).Bold().FontSize(7);
+    private static void FrenchCell(IContainer cell, string value) => cell.Border(1).BorderColor(Colors.Grey.Darken2).Padding(5).Text(value);
+    private static void FrenchTotal(ColumnDescriptor column, string name, decimal value, string currency) => column.Item().Row(r => { r.RelativeItem().Text(name).Bold(); r.ConstantItem(105).AlignRight().Text(Money(value, currency)); });
+    private static void FrenchTotalText(ColumnDescriptor column, string name, string value) => column.Item().Row(r => { r.RelativeItem().Text(name).Bold(); r.ConstantItem(105).AlignRight().Text(value); });
     private static void Total(ColumnDescriptor column, string name, decimal value, string currency) => column.Item().Row(r => { r.RelativeItem().Text(name); r.ConstantItem(110).AlignRight().Text(Money(value, currency)); });
     private static string Money(decimal value, string currency) => $"{value:N2} {currency}";
     private sealed record SalesDocumentModel(string OrganizationName, string? OrganizationLegalName, string? OrganizationAddress, string? OrganizationPhone, string? OrganizationEmail, string Currency, string LocationName, string? LocationAddress, string CustomerName, string? CustomerPhone, string? CustomerAddress, string DocumentNumber, string Status, DateTimeOffset Date, decimal Subtotal, decimal DiscountAmount, decimal Total, decimal PaidAmount, IReadOnlyList<SalesDocumentLine> Lines);
