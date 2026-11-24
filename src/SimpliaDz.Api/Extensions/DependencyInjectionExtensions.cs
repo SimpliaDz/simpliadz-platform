@@ -53,6 +53,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IDashboardSummaryService, DashboardSummaryService>();
         services.AddScoped<ICashRegisterService, CashRegisterService>();
         services.AddScoped<ICashSessionService, CashSessionService>();
+        services.AddScoped<IPosService, PosService>();
         services.AddScoped<InventoryWarningScanService>();
         services.AddHostedService<InventoryWarningWorker>();
         services.AddScoped<WorkSessionService>();

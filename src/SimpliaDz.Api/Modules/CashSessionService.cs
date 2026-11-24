@@ -51,6 +51,9 @@ public sealed class CashSessionService(SalesDbContext sales, InventoryDbContext 
             var session = await LoadAsync(id, ct);
             if (session.Status != CashSessionStatus.Open)
                 throw new ConflictException("Cash session is already closed.");
+            if (await sales.CashRegisterAssignments.AnyAsync(x => x.CashSessionId == id &&
+                    x.ReleasedAt == null, ct))
+                throw new ConflictException("Release the active cashier from this register before closing its cash session.");
             var cash = await CashPaymentsAsync(id, ct);
             var movements = await MovementTotalAsync(id, ct);
             var expected = checked(session.OpeningCash + cash + movements);

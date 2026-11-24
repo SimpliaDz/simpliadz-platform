@@ -61,19 +61,20 @@ public sealed class Sale
         EnsureDraft();
         if (productVariantId == Guid.Empty)
             throw new ArgumentException("Product variant is required.", nameof(productVariantId));
-        if (_lines.Any(x => x.ProductVariantId == productVariantId))
-            throw new InvalidOperationException("Variant already exists in this sale.");
+        var existing = _lines.FirstOrDefault(x => x.ProductVariantId == productVariantId);
+        if (existing is not null)
+        {
+            existing.IncreaseQuantity(quantity);
+            RecalculateTotals();
+            Revision = checked(Revision + 1);
+            return existing;
+        }
         var line = new SaleLine(Id, productVariantId, quantity, unitPrice,
             unitCostSnapshot, discountAmount);
         if (line.GrossAmount > MaxMoney - Subtotal)
             throw new ArgumentOutOfRangeException(nameof(quantity), "Sale total exceeds decimal(18,4).");
         _lines.Add(line);
-        Subtotal += line.GrossAmount;
-        var afterLineDiscounts = _lines.Sum(x => x.LineTotal);
-        if (DiscountType == SaleDiscountType.Percentage)
-            DiscountAmount = CalculateDiscount(afterLineDiscounts,
-                SaleDiscountType.Percentage, DiscountValue!.Value);
-        Total = afterLineDiscounts - DiscountAmount;
+        RecalculateTotals();
         Revision = checked(Revision + 1);
         return line;
     }
@@ -179,6 +180,16 @@ public sealed class Sale
         if (Status != SaleStatus.Draft)
             throw new InvalidOperationException("Only draft sales can be changed.");
     }
+
+    private void RecalculateTotals()
+    {
+        Subtotal = _lines.Sum(x => x.GrossAmount);
+        var afterLineDiscounts = _lines.Sum(x => x.LineTotal);
+        if (DiscountType == SaleDiscountType.Percentage)
+            DiscountAmount = CalculateDiscount(afterLineDiscounts,
+                SaleDiscountType.Percentage, DiscountValue!.Value);
+        Total = afterLineDiscounts - DiscountAmount;
+    }
 }
 
 public sealed class SaleLine
@@ -239,6 +250,17 @@ public sealed class SaleLine
         DiscountValue = value;
         DiscountAmount = amount;
         LineTotal = GrossAmount - amount;
+    }
+
+    internal void IncreaseQuantity(int amount)
+    {
+        if (amount <= 0 || Quantity > int.MaxValue - amount)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+        Quantity += amount;
+        var discount = DiscountType is null ? 0 : Sale.CalculateDiscount(GrossAmount, DiscountType.Value,
+            DiscountValue!.Value);
+        DiscountAmount = discount;
+        LineTotal = GrossAmount - discount;
     }
 
     internal void RecordReturn(int quantity)

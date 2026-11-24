@@ -83,9 +83,10 @@ public sealed class SaleTests
         Assert.Empty(sale.Lines);
         var variantId = Guid.NewGuid();
         sale.AddLine(variantId, 1, 10m, 2m);
-        Assert.Throws<InvalidOperationException>(() => sale.AddLine(variantId, 1, 10m, 2m));
-        Assert.Throws<ArgumentException>(() => sale.SetDiscount(11m));
-        Assert.Equal(10m, sale.Total);
+        sale.AddLine(variantId, 1, 10m, 2m);
+        Assert.Equal(2, sale.Lines.Single().Quantity);
+        Assert.Throws<ArgumentException>(() => sale.SetDiscount(21m));
+        Assert.Equal(20m, sale.Total);
     }
 
     [Fact]

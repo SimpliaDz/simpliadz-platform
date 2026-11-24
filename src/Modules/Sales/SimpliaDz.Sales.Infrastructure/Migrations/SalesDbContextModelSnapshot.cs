@@ -92,6 +92,45 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.ToTable("CashRegisters", "sales");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashRegisterAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CashSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique()
+                        .HasFilter("[ReleasedAt] IS NULL");
+
+                    b.HasIndex("CashSessionId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[ReleasedAt] IS NULL");
+
+                    b.ToTable("CashRegisterAssignments", "sales");
+                });
+
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -492,6 +531,25 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                         .HasForeignKey("CashSessionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CashSession");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.CashRegisterAssignment", b =>
+                {
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimpliaDz.Sales.Core.Entities.CashSession", "CashSession")
+                        .WithMany()
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
 
                     b.Navigation("CashSession");
                 });

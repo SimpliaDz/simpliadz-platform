@@ -33,6 +33,9 @@ public sealed class PaymentService(SalesDbContext db) : IPaymentService
                     if (session.Status != CashSessionStatus.Open ||
                         session.CashRegister.LocationId != sale.LocationId)
                         throw new ConflictException("Payment requires an open cash session at the sale location.");
+                    if (!await db.CashRegisterAssignments.AnyAsync(x => x.UserId == receivedBy &&
+                            x.CashSessionId == session.Id && x.ReleasedAt == null, ct))
+                        throw new ConflictException("Select your assigned cash register before recording a payment.");
                 }
                 else if (await db.CashRegisters.AnyAsync(x =>
                              x.LocationId == sale.LocationId && x.IsActive, ct))

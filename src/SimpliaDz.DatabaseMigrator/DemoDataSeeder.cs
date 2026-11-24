@@ -361,9 +361,13 @@ internal static class DemoDataSeeder
             register = new CashRegister(mainId, "DEMO-REG-1", "Demo Front Counter");
             db.CashRegisters.Add(register);
         }
-        if (!await db.CashRegisters.AnyAsync(x => x.LocationId == mainId &&
-            x.Code == "DEMO-REG-2", ct))
-            db.CashRegisters.Add(new CashRegister(mainId, "DEMO-REG-2", "Demo Second Counter"));
+        var secondRegister = await db.CashRegisters.SingleOrDefaultAsync(x => x.LocationId == mainId &&
+            x.Code == "DEMO-REG-2", ct);
+        if (secondRegister is null)
+        {
+            secondRegister = new CashRegister(mainId, "DEMO-REG-2", "Demo Second Counter");
+            db.CashRegisters.Add(secondRegister);
+        }
         await db.SaveChangesAsync(ct);
 
         var session = await db.CashSessions.SingleOrDefaultAsync(x =>
@@ -372,6 +376,12 @@ internal static class DemoDataSeeder
         {
             session = new CashSession(register.Id, cashierId, 5000m);
             db.CashSessions.Add(session);
+            await db.SaveChangesAsync(ct);
+        }
+        if (!await db.CashSessions.AnyAsync(x => x.CashRegisterId == secondRegister.Id &&
+                x.Status == CashSessionStatus.Open, ct))
+        {
+            db.CashSessions.Add(new CashSession(secondRegister.Id, cashierId, 3000m));
             await db.SaveChangesAsync(ct);
         }
 
