@@ -81,6 +81,18 @@ public sealed class CreateVariantHandler(IProductRepository products)
         {
             throw new ConflictException(exception.Message);
         }
+        if (variant.Barcode is null)
+        {
+            for (var attempt = 0; attempt < 10; attempt++)
+            {
+                var generated = variant.GenerateInternalBarcode();
+                if (!await products.BarcodeExistsAsync(generated, ct))
+                    break;
+                variant.SetBarcode(null);
+            }
+            if (variant.Barcode is null)
+                throw new ConflictException("Could not allocate a unique internal barcode. Try again.");
+        }
         await products.AddVariantAsync(variant, ct);
         await products.SaveChangesAsync(ct);
         return (await products.GetVariantByIdAsync(variant.Id, ct)
@@ -217,7 +229,12 @@ internal static class VariantAttributeValidation
     public static async Task ValidateAsync(Product product, IReadOnlyList<Guid> ids,
         IProductRepository products, CancellationToken ct)
     {
-        if (ids.Count == 0) return;
+        if (ids.Count == 0)
+        {
+            if (product.ProductCategory?.Attributes.Any(attribute => attribute.IsRequired) == true)
+                throw new ConflictException("Select a value for every required category attribute.");
+            return;
+        }
         var values = await products.GetAttributeValuesAsync(ids, ct);
         if (values.Count != ids.Count) throw new ConflictException("One or more attribute values do not exist.");
         if (values.Select(x => x.AttributeId).Distinct().Count() != values.Count)
@@ -225,5 +242,11 @@ internal static class VariantAttributeValidation
         var enabledAttributeIds = product.ProductCategory?.Attributes.Select(attribute => attribute.AttributeId).ToHashSet() ?? [];
         if (values.Any(value => !enabledAttributeIds.Contains(value.AttributeId)))
             throw new ConflictException("Selected attribute values are not configured for this product.");
+        var selectedAttributeIds = values.Select(value => value.AttributeId).ToHashSet();
+        var missingRequired = product.ProductCategory?.Attributes
+            .Where(attribute => attribute.IsRequired && !selectedAttributeIds.Contains(attribute.AttributeId))
+            .ToArray();
+        if (missingRequired is { Length: > 0 })
+            throw new ConflictException("Select a value for every required category attribute.");
     }
 }

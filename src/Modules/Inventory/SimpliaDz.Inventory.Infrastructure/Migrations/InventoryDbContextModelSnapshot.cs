@@ -161,6 +161,9 @@ namespace SimpliaDz.Inventory.Infrastructure.Migrations
                     b.Property<Guid>("AttributeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
                     b.HasKey("CategoryId", "AttributeId");
 
                     b.HasIndex("AttributeId");

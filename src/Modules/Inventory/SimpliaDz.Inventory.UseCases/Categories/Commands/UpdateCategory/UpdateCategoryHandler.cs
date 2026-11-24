@@ -34,7 +34,7 @@ public sealed class UpdateCategoryHandler : IRequestHandler<UpdateCategoryComman
         if (attributeIds.Distinct().Count() != attributeIds.Count || attributeIds.Any(id => id == Guid.Empty) ||
             (await _categories.GetAttributesAsync(attributeIds, ct)).Count != attributeIds.Count)
             throw new ConflictException("One or more attributes do not exist.");
-        category.AssignAttributes(attributeIds);
+        category.AssignAttributes(attributeIds, request.RequiredAttributeIds ?? []);
         await _categories.SaveChangesAsync(ct);
         return category.ToResponse();
     }

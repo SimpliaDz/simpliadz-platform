@@ -54,14 +54,17 @@ public sealed class ProductCategory
         Touch();
     }
 
-    public void AssignAttributes(IEnumerable<Guid> attributeIds)
+    public void AssignAttributes(IEnumerable<Guid> attributeIds, IEnumerable<Guid>? requiredAttributeIds = null)
     {
         var ids = attributeIds.Distinct().ToArray();
         if (ids.Any(id => id == Guid.Empty))
             throw new ArgumentException("Attributes must be valid.", nameof(attributeIds));
+        var requiredIds = (requiredAttributeIds ?? []).ToHashSet();
+        if (!requiredIds.IsSubsetOf(ids))
+            throw new ArgumentException("Required attributes must be selected for the category.", nameof(requiredAttributeIds));
         _attributes.Clear();
         foreach (var id in ids)
-            _attributes.Add(new CategoryAttribute(Id, id));
+            _attributes.Add(new CategoryAttribute(Id, id, requiredIds.Contains(id)));
         Touch();
     }
 

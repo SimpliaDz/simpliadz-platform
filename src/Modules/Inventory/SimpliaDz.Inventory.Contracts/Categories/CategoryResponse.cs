@@ -7,4 +7,5 @@ public sealed record CategoryResponse(
     bool IsActive,
     DateTimeOffset UpdatedAt,
     IReadOnlyList<Guid> AttributeIds,
+    IReadOnlyList<Guid> RequiredAttributeIds,
     IReadOnlyList<CategoryResponse> Children);

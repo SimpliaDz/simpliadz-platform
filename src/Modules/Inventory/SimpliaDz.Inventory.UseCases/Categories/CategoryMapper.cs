@@ -13,6 +13,7 @@ internal static class CategoryMapper
             category.IsActive,
             category.UpdatedAt,
             category.Attributes.Select(attribute => attribute.AttributeId).ToArray(),
+            category.Attributes.Where(attribute => attribute.IsRequired).Select(attribute => attribute.AttributeId).ToArray(),
             []);
 
     public static IReadOnlyList<CategoryResponse> ToHierarchy(
@@ -79,6 +80,7 @@ internal static class CategoryMapper
             category.IsActive,
             category.UpdatedAt,
             category.Attributes.Select(attribute => attribute.AttributeId).ToArray(),
+            category.Attributes.Where(attribute => attribute.IsRequired).Select(attribute => attribute.AttributeId).ToArray(),
             children);
     }
 }

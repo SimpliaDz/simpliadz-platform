@@ -22,7 +22,7 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
 
         var category = new ProductCategory(name, request.ParentCategoryId);
         await EnsureAttributesExistAsync(request.AttributeIds ?? [], ct);
-        category.AssignAttributes(request.AttributeIds ?? []);
+        category.AssignAttributes(request.AttributeIds ?? [], request.RequiredAttributeIds ?? []);
         await _categories.AddAsync(category, ct);
         await _categories.SaveChangesAsync(ct);
         return category.ToResponse();

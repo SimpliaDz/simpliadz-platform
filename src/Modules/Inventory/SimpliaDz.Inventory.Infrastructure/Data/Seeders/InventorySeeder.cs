@@ -43,7 +43,28 @@ internal static class InventorySeeder
     private static async Task SeedAttributesAsync(InventoryDbContext db, CancellationToken ct)
     {
         await UpsertAttributeAsync(db, "Color", ["Black", "White", "Blue"], ct);
-        await UpsertAttributeAsync(db, "Size", ["S", "M", "L", "XL"], ct);
+        await UpsertAttributeAsync(db, "Size", ["S", "M", "L", "XL", "42", "43"], ct);
+        await db.SaveChangesAsync(ct);
+        await SeedCategoryAttributesAsync(db, ct);
+    }
+
+    private static async Task SeedCategoryAttributesAsync(InventoryDbContext db, CancellationToken ct)
+    {
+        var colorId = await db.ProductAttributes.Where(attribute => attribute.Name == "Color")
+            .Select(attribute => attribute.Id).FirstAsync(ct);
+        var sizeId = await db.ProductAttributes.Where(attribute => attribute.Name == "Size")
+            .Select(attribute => attribute.Id).FirstAsync(ct);
+
+        foreach (var categoryName in new[] { "T-Shirts", "Jeans", "Shoes", "Jackets" })
+        {
+            var categoryId = await db.Categories.Where(category => category.Name == categoryName)
+                .Select(category => category.Id).FirstAsync(ct);
+            if (!await db.CategoryAttributes.AnyAsync(item => item.CategoryId == categoryId && item.AttributeId == sizeId, ct))
+                db.CategoryAttributes.Add(new CategoryAttribute(categoryId, sizeId, isRequired: true));
+            if (!await db.CategoryAttributes.AnyAsync(item => item.CategoryId == categoryId && item.AttributeId == colorId, ct))
+                db.CategoryAttributes.Add(new CategoryAttribute(categoryId, colorId, isRequired: false));
+        }
+
         await db.SaveChangesAsync(ct);
     }
 
