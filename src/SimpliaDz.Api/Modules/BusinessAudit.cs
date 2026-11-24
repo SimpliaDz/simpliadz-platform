@@ -7,7 +7,7 @@ namespace SimpliaDz.Api.Modules;
 public static class BusinessAudit
 {
     public static RouteHandlerBuilder RequireAudit(this RouteHandlerBuilder route) =>
-        route.AddEndpointFilter(async (context, next) =>
+        route.WithMetadata(new ExplicitAuditMetadata()).AddEndpointFilter(async (context, next) =>
         {
             var tenant = context.HttpContext.RequestServices.GetRequiredService<ITenantContext>();
             if (!tenant.IsModuleEnabled("Audit"))
@@ -27,3 +27,6 @@ public static class BusinessAudit
             oldValues, newValues, context.TraceIdentifier, ct);
     }
 }
+
+/// <summary>Marks endpoints that write their own detailed audit record.</summary>
+public sealed class ExplicitAuditMetadata { }

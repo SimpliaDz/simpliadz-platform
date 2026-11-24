@@ -1,5 +1,10 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using SimpliaDz.Api.Modules;
+using SimpliaDz.Audit.UseCases;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
@@ -103,6 +108,52 @@ public static class MiddlewareExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Most business writes are small endpoint handlers. Recording them here prevents new
+        // endpoints from silently bypassing audit coverage; endpoints with richer before/after
+        // records opt out through RequireAudit().
+        app.Use(async (context, next) =>
+        {
+            await next();
+
+            if (!IsAuditableMutation(context)) return;
+            var tenant = context.RequestServices.GetRequiredService<ITenantContext>();
+            if (!tenant.IsModuleEnabled("Audit")) return;
+            if (!Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) ||
+                userId == Guid.Empty) return;
+
+            var endpoint = context.GetEndpoint();
+            if (endpoint?.Metadata.GetMetadata<ExplicitAuditMetadata>() is not null) return;
+            var path = context.Request.Path.Value ?? string.Empty;
+            var route = endpoint?.DisplayName ?? path;
+            var entityId = EntityIdFromPath(path);
+            var audit = context.RequestServices.GetRequiredService<IAuditTrail>();
+            await audit.AppendAsync(userId, $"{context.Request.Method}Succeeded", "ApiMutation",
+                entityId, null, new Dictionary<string, object?>
+                {
+                    ["path"] = path,
+                    ["route"] = route.Length <= 300 ? route : route[..300],
+                    ["statusCode"] = context.Response.StatusCode
+                }, context.TraceIdentifier, context.RequestAborted);
+        });
+
         return app;
+    }
+
+    private static bool IsAuditableMutation(HttpContext context)
+    {
+        if (context.Response.StatusCode is < 200 or >= 400) return false;
+        if (context.GetEndpoint()?.Metadata.GetMetadata<TenantRequiredMetadata>() is null) return false;
+        if (context.Request.Path.StartsWithSegments("/auth")) return false;
+        return HttpMethods.IsPost(context.Request.Method) || HttpMethods.IsPut(context.Request.Method) ||
+            HttpMethods.IsPatch(context.Request.Method) || HttpMethods.IsDelete(context.Request.Method);
+    }
+
+    private static Guid EntityIdFromPath(string path)
+    {
+        foreach (var segment in path.Split('/', StringSplitOptions.RemoveEmptyEntries).Reverse())
+            if (Guid.TryParse(segment, out var id) && id != Guid.Empty) return id;
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(path));
+        var result = new Guid(bytes[..16]);
+        return result == Guid.Empty ? Guid.Parse("00000000-0000-0000-0000-000000000001") : result;
     }
 }
