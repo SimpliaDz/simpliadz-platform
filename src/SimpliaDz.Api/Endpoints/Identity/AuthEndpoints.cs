@@ -99,7 +99,10 @@ public static class AuthEndpoints
             var permissions = principal.FindAll("permission").Select(c => c.Value).ToArray();
             var user = await sender.Send(new GetUserByIdQuery(Guid.Parse(userId!)), ct);
 
-            return Results.Ok(new { userId, email, roles, permissions, languageCode = user.LanguageCode });
+            var displayName = string.Join(' ', new[] { user.FirstName, user.LastName }
+                .Where(name => !string.IsNullOrWhiteSpace(name)));
+            return Results.Ok(new { userId, email, roles, permissions, languageCode = user.LanguageCode,
+                displayName = string.IsNullOrWhiteSpace(displayName) ? email : displayName });
         }).RequireAuthorization();
 
         group.MapPut("/me/language", async (
