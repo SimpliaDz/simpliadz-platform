@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Keep the runtime crypto implementation on a patched .NET 10 version.
+    Several tooling dependencies bring this package transitively; declaring it
+    once here makes every executable and test project resolve the safe version.
+  -->
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
+  </ItemGroup>
+
+  <!-- Module appsettings files are only used for local EF/design-time work.
+       Publishing them beside the host creates duplicate output paths and can
+       overwrite the host's production configuration. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'SimpliaDz.Api' And '$(MSBuildProjectName)' != 'SimpliaDz.DatabaseMigrator'">
+    <Content Update="appsettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+</Project>

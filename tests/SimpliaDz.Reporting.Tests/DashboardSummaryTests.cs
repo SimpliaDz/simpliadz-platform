@@ -60,10 +60,11 @@ public sealed class DashboardSummaryTests
     {
         public DateOnly? RequestedDate { get; private set; }
         public Task<SalesSummaryDto> GetAsync(DateOnly fromDate, DateOnly toDate,
-            CancellationToken ct)
+            Guid? locationId, CancellationToken ct)
         {
             RequestedDate = fromDate;
             Assert.Equal(fromDate, toDate);
+            Assert.Null(locationId);
             return Task.FromResult(new SalesSummaryDto(fromDate, toDate,
                 100m, 60m, 40m, 2, 5, 50m));
         }
