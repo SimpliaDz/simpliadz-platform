@@ -6,6 +6,6 @@ public sealed record SalesSummaryDto(DateOnly FromDate, DateOnly ToDate,
 
 public interface ISalesSummaryReportService
 {
-    Task<SalesSummaryDto> GetAsync(DateOnly fromDate, DateOnly toDate,
+    Task<SalesSummaryDto> GetAsync(DateOnly fromDate, DateOnly toDate, Guid? locationId,
         CancellationToken ct);
 }

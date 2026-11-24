@@ -12,7 +12,7 @@ public static class SalesSummaryReportEndpoints
         this IEndpointRouteBuilder app)
     {
         app.MapGet("/reports/sales/summary", async (DateOnly? fromDate,
-            DateOnly? toDate, [FromServices] ISalesSummaryReportService report,
+            DateOnly? toDate, Guid? locationId, [FromServices] ISalesSummaryReportService report,
             CancellationToken ct) =>
         {
             var errors = new Dictionary<string, string[]>();
@@ -23,7 +23,9 @@ public static class SalesSummaryReportEndpoints
             if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
                 errors["dateRange"] = ["From date cannot be after to date."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
-            return Results.Ok(await report.GetAsync(fromDate!.Value, toDate!.Value, ct));
+            if (locationId == Guid.Empty) errors["locationId"] = ["Location ID must be valid."];
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+            return Results.Ok(await report.GetAsync(fromDate!.Value, toDate!.Value, locationId, ct));
         }).WithTags("Reports")
           .WithMetadata(new TenantRequiredMetadata())
           .WithMetadata(new ModuleEndpointMetadata("Reporting"))

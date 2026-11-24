@@ -22,7 +22,7 @@ public static class SaleEndpoints
             .WithMetadata(new TenantRequiredMetadata())
             .WithMetadata(new ModuleEndpointMetadata("Sales"));
 
-        group.MapGet("/", async (Guid? locationId, Guid? customerId, string? status,
+        group.MapGet("/", async (Guid? locationId, Guid? customerId, string? status, string? search,
             int? page, int? pageSize, [FromServices] ISaleService sales, CancellationToken ct) =>
         {
             var selectedPage = page ?? 1;
@@ -36,8 +36,9 @@ public static class SaleEndpoints
             if (!string.IsNullOrWhiteSpace(status) &&
                 (!Enum.TryParse<SaleStatus>(status, true, out var parsed) || !Enum.IsDefined(parsed)))
                 errors["status"] = ["Invalid sale status."];
+            if (search?.Trim().Length > 150) errors["search"] = ["Search must fit 150 characters."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
-            return Results.Ok(await sales.ListAsync(locationId, customerId, status,
+            return Results.Ok(await sales.ListAsync(locationId, customerId, status, search,
                 selectedPage, selectedSize, ct));
         }).RequireAuthorization(PermissionNames.Sales.View);
 

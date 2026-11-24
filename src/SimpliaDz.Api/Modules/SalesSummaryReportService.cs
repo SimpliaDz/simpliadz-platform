@@ -12,7 +12,7 @@ public sealed class SalesSummaryReportService(SalesDbContext sales,
     ITenantContext tenant) : ISalesSummaryReportService
 {
     public async Task<SalesSummaryDto> GetAsync(DateOnly fromDate,
-        DateOnly toDate, CancellationToken ct)
+        DateOnly toDate, Guid? locationId, CancellationToken ct)
     {
         if (fromDate == default || toDate == default || fromDate > toDate)
             throw new ArgumentException("A valid date range is required.");
@@ -40,6 +40,7 @@ public sealed class SalesSummaryReportService(SalesDbContext sales,
                     INNER JOIN [sales].[SaleLines] AS l ON l.SaleId = s.Id
                     WHERE s.SaleDate >= @from AND s.SaleDate <= @to
                       AND s.Status IN ('Completed', 'PartiallyReturned', 'Returned')
+                      AND (@locationId IS NULL OR s.LocationId = @locationId)
                     GROUP BY s.Id, s.Total
                 ) AS x;
                 """;
@@ -47,6 +48,8 @@ public sealed class SalesSummaryReportService(SalesDbContext sales,
                 { Value = start });
             command.Parameters.Add(new SqlParameter("@to", SqlDbType.DateTimeOffset)
                 { Value = end });
+            command.Parameters.Add(new SqlParameter("@locationId", SqlDbType.UniqueIdentifier)
+                { Value = locationId ?? (object)DBNull.Value });
             await using var reader = await command.ExecuteReaderAsync(ct);
             await reader.ReadAsync(ct);
             var revenue = reader.GetDecimal(0);

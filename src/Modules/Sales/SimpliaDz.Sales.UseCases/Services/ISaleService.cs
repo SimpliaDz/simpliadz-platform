@@ -19,7 +19,7 @@ public interface ISaleService
     Task CancelAsync(Guid saleId, CancellationToken ct);
     Task<SaleDto> GetByIdAsync(Guid saleId, CancellationToken ct);
     Task<IReadOnlyList<SaleDto>> ListAsync(Guid? locationId, Guid? customerId,
-        string? status, int page, int pageSize, CancellationToken ct);
+        string? status, string? search, int page, int pageSize, CancellationToken ct);
 }
 
 public sealed record SaleLineDto(Guid Id, Guid ProductVariantId, int Quantity,

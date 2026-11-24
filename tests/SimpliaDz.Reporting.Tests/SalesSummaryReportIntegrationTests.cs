@@ -64,7 +64,7 @@ public sealed class SalesSummaryReportIntegrationTests
                 """);
 
             var report = new SalesSummaryReportService(db, new TestTenant(connection));
-            var summary = await report.GetAsync(today, today, CancellationToken.None);
+            var summary = await report.GetAsync(today, today, null, CancellationToken.None);
             Assert.Equal(45m, summary.Revenue);
             Assert.Equal(20m, summary.CostOfGoodsSold);
             Assert.Equal(25m, summary.GrossProfit);
@@ -72,21 +72,21 @@ public sealed class SalesSummaryReportIntegrationTests
             Assert.Equal(3, summary.ItemsSold);
             Assert.Equal(22.5m, summary.AverageTransactionValue);
 
-            var previous = await report.GetAsync(yesterday, yesterday,
+            var previous = await report.GetAsync(yesterday, yesterday, null,
                 CancellationToken.None);
             Assert.Equal(100m, previous.Revenue);
             Assert.Equal(50m, previous.CostOfGoodsSold);
             Assert.Equal(1, previous.TransactionCount);
-            var empty = await report.GetAsync(today.AddDays(1), today.AddDays(1),
+            var empty = await report.GetAsync(today.AddDays(1), today.AddDays(1), null,
                 CancellationToken.None);
             Assert.Equal(0m, empty.Revenue);
             Assert.Equal(0m, empty.AverageTransactionValue);
             Assert.Equal(0, empty.TransactionCount);
             await Assert.ThrowsAsync<ArgumentException>(() => report.GetAsync(today,
-                yesterday, CancellationToken.None));
+                yesterday, null, CancellationToken.None));
             await Assert.ThrowsAsync<ConflictException>(() =>
                 new SalesSummaryReportService(db, new TestTenant(connection, false))
-                    .GetAsync(today, today, CancellationToken.None));
+                    .GetAsync(today, today, null, CancellationToken.None));
         }
         finally
         {

@@ -18,7 +18,7 @@ public sealed class DashboardSummaryService(ITenantContext tenant,
         var accountingAvailable = tenant.IsModuleEnabled("Accounting");
         var inventoryAvailable = tenant.IsModuleEnabled("Inventory");
         var salesSummary = salesAvailable
-            ? await sales.GetAsync(date, date, ct)
+            ? await sales.GetAsync(date, date, null, ct)
             : null;
         var expenseTotal = accountingAvailable
             ? await expenses.GetTotalForDateAsync(date, ct)

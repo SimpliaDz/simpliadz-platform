@@ -207,11 +207,11 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         Map(await LoadAsync(saleId, ct));
 
     public async Task<IReadOnlyList<SaleDto>> ListAsync(Guid? locationId, Guid? customerId,
-        string? status, int page, int pageSize, CancellationToken ct)
+        string? status, string? search, int page, int pageSize, CancellationToken ct)
     {
         if (page < 1 || pageSize is < 1 or > 100 || page > int.MaxValue / pageSize)
             throw new ArgumentOutOfRangeException(nameof(page));
-        var query = sales.Sales.AsNoTracking().Include(x => x.Lines).AsQueryable();
+        var query = sales.Sales.AsNoTracking().Include(x => x.Lines).Include(x => x.Customer).AsQueryable();
         if (locationId.HasValue) query = query.Where(x => x.LocationId == locationId.Value);
         if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
         if (!string.IsNullOrWhiteSpace(status))
@@ -219,6 +219,17 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
             if (!Enum.TryParse<SaleStatus>(status, true, out var parsed) || !Enum.IsDefined(parsed))
                 throw new ArgumentException("Invalid sale status.", nameof(status));
             query = query.Where(x => x.Status == parsed);
+        }
+        var term = search?.Trim();
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            if (term.Length > 150) throw new ArgumentException("Search must fit 150 characters.", nameof(search));
+            var matchId = Guid.TryParse(term, out var saleId);
+            query = query.Where(x => (matchId && x.Id == saleId) ||
+                (x.SaleNumber != null && x.SaleNumber.Contains(term)) ||
+                (x.Customer != null && (x.Customer.Name.Contains(term) ||
+                    (x.Customer.Phone != null && x.Customer.Phone.Contains(term)) ||
+                    (x.Customer.Email != null && x.Customer.Email.Contains(term)))));
         }
         var result = await query.OrderByDescending(x => x.SaleDate).ThenByDescending(x => x.Id)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
