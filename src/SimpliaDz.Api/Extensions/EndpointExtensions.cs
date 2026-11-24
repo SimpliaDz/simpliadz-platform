@@ -50,6 +50,7 @@ public static class EndpointExtensions
         app.MapExpenseCategoryEndpoints();
         app.MapExpenseEndpoints();
         app.MapSalesSummaryReportEndpoints();
+        app.MapFinancialDashboardEndpoints();
         app.MapProductPerformanceReportEndpoints();
         app.MapInventoryReportEndpoints();
         app.MapLowStockReportEndpoints();

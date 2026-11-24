@@ -15,6 +15,7 @@ using SimpliaDz.Reporting.UseCases.ProductPerformance;
 using SimpliaDz.Reporting.UseCases.Inventory;
 using SimpliaDz.Reporting.UseCases.LowStock;
 using SimpliaDz.Reporting.UseCases.Dashboard;
+using SimpliaDz.Reporting.UseCases.FinancialDashboard;
 
 namespace SimpliaDz.Api.Extensions;
 
@@ -46,6 +47,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ISaleReturnService, SaleReturnService>();
         services.AddScoped<IPosProductLookupService, PosProductLookupService>();
         services.AddScoped<ISalesSummaryReportService, SalesSummaryReportService>();
+        services.AddScoped<IFinancialDashboardService, FinancialDashboardService>();
         services.AddScoped<IProductPerformanceReportService, ProductPerformanceReportService>();
         services.AddScoped<IInventoryReportService, InventoryReportService>();
         services.AddScoped<ILowStockReportService, LowStockReportService>();
