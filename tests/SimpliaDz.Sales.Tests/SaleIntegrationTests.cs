@@ -259,6 +259,39 @@ public sealed class SaleIntegrationTests
                 x.ReferenceId == zeroStock.Id && x.ReferenceType == "PosStockDiscrepancy");
             Assert.Equal(StockMovementType.Adjustment, correction.MovementType);
             Assert.Equal(1, correction.QuantityDelta);
+
+            var now = DateTimeOffset.UtcNow;
+            var broad = new SalePromotion();
+            broad.Configure("Product ten percent", PromotionTarget.Product, product.Id,
+                SaleDiscountType.Percentage, 10m, now.AddDays(-1), null, true);
+            var winner = new SalePromotion();
+            winner.Configure("Variant fixed offer", PromotionTarget.Variant, variant.Id,
+                SaleDiscountType.FixedAmount, 4m, now.AddDays(-1), now.AddDays(1), true);
+            var expired = new SalePromotion();
+            expired.Configure("Expired", PromotionTarget.Variant, variant.Id,
+                SaleDiscountType.Percentage, 100m, now.AddDays(-3), now.AddDays(-2), true);
+            var disabled = new SalePromotion();
+            disabled.Configure("Disabled", PromotionTarget.Variant, variant.Id,
+                SaleDiscountType.Percentage, 100m, now.AddDays(-1), null, false);
+            sales.Promotions.AddRange(broad, winner, expired, disabled);
+            await sales.SaveChangesAsync();
+            var promoted = await service.StartWithItemAsync(location.Id, null, cashier, priceList.Id,
+                "SALE-TEST", CancellationToken.None, checkStock: false);
+            Assert.Equal(winner.Id, promoted.Lines.Single().PromotionId);
+            Assert.Equal(12m, promoted.Lines.Single().UnitPrice);
+            Assert.Equal(8m, promoted.Total);
+            promoted = await service.SetLineQuantityAsync(promoted.Id, promoted.Lines.Single().Id, 3,
+                CancellationToken.None);
+            Assert.Equal(24m, promoted.Total);
+            winner.Configure(winner.Name, winner.Target, winner.TargetId, winner.DiscountType,
+                winner.Value, winner.StartsAt, winner.EndsAt, false);
+            await sales.SaveChangesAsync();
+            Assert.Equal(winner.Id, (await service.GetByIdAsync(promoted.Id, CancellationToken.None))
+                .Lines.Single().PromotionId);
+            var subsequent = await service.StartWithItemAsync(location.Id, null, cashier, priceList.Id,
+                "SALE-TEST", CancellationToken.None, checkStock: false);
+            Assert.Equal(broad.Id, subsequent.Lines.Single().PromotionId);
+            Assert.Equal(10.8m, subsequent.Total);
         }
         finally
         {

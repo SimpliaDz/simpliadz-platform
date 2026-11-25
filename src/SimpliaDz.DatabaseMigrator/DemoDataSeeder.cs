@@ -67,6 +67,8 @@ internal static class DemoDataSeeder
                 users.CashierId, inventory, ct);
             var secondShop = await EnsureHistoryShopAsync(inventory, ct);
             await SeedSalesHistoryAsync(tenant.ConnectionString, [mainId, secondShop], users.CashierId, ct);
+            await SeedPromotionsAsync(services.GetRequiredService<SalesDbContext>(), inventory,
+                Variant("TSHIRT-BLK-M"), ct);
             if (tenant.IsModuleEnabled("Accounting"))
                 await SeedHistoricalExpensesAsync(services.GetRequiredService<AccountingDbContext>(),
                     [mainId, secondShop], users.ManagerId, ct);
@@ -576,6 +578,33 @@ internal static class DemoDataSeeder
         await sales.SaveChangesAsync(ct);
         await stock.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+    }
+
+    private static async Task SeedPromotionsAsync(SalesDbContext sales, InventoryDbContext inventory,
+        Guid variantId, CancellationToken ct)
+    {
+        var variant = await inventory.ProductVariants.AsNoTracking().Where(x => x.Id == variantId)
+            .Select(x => new { x.ProductId, x.Product.BrandId, x.Product.ProductCategoryId }).SingleAsync(ct);
+        var now = DateTimeOffset.UtcNow;
+        var fixtures = new (string Name, PromotionTarget Target, Guid? Id, SaleDiscountType Discount,
+            decimal Value, DateTimeOffset Starts, DateTimeOffset? Ends, bool Enabled)[]
+        {
+            ("Demo everyday product offer", PromotionTarget.Product, variant.ProductId, SaleDiscountType.Percentage, 5m, now.AddDays(-7), null, true),
+            ("Demo overlapping variant offer", PromotionTarget.Variant, variantId, SaleDiscountType.FixedAmount, 180m, now.AddDays(-7), now.AddDays(14), true),
+            ("Demo upcoming category offer", PromotionTarget.Category, variant.ProductCategoryId, SaleDiscountType.Percentage, 15m, now.AddDays(3), now.AddDays(12), true),
+            ("Demo expired brand offer", PromotionTarget.Brand, variant.BrandId, SaleDiscountType.Percentage, 20m, now.AddDays(-40), now.AddDays(-10), true),
+            ("Demo disabled variant offer", PromotionTarget.Variant, variantId, SaleDiscountType.Percentage, 90m, now.AddDays(-1), null, false),
+        };
+        var existing = (await sales.Promotions.Select(x => x.Name).ToListAsync(ct)).ToHashSet();
+        foreach (var fixture in fixtures)
+        {
+            if (fixture.Id is not Guid targetId || existing.Contains(fixture.Name)) continue;
+            var promotion = new SalePromotion();
+            promotion.Configure(fixture.Name, fixture.Target, targetId, fixture.Discount,
+                fixture.Value, fixture.Starts, fixture.Ends, fixture.Enabled);
+            sales.Promotions.Add(promotion);
+        }
+        await sales.SaveChangesAsync(ct);
     }
 
     private static async Task SeedHistoricalExpensesAsync(AccountingDbContext db, Guid[] shops,

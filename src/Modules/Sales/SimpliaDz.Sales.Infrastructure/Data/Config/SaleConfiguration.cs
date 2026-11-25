@@ -62,5 +62,7 @@ internal sealed class SaleLineConfiguration : IEntityTypeConfiguration<SaleLine>
         b.Property(x => x.LineTotal).HasPrecision(18, 4).IsRequired();
         b.HasIndex(x => new { x.SaleId, x.ProductVariantId }).IsUnique();
         b.HasIndex(x => x.ProductVariantId);
+        b.Property(x => x.PromotionName).HasMaxLength(120);
+        b.Property(x => x.PromotionUnitDiscount).HasPrecision(18, 4);
     }
 }

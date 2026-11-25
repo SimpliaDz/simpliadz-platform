@@ -13,6 +13,7 @@ public sealed class SalesDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleLine> SaleLines => Set<SaleLine>();
+    public DbSet<SalePromotion> Promotions => Set<SalePromotion>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
     public DbSet<SaleReturnLine> SaleReturnLines => Set<SaleReturnLine>();
@@ -25,6 +26,12 @@ public sealed class SalesDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("sales");
+        modelBuilder.Entity<SalePromotion>(promotion =>
+        {
+            promotion.Property(x => x.Name).HasMaxLength(120);
+            promotion.Property(x => x.Value).HasPrecision(18, 4);
+            promotion.HasIndex(x => new { x.IsActive, x.Target, x.TargetId });
+        });
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SalesDbContext).Assembly);
     }

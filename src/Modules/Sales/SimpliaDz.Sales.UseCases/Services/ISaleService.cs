@@ -38,6 +38,9 @@ public sealed record SaleLineDto(Guid Id, Guid ProductVariantId, int Quantity,
     public string? VariantName { get; init; }
     public string? Sku { get; init; }
     public int? AvailableQuantity { get; init; }
+    public Guid? PromotionId { get; init; }
+    public string? PromotionName { get; init; }
+    public decimal? PromotionUnitDiscount { get; init; }
 }
 
 public sealed record SaleDto(Guid Id, string? SaleNumber, Guid LocationId, Guid? CustomerId,

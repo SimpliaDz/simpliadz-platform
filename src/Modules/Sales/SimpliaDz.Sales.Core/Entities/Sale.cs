@@ -56,7 +56,7 @@ public sealed class Sale
     }
 
     public SaleLine AddLine(Guid productVariantId, int quantity, decimal unitPrice,
-        decimal unitCostSnapshot, decimal discountAmount = 0)
+        decimal unitCostSnapshot, decimal discountAmount = 0, SalePromotion? promotion = null)
     {
         EnsureDraft();
         if (productVariantId == Guid.Empty)
@@ -73,6 +73,8 @@ public sealed class Sale
             unitCostSnapshot, discountAmount);
         if (line.GrossAmount > MaxMoney - Subtotal)
             throw new ArgumentOutOfRangeException(nameof(quantity), "Sale total exceeds decimal(18,4).");
+        if (promotion is not null && discountAmount == 0)
+            line.ApplyPromotion(promotion);
         _lines.Add(line);
         RecalculateTotals();
         Revision = checked(Revision + 1);
@@ -238,6 +240,9 @@ public sealed class SaleLine
     public decimal? DiscountValue { get; private set; }
     public decimal LineTotal { get; private set; }
     public int ReturnedQuantity { get; private set; }
+    public Guid? PromotionId { get; private set; }
+    public string? PromotionName { get; private set; }
+    public decimal? PromotionUnitDiscount { get; private set; }
     public decimal GrossAmount => Quantity * UnitPrice;
 
     private SaleLine() { }
@@ -276,10 +281,22 @@ public sealed class SaleLine
 
     internal void ApplyDiscount(SaleDiscountType type, decimal value, decimal amount)
     {
+        PromotionId = null;
+        PromotionName = null;
+        PromotionUnitDiscount = null;
         DiscountType = type;
         DiscountValue = value;
         DiscountAmount = amount;
         LineTotal = GrossAmount - amount;
+    }
+
+    internal void ApplyPromotion(SalePromotion promotion)
+    {
+        PromotionId = promotion.Id;
+        PromotionName = promotion.Name;
+        PromotionUnitDiscount = promotion.UnitDiscount(UnitPrice);
+        DiscountAmount = PromotionUnitDiscount.Value * Quantity;
+        LineTotal = GrossAmount - DiscountAmount;
     }
 
     internal void IncreaseQuantity(int amount)
@@ -287,10 +304,7 @@ public sealed class SaleLine
         if (amount <= 0 || Quantity > int.MaxValue - amount)
             throw new ArgumentOutOfRangeException(nameof(amount));
         Quantity += amount;
-        var discount = DiscountType is null ? 0 : Sale.CalculateDiscount(GrossAmount, DiscountType.Value,
-            DiscountValue!.Value);
-        DiscountAmount = discount;
-        LineTotal = GrossAmount - discount;
+        RecalculateDiscount();
     }
 
     internal void SetQuantity(int quantity)
@@ -298,8 +312,13 @@ public sealed class SaleLine
         if (quantity <= 0 || (UnitPrice > 0 && quantity > MaxMoney / UnitPrice))
             throw new ArgumentOutOfRangeException(nameof(quantity));
         Quantity = quantity;
-        DiscountAmount = DiscountType is null ? 0 : Sale.CalculateDiscount(GrossAmount,
-            DiscountType.Value, DiscountValue!.Value);
+        RecalculateDiscount();
+    }
+
+    private void RecalculateDiscount()
+    {
+        DiscountAmount = PromotionUnitDiscount is decimal unitDiscount ? unitDiscount * Quantity
+            : DiscountType is null ? 0 : Sale.CalculateDiscount(GrossAmount, DiscountType.Value, DiscountValue!.Value);
         LineTotal = GrossAmount - DiscountAmount;
     }
 

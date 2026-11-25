@@ -201,10 +201,10 @@ public static class PosEndpoints
             [FromBody] PosPaymentRequest request, ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
             [FromServices] ISaleService sales, [FromServices] IPaymentService payments, CancellationToken ct) =>
         {
-            if (request.Amount <= 0 || request.Id == Guid.Empty || !Enum.TryParse<PaymentMethod>(
+            if (request.Amount < 0 || request.Id == Guid.Empty || !Enum.TryParse<PaymentMethod>(
                     request.PaymentMethod, true, out var method))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
-                { ["payment"] = ["A valid payment ID, method, and positive amount are required."] });
+                { ["payment"] = ["A valid payment ID, method, and non-negative amount are required."] });
             if (!CanUseStockOverride(principal, request.ConfirmPhysicalStock)) return Results.Forbid();
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
@@ -213,11 +213,14 @@ public static class PosEndpoints
                 return Results.Conflict("This ticket is not available at the current register.");
             if (current.Status == "Draft" && current.PriceListId != context.PriceListId)
                 return Results.Conflict("This ticket does not use the current retail price list. Start a new POS ticket.");
+            if (request.Amount == 0 && current.Total != 0)
+                return Results.Conflict("Only a zero-total ticket can be completed without payment.");
             var completed = current.Status == "Draft"
                 ? await sales.CompleteAsync(saleId, actor, ct, adjustShortfall: request.ConfirmPhysicalStock)
                 : current;
             if (current.Status == "Draft")
                 await SaleAudit.RecordAsync(http, "SaleCompleted", current, completed with { Lines = current.Lines });
+            if (request.Amount == 0) return Results.Ok(new PosPaymentResult(completed, null));
             var payment = await payments.RecordAsync(request.Id, saleId, request.Amount, method, actor, ct,
                 context.CashSessionId);
             await SaleAudit.RecordAsync(http, "SalePaymentRecorded", completed,
@@ -242,4 +245,4 @@ public sealed record PosSetLineQuantityRequest(int Quantity, bool ConfirmPhysica
 public sealed record PosSetCustomerRequest(Guid? CustomerId);
 public sealed record PosCustomerDto(Guid Id, string Name, string? Phone, string? Email);
 public sealed record PosPaymentRequest(Guid Id, decimal Amount, string PaymentMethod, bool ConfirmPhysicalStock = false);
-public sealed record PosPaymentResult(SaleDto Sale, PaymentDto Payment);
+public sealed record PosPaymentResult(SaleDto Sale, PaymentDto? Payment);

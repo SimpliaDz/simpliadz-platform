@@ -113,5 +113,7 @@ internal static class SaleAudit
         ["discountAmount"] = line.DiscountAmount, ["discountType"] = line.DiscountType,
         ["discountValue"] = line.DiscountValue, ["lineTotal"] = line.LineTotal,
         ["returnedQuantity"] = line.ReturnedQuantity,
+        ["promotionId"] = line.PromotionId, ["promotionName"] = line.PromotionName,
+        ["promotionUnitDiscount"] = line.PromotionUnitDiscount,
     };
 }

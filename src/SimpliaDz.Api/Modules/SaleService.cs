@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Inventory.Core.Entities.Stock;
+using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.Core.Exceptions;
 using SimpliaDz.Inventory.Core.ValueObjects;
 using SimpliaDz.Inventory.Infrastructure.Data;
@@ -91,7 +92,9 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         var existingLine = sale.Lines.FirstOrDefault(x => x.ProductVariantId == variant.Id);
         if (checkStock)
             await EnsureStockAsync(sale.LocationId, variant.Id, (long)(existingLine?.Quantity ?? 0) + quantity, ct);
-        if (!await inventory.PriceLists.AnyAsync(x => x.Id == sale.PriceListId && x.IsActive, ct))
+        var list = await inventory.PriceLists.AsNoTracking().FirstOrDefaultAsync(
+            x => x.Id == sale.PriceListId && x.IsActive, ct);
+        if (list is null)
             throw new ConflictException("Price list must be active.");
         var price = await inventory.PriceListItems.AsNoTracking()
             .Where(x => x.PriceListId == sale.PriceListId && x.ProductVariantId == variant.Id)
@@ -104,7 +107,23 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                 .OrderByDescending(x => x.GoodsReceipt.ReceivedAt).ThenByDescending(x => x.Id)
                 .Select(x => (decimal?)x.UnitCost).FirstOrDefaultAsync(ct) ?? 0m
             : 0m;
-        return sale.AddLine(variant.Id, quantity, price.Value, cost, discountAmount);
+        SalePromotion? promotion = null;
+        if (list.Type == PriceListType.Retail && existingLine is null && discountAmount == 0)
+        {
+            var product = await inventory.Products.AsNoTracking().Where(x => x.Id == variant.ProductId)
+                .Select(x => new { x.BrandId, x.ProductCategoryId }).SingleAsync(ct);
+            var now = DateTimeOffset.UtcNow;
+            var candidates = await sales.Promotions.AsNoTracking().Where(x => x.IsActive &&
+                x.StartsAt <= now && (x.EndsAt == null || x.EndsAt > now) &&
+                ((x.Target == PromotionTarget.Category && x.TargetId == product.ProductCategoryId) ||
+                 (x.Target == PromotionTarget.Brand && x.TargetId == product.BrandId) ||
+                 (x.Target == PromotionTarget.Product && x.TargetId == variant.ProductId) ||
+                 (x.Target == PromotionTarget.Variant && x.TargetId == variant.Id))).ToListAsync(ct);
+            promotion = candidates.Where(x => x.UnitDiscount(price.Value) > 0)
+                .OrderByDescending(x => x.UnitDiscount(price.Value)).ThenByDescending(x => x.Target)
+                .ThenBy(x => x.Id).FirstOrDefault();
+        }
+        return sale.AddLine(variant.Id, quantity, price.Value, cost, discountAmount, promotion);
     }
 
     public async Task<SaleDto> SetCustomerAsync(Guid saleId, Guid? customerId,
@@ -407,6 +426,8 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         x.DiscountAmount, x.Total, x.Lines.OrderBy(line => line.ProductVariantId)
             .Select(line => new SaleLineDto(line.Id, line.ProductVariantId, line.Quantity,
                 line.UnitPrice, line.UnitCostSnapshot, line.DiscountAmount, line.LineTotal,
-                line.DiscountType?.ToString(), line.DiscountValue, line.ReturnedQuantity)).ToList(),
+                line.DiscountType?.ToString(), line.DiscountValue, line.ReturnedQuantity)
+                { PromotionId = line.PromotionId, PromotionName = line.PromotionName,
+                    PromotionUnitDiscount = line.PromotionUnitDiscount }).ToList(),
         x.DiscountType?.ToString(), x.DiscountValue, x.PaidAmount, x.BalanceDue);
 }

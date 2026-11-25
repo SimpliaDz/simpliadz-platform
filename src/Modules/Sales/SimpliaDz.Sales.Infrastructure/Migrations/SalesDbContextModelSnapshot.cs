@@ -404,6 +404,17 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.Property<Guid>("ProductVariantId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("PromotionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PromotionName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<decimal?>("PromotionUnitDiscount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -436,6 +447,46 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_SaleLines_ReturnedQuantity_Range", "[ReturnedQuantity] >= 0 AND [ReturnedQuantity] <= [Quantity]");
                         });
+                });
+
+            modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SalePromotion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("EndsAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Target")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive", "Target", "TargetId");
+
+                    b.ToTable("Promotions", "sales");
                 });
 
             modelBuilder.Entity("SimpliaDz.Sales.Core.Entities.SaleReturn", b =>
