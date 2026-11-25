@@ -1,4 +1,4 @@
-# Start SimpliaDz locally
+# Start Simplia locally
 
 This guide starts the backend API against a local tenant on Windows PowerShell. Run the commands from the central development runner, `C:\.develop\.projects\SimpliaDz\simpliadz-runner`. You need the .NET 10 SDK and Docker Desktop running.
 

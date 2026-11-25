@@ -165,8 +165,8 @@ internal static class DemoDataSeeder
         Guid cashierId, CancellationToken ct)
     {
         if (!await db.Organizations.AnyAsync(ct))
-            db.Organizations.Add(new OrganizationProfile("SimpliaDz Demo Shop",
-                "SimpliaDz Demo Shop", "+213 555 010 100", "demo@local.test",
+            db.Organizations.Add(new OrganizationProfile("Simplia Demo Shop",
+                "Simplia Demo Shop", "+213 555 010 100", "demo@local.test",
                 "Algiers, Algeria", "DZD", "fr", true, "Africa/Algiers"));
         if (!await db.WorkSessions.AnyAsync(x => x.UserId == cashierId, ct))
         {

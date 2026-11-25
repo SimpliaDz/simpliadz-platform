@@ -24,7 +24,7 @@ dotnet build src/SimpliaDz.sln -c Release
 ## 2. Import and run
 
 1. Import [the collection](../../postman/SimpliaDz.postman_collection.json) and [the local environment](../../postman/SimpliaDz.local.postman_environment.json) into Postman.
-2. Select **SimpliaDz Local API** as the active environment. Its `baseUrl` is `http://localhost:5288`.
+2. Select **Simplia Local API** as the active environment. Its `baseUrl` is `http://localhost:5288`.
 3. Set the environment's `adminPassword` current value to the seeded or current admin password. The checked-in environment leaves this secret blank.
 4. Run the **entire collection** once in Collection Runner, in its saved order, with one iteration. The first requests check health, log in, and create a restricted user. Later requests use saved IDs and tokens. Running a single folder skips its prerequisites.
 5. Inspect failed assertions in the Runner. The test database retains the records so you can inspect them through the API or SQL Server.

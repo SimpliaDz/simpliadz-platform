@@ -2,9 +2,9 @@
 
 ## Purpose
 
-SimpliaDz already stores customers and their sales in the Sales module. This CRM slice lets a shop recognize a returning customer at checkout and run a simple points program without duplicating customer records. The cashier can find a customer by the existing customer search or by a loyalty card number, see the balance, and issue a configured reward. The card number can be encoded as a barcode by a future printing or mobile screen; this backend does not print cards.
+Simplia already stores customers and their sales in the Sales module. This CRM slice lets a shop recognize a returning customer at checkout and run a simple points program without duplicating customer records. The cashier can find a customer by the existing customer search or by a loyalty card number, see the balance, and issue a configured reward. The card number can be encoded as a barcode by a future printing or mobile screen; this backend does not print cards.
 
-Retail references informed this scope: [Shopify's POS customer management](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/customer-management) connects a customer profile with purchase history; [Square's loyalty accounts](https://developer.squareup.com/docs/loyalty-api/loyalty-accounts) associate one loyalty account with a customer profile; [Square's loyalty overview](https://developer.squareup.com/docs/loyalty-api/overview) describes immutable balance-changing events and return reversals. These are product examples, not SimpliaDz integrations.
+Retail references informed this scope: [Shopify's POS customer management](https://help.shopify.com/en/manual/sell-in-person/shopify-pos/customer-management) connects a customer profile with purchase history; [Square's loyalty accounts](https://developer.squareup.com/docs/loyalty-api/loyalty-accounts) associate one loyalty account with a customer profile; [Square's loyalty overview](https://developer.squareup.com/docs/loyalty-api/overview) describes immutable balance-changing events and return reversals. These are product examples, not Simplia integrations.
 
 ## V1 workflow
 

@@ -1,6 +1,6 @@
 # Production deployment
 
-SimpliaDz uses a stateless API, a separate static web application, SQL Server, and native mobile clients. Build and version API and web images independently; run the migrator as a one-off release job before updating API replicas.
+Simplia uses a stateless API, a separate static web application, SQL Server, and native mobile clients. Build and version API and web images independently; run the migrator as a one-off release job before updating API replicas.
 
 ## Runtime configuration
 

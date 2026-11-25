@@ -1,4 +1,4 @@
-# SimpliaDz — Technical Guide
+# Simplia — Technical Guide
 
 > **Purpose of this document:** explain, in plain language, how this solution is put together so contributors can make changes that fit the existing architecture.
 >

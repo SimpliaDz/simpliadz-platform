@@ -1,4 +1,4 @@
-# SimpliaDz MVP — current client workflow
+# Simplia MVP — current client workflow
 
 This is a **backend feature draft** for discussion with the client. **Available** means the backend has the stated behavior; it does not confirm that a screen or printer workflow exists. **Partial** means part of the client's workflow is available. **Needed** means the proposed workflow has no dedicated endpoint yet. Routes marked **Proposed** are ticket ideas, not working API routes. “Remove” means soft deletion through deactivation; full deletion by an administrator is outside this MVP and will be scoped later. Guided count schedules, one-call scan results, and dedicated HR profiles are discussion ideas; confirm them before treating them as MVP requirements.
 

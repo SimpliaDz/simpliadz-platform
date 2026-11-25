@@ -52,8 +52,8 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "name": "SimpliaDz Store",
-  "legalName": "SimpliaDz SARL",
+  "name": "Simplia Store",
+  "legalName": "Simplia SARL",
   "phone": "+213555000000",
   "email": "contact@example.dz",
   "address": "Algiers, Algeria",

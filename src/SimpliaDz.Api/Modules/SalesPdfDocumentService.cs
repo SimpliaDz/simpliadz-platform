@@ -46,7 +46,7 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
         var location = await inventory.Locations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == sale.LocationId, ct);
         var profile = await organization.Organizations.AsNoTracking().SingleOrDefaultAsync(ct);
         return new SalesDocumentModel(
-            profile?.Name ?? "SimpliaDz", profile?.LegalName, profile?.Address, profile?.Phone,
+            profile?.Name ?? "Simplia", profile?.LegalName, profile?.Address, profile?.Phone,
             profile?.Email, profile?.CurrencyCode ?? "DZD", location?.Name ?? "Location", location?.Address,
             sale.Customer?.Name ?? "Walk-in customer", sale.Customer?.Phone, sale.Customer?.Address,
             sale.SaleNumber ?? $"PF-{sale.Id.ToString("N")[..10].ToUpperInvariant()}", sale.Status.ToString(),
@@ -161,7 +161,7 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
                 column.Item().PaddingTop(7).Text("Document pro forma — non valable comme facture fiscale.").Italic().FontColor(Colors.Grey.Darken1);
             });
         });
-    }).WithMetadata(new DocumentMetadata { Title = $"Pro forma {model.DocumentNumber}", Author = model.OrganizationName, Creator = "SimpliaDz" }).GeneratePdf();
+    }).WithMetadata(new DocumentMetadata { Title = $"Pro forma {model.DocumentNumber}", Author = model.OrganizationName, Creator = "Simplia" }).GeneratePdf();
 
     private static byte[] BuildReceipt(SalesDocumentModel model, Guid saleId) => Document.Create(doc =>
     {
@@ -200,7 +200,7 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
                 c.Item().AlignCenter().Text(saleId.ToString("N")).FontSize(7);
             });
         });
-    }).WithMetadata(new DocumentMetadata { Title = $"Receipt {model.DocumentNumber}", Author = model.OrganizationName, Creator = "SimpliaDz" }).GeneratePdf();
+    }).WithMetadata(new DocumentMetadata { Title = $"Receipt {model.DocumentNumber}", Author = model.OrganizationName, Creator = "Simplia" }).GeneratePdf();
 
     private static void ReceiptAmount(ColumnDescriptor column, string label, decimal amount, string currency,
         bool emphasized = false) => column.Item().Row(row =>

@@ -23,7 +23,7 @@ public static class LoyaltyCardDocument
         var bars = new StringBuilder();
         for (var x = 0; x < matrix.Width; x++)
             if (matrix[x, 0]) bars.Append($"<rect x='{x + 10}' width='1' height='60'/>");
-        var brand = Label(organizationName ?? "SimpliaDz", 38);
+        var brand = Label(organizationName ?? "Simplia", 38);
         var name = Label(customerName, 42);
         return $$"""
             <svg xmlns="http://www.w3.org/2000/svg" width="680" height="440" viewBox="0 0 680 440">
@@ -79,7 +79,7 @@ public static class LoyaltyCardDocument
             client.Credentials = new NetworkCredential(username,
                 protection.CreateProtector("SimpliaDz.OrganizationSettings.v1").Unprotect(encrypted));
         }
-        using var message = new MailMessage(new MailAddress(sender.Address, Get("Email.FromName") ?? "SimpliaDz"), address)
+        using var message = new MailMessage(new MailAddress(sender.Address, Get("Email.FromName") ?? "Simplia"), address)
         {
             Subject = "Votre carte de fidélité",
             Body = "Votre carte de fidélité est jointe à ce message. Présentez son code-barres en caisse."

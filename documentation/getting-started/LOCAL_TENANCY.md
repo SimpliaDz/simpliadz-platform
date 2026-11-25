@@ -1,8 +1,8 @@
 # Local tenant configuration
 
-For the full startup sequence, see [Start SimpliaDz locally](LOCAL_START_GUIDE.md).
+For the full startup sequence, see [Start Simplia locally](LOCAL_START_GUIDE.md).
 
-SimpliaDz uses one database per tenant. During local development, the runner's
+Simplia uses one database per tenant. During local development, the runner's
 ignored `config/tenants.local.json` is the single catalog used by both the API and
 the database migrator. The runner passes its absolute path through
 `SIMPLIADZ_TENANTS_FILE`; a deployed process may supply tenant configuration

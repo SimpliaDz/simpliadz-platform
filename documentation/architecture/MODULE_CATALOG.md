@@ -1,4 +1,4 @@
-# SimpliaDz Module Catalog
+# Simplia Module Catalog
 
 ## Purpose
 

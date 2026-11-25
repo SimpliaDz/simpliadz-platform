@@ -1,10 +1,10 @@
 # PDF documents
 
-SimpliaDz generates documents on the backend with [QuestPDF](https://www.questpdf.com/). PDFs are produced locally in the API process; customer or transaction data is not sent to an external PDF service.
+Simplia generates documents on the backend with [QuestPDF](https://www.questpdf.com/). PDFs are produced locally in the API process; customer or transaction data is not sent to an external PDF service.
 
 ## Licence configuration
 
-The API configures `QuestPDF.Settings.License = LicenseType.Community` at startup. This is permitted only while the organisation that owns and benefits from SimpliaDz qualifies for the QuestPDF Community License (including businesses below USD 1M annual gross revenue). If that eligibility stops, change the configured licence type after obtaining the appropriate QuestPDF licence. See the [official licence guide](https://www.questpdf.com/license/guide.html).
+The API configures `QuestPDF.Settings.License = LicenseType.Community` at startup. This is permitted only while the organisation that owns and benefits from Simplia qualifies for the QuestPDF Community License (including businesses below USD 1M annual gross revenue). If that eligibility stops, change the configured licence type after obtaining the appropriate QuestPDF licence. See the [official licence guide](https://www.questpdf.com/license/guide.html).
 
 ## Current documents
 

@@ -1,6 +1,8 @@
-# SimpliaDz documentation
+# Simplia documentation
 
 Start with [Run the backend locally](getting-started/LOCAL_START_GUIDE.md). The [MVP feature checklist](../features.md) describes what the backend currently supports and what still needs client confirmation. Each guide below covers one part of the system.
+
+The product name is **Simplia**. Existing .NET project paths, database names, and configuration keys such as `SIMPLIADZ_TENANTS_FILE` retain their established names. The branding update requires no database migration.
 
 ## Getting started
 
