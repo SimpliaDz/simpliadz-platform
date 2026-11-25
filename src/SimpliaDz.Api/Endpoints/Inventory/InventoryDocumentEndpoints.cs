@@ -54,6 +54,19 @@ public static class InventoryDocumentEndpoints
             return Results.Ok(template);
         }).RequireAuthorization(PermissionNames.InventoryDocuments.Manage);
 
+        templates.MapPut("/{id:guid}/activate", async (Guid id, HttpContext http,
+            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var template = await db.InventoryDocumentTemplates.FindAsync([id], ct)
+                ?? throw new NotFoundException("Inventory document template", id);
+            if (template.IsActive) return Results.NoContent();
+            template.Activate();
+            await SaveAsync(db, ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "TemplateActivated", "InventoryDocumentTemplate", id,
+                new Dictionary<string, object?> { ["name"] = template.Name }, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.InventoryDocuments.Manage);
+
         templates.MapPut("/{id:guid}/deactivate", async (Guid id,
             [FromServices] InventoryDbContext db, CancellationToken ct) =>
         {

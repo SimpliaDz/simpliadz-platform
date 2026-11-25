@@ -61,4 +61,5 @@ public sealed class InventoryDocumentTemplate
 
     public IReadOnlyList<string> GetColumns() => Columns.Split(',');
     public void Deactivate() { IsActive = false; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Activate() { IsActive = true; UpdatedAt = DateTimeOffset.UtcNow; }
 }

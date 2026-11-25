@@ -48,6 +48,19 @@ public static class BarcodeLabelEndpoints
             return Results.Ok(template);
         }).RequireAuthorization(PermissionNames.BarcodeLabels.Manage);
 
+        templates.MapPut("/{id:guid}/activate", async (Guid id, HttpContext http,
+            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var template = await db.BarcodeLabelTemplates.FindAsync([id], ct)
+                ?? throw new NotFoundException("Barcode label template", id);
+            if (template.IsActive) return Results.NoContent();
+            template.Activate();
+            await SaveAsync(db, ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "TemplateActivated", "BarcodeLabelTemplate", id,
+                new Dictionary<string, object?> { ["name"] = template.Name }, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.BarcodeLabels.Manage);
+
         templates.MapPut("/{id:guid}/deactivate", async (Guid id,
             [FromServices] InventoryDbContext db, CancellationToken ct) =>
         {

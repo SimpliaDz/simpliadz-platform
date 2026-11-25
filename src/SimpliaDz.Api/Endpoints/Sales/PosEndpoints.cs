@@ -53,12 +53,16 @@ public static class PosEndpoints
             ClaimsPrincipal principal, [FromServices] IPosService pos, [FromServices] ISaleService sales,
             CancellationToken ct) =>
         {
+            if (string.IsNullOrWhiteSpace(request.Code) || request.Code.Trim().Length > 64)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                    { ["code"] = ["Scan an item to start a ticket."] });
+            if (!CanUseStockOverride(principal, request.ConfirmPhysicalStock)) return Results.Forbid();
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
-            var sale = await sales.CreateDraftAsync(context.LocationId, request.CustomerId, actor,
-                context.PriceListId, ct);
+            var sale = await sales.StartWithItemAsync(context.LocationId, request.CustomerId, actor,
+                context.PriceListId, request.Code.Trim(), ct, checkStock: !request.ConfirmPhysicalStock);
             return Results.Created($"/sales/{sale.Id}", sale);
-        });
+        }).AuditSale("SaleCreated", null);
 
         group.MapGet("/sales/{saleId:guid}", async (Guid saleId, ClaimsPrincipal principal,
             [FromServices] IPosService pos, [FromServices] ISaleService sales, CancellationToken ct) =>
@@ -66,13 +70,14 @@ public static class PosEndpoints
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
             var sale = await sales.GetByIdAsync(saleId, ct);
-            if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
+            if (sale.CashierId != actor || sale.LocationId != context.LocationId ||
+                sale.Status != "Draft" || sale.Lines.Count == 0)
                 return Results.NotFound();
             return Results.Ok(sale);
         });
 
         group.MapDelete("/sales/{saleId:guid}/lines/{lineId:guid}", async (Guid saleId, Guid lineId,
-            ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
+            ClaimsPrincipal principal, [FromServices] IPosService pos,
             [FromServices] ISaleService sales, CancellationToken ct) =>
         {
             var actor = Actor(principal);
@@ -81,13 +86,11 @@ public static class PosEndpoints
             if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
                 return Results.NotFound();
             var updated = await sales.RemoveLineAsync(saleId, lineId, ct);
-            await BusinessAudit.RecordIfEnabledAsync(http, "SaleLineRemoved", "Sale",
-                saleId, new Dictionary<string, object?> { ["lineId"] = lineId }, ct);
             return Results.Ok(updated);
-        }).WithMetadata(new ExplicitAuditMetadata());
+        }).AuditSale("SaleLineRemoved");
 
         group.MapPost("/sales/{saleId:guid}/cancel", async (Guid saleId,
-            ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
+            ClaimsPrincipal principal, [FromServices] IPosService pos,
             [FromServices] ISaleService sales, CancellationToken ct) =>
         {
             var actor = Actor(principal);
@@ -96,10 +99,8 @@ public static class PosEndpoints
             if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
                 return Results.NotFound();
             await sales.CancelAsync(saleId, ct);
-            await BusinessAudit.RecordIfEnabledAsync(http, "SaleCancelled", "Sale",
-                saleId, new Dictionary<string, object?> { ["status"] = "Cancelled" }, ct);
             return Results.NoContent();
-        }).WithMetadata(new ExplicitAuditMetadata());
+        }).AuditSale("SaleCancelled");
 
         group.MapPost("/sales/{saleId:guid}/scan", async (Guid saleId,
             [FromBody] PosScanRequest request, ClaimsPrincipal principal, [FromServices] IPosService pos,
@@ -108,20 +109,23 @@ public static class PosEndpoints
             if (string.IsNullOrWhiteSpace(request.Code) || request.Code.Trim().Length > 64)
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                     { ["code"] = ["Scan code must contain 1 to 64 characters."] });
+            if (!CanUseStockOverride(principal, request.ConfirmPhysicalStock)) return Results.Forbid();
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
             var sale = await sales.GetByIdAsync(saleId, ct);
             if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
                 return Results.Conflict("This ticket is not available at the current register.");
+            if (sale.PriceListId != context.PriceListId)
+                return Results.Conflict("This ticket does not use the current retail price list. Start a new POS ticket.");
             try
             {
-                return Results.Ok(await sales.AddLineAsync(saleId, null, request.Code.Trim(), 1, 0, ct, checkStock: true));
+                return Results.Ok(await sales.AddLineAsync(saleId, null, request.Code.Trim(), 1, 0, ct, checkStock: !request.ConfirmPhysicalStock));
             }
             catch (SimpliaDz.BuildingBlocks.Exceptions.NotFoundException)
             {
-                return Results.Ok(await sales.AddLineAsync(saleId, request.Code.Trim(), null, 1, 0, ct, checkStock: true));
+                return Results.Ok(await sales.AddLineAsync(saleId, request.Code.Trim(), null, 1, 0, ct, checkStock: !request.ConfirmPhysicalStock));
             }
-        });
+        }).AuditSale("SaleItemAdded");
 
         group.MapPut("/sales/{saleId:guid}/lines/{lineId:guid}/quantity", async (Guid saleId,
             Guid lineId, [FromBody] PosSetLineQuantityRequest request, ClaimsPrincipal principal,
@@ -131,13 +135,14 @@ public static class PosEndpoints
             if (request.Quantity <= 0)
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                     { ["quantity"] = ["Quantity must be greater than zero."] });
+            if (!CanUseStockOverride(principal, request.ConfirmPhysicalStock)) return Results.Forbid();
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
             var sale = await sales.GetByIdAsync(saleId, ct);
             if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
                 return Results.Conflict("This ticket is not available at the current register.");
-            return Results.Ok(await sales.SetLineQuantityAsync(saleId, lineId, request.Quantity, ct, checkStock: true));
-        });
+            return Results.Ok(await sales.SetLineQuantityAsync(saleId, lineId, request.Quantity, ct, checkStock: !request.ConfirmPhysicalStock));
+        }).AuditSale("SaleQuantityChanged");
 
         group.MapPut("/sales/{saleId:guid}/customer", async (Guid saleId,
             [FromBody] PosSetCustomerRequest request, ClaimsPrincipal principal,
@@ -153,7 +158,7 @@ public static class PosEndpoints
             if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
                 return Results.Conflict("This ticket is not available at the current register.");
             return Results.Ok(await sales.SetCustomerAsync(saleId, request.CustomerId, ct));
-        });
+        }).AuditSale("SaleCustomerChanged");
 
         group.MapGet("/customers", async (string? search,
             [FromServices] ICustomerService customers, [FromServices] ILoyaltyService loyalty,
@@ -193,38 +198,48 @@ public static class PosEndpoints
         });
 
         group.MapPost("/sales/{saleId:guid}/pay", async (Guid saleId,
-            [FromBody] PosPaymentRequest request, ClaimsPrincipal principal, [FromServices] IPosService pos,
+            [FromBody] PosPaymentRequest request, ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
             [FromServices] ISaleService sales, [FromServices] IPaymentService payments, CancellationToken ct) =>
         {
             if (request.Amount <= 0 || request.Id == Guid.Empty || !Enum.TryParse<PaymentMethod>(
                     request.PaymentMethod, true, out var method))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 { ["payment"] = ["A valid payment ID, method, and positive amount are required."] });
+            if (!CanUseStockOverride(principal, request.ConfirmPhysicalStock)) return Results.Forbid();
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
             var current = await sales.GetByIdAsync(saleId, ct);
             if (current.CashierId != actor || current.LocationId != context.LocationId)
                 return Results.Conflict("This ticket is not available at the current register.");
+            if (current.Status == "Draft" && current.PriceListId != context.PriceListId)
+                return Results.Conflict("This ticket does not use the current retail price list. Start a new POS ticket.");
             var completed = current.Status == "Draft"
-                ? await sales.CompleteAsync(saleId, actor, ct)
+                ? await sales.CompleteAsync(saleId, actor, ct, adjustShortfall: request.ConfirmPhysicalStock)
                 : current;
+            if (current.Status == "Draft")
+                await SaleAudit.RecordAsync(http, "SaleCompleted", current, completed with { Lines = current.Lines });
             var payment = await payments.RecordAsync(request.Id, saleId, request.Amount, method, actor, ct,
                 context.CashSessionId);
+            await SaleAudit.RecordAsync(http, "SalePaymentRecorded", completed,
+                await sales.GetByIdAsync(saleId, CancellationToken.None), payment);
             return Results.Ok(new PosPaymentResult(completed, payment));
-        });
+        }).WithMetadata(new ExplicitAuditMetadata());
 
         return app;
     }
+
+    private static bool CanUseStockOverride(ClaimsPrincipal principal, bool requested) =>
+        !requested || principal.HasClaim("permission", PermissionNames.Stock.Manage);
 
     private static Guid Actor(ClaimsPrincipal principal) => Guid.TryParse(
         principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) && id != Guid.Empty ? id :
         throw new UnauthorizedAccessException("Authenticated user ID is required.");
 }
 
-public sealed record PosCreateSaleRequest(Guid? CustomerId);
-public sealed record PosScanRequest(string Code);
-public sealed record PosSetLineQuantityRequest(int Quantity);
+public sealed record PosCreateSaleRequest(Guid? CustomerId, string? Code, bool ConfirmPhysicalStock = false);
+public sealed record PosScanRequest(string Code, bool ConfirmPhysicalStock = false);
+public sealed record PosSetLineQuantityRequest(int Quantity, bool ConfirmPhysicalStock = false);
 public sealed record PosSetCustomerRequest(Guid? CustomerId);
 public sealed record PosCustomerDto(Guid Id, string Name, string? Phone, string? Email);
-public sealed record PosPaymentRequest(Guid Id, decimal Amount, string PaymentMethod);
+public sealed record PosPaymentRequest(Guid Id, decimal Amount, string PaymentMethod, bool ConfirmPhysicalStock = false);
 public sealed record PosPaymentResult(SaleDto Sale, PaymentDto Payment);

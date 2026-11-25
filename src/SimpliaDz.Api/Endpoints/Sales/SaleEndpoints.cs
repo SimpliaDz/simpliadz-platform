@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using SimpliaDz.Audit.UseCases;
 using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
@@ -42,6 +41,24 @@ public static class SaleEndpoints
                 selectedPage, selectedSize, ct));
         }).RequireAuthorization(PermissionNames.Sales.View);
 
+        group.MapGet("/history", async (Guid? locationId, Guid? customerId, string? status, string? search,
+            DateTimeOffset? from, DateTimeOffset? until, int? page, int? pageSize,
+            [FromServices] ISaleService sales, CancellationToken ct) =>
+        {
+            if (from >= until)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                    { ["dateRange"] = ["The end must be after the start."] });
+            return Results.Ok(await sales.HistoryAsync(locationId, customerId, status, search,
+                from, until, page ?? 1, pageSize ?? 50, ct));
+        }).RequireAuthorization(PermissionNames.Sales.View);
+
+        group.MapGet("/history/customers", async (string? search, [FromServices] ICustomerService customers,
+            CancellationToken ct) =>
+        {
+            var matches = await customers.SearchAsync(search, null, null, 1, 25, ct);
+            return Results.Ok(matches.Select(customer => new { customer.Id, customer.Name }));
+        }).RequireAuthorization(PermissionNames.Sales.View);
+
         group.MapGet("/{id:guid}", async (Guid id, [FromServices] ISaleService sales,
             CancellationToken ct) => Results.Ok(await sales.GetByIdAsync(id, ct)))
             .RequireAuthorization(PermissionNames.Sales.View);
@@ -53,11 +70,13 @@ public static class SaleEndpoints
             if (request.LocationId == Guid.Empty) errors["locationId"] = ["Location is required."];
             if (request.CustomerId == Guid.Empty) errors["customerId"] = ["Customer ID must be valid."];
             if (request.PriceListId == Guid.Empty) errors["priceListId"] = ["Price list is required."];
+            if (string.IsNullOrWhiteSpace(request.Code) || request.Code.Trim().Length > 64)
+                errors["code"] = ["Scan an item to start a sale."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
-            var sale = await sales.CreateDraftAsync(request.LocationId, request.CustomerId,
-                RequireActor(principal), request.PriceListId, ct);
+            var sale = await sales.StartWithItemAsync(request.LocationId, request.CustomerId,
+                RequireActor(principal), request.PriceListId, request.Code!.Trim(), ct);
             return Results.Created($"/sales/{sale.Id}", sale);
-        }).RequireAuthorization(PermissionNames.Sales.Manage);
+        }).AuditSale("SaleCreated", null).RequireAuthorization(PermissionNames.Sales.Manage);
 
         group.MapPost("/{id:guid}/lines", async (Guid id, [FromBody] AddSaleLineRequest request,
             ClaimsPrincipal principal, [FromServices] IAuthorizationService authorization,
@@ -80,7 +99,7 @@ public static class SaleEndpoints
                 return Results.Forbid();
             return Results.Ok(await sales.AddLineAsync(id, request.Sku, request.Barcode,
                 request.Quantity, request.DiscountAmount, ct));
-        }).RequireAuthorization(PermissionNames.Sales.Manage);
+        }).AuditSale("SaleItemAdded", "id").RequireAuthorization(PermissionNames.Sales.Manage);
 
         group.MapPut("/{id:guid}/lines/{lineId:guid}/discount", async (Guid id, Guid lineId,
             [FromBody] ApplySaleDiscountRequest request, [FromServices] ISaleService sales,
@@ -90,7 +109,7 @@ public static class SaleEndpoints
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             return Results.Ok(await sales.ApplyLineDiscountAsync(id, lineId,
                 Enum.Parse<SaleDiscountType>(request.Type.Trim(), true), request.Value, ct));
-        }).RequireAuthorization(PermissionNames.Sales.Manage,
+        }).AuditSale("SaleLineDiscountChanged", "id").RequireAuthorization(PermissionNames.Sales.Manage,
             PermissionNames.SaleDiscounts.Apply);
 
         group.MapPut("/{id:guid}/discount", async (Guid id,
@@ -101,7 +120,7 @@ public static class SaleEndpoints
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             return Results.Ok(await sales.ApplySaleDiscountAsync(id,
                 Enum.Parse<SaleDiscountType>(request.Type.Trim(), true), request.Value, ct));
-        }).RequireAuthorization(PermissionNames.Sales.Manage,
+        }).AuditSale("SaleDiscountChanged", "id").RequireAuthorization(PermissionNames.Sales.Manage,
             PermissionNames.SaleDiscounts.Apply);
 
         group.MapPost("/{id:guid}/complete", async (Guid id, ClaimsPrincipal principal,
@@ -120,21 +139,15 @@ public static class SaleEndpoints
                 }
             }
             return Results.Ok(sale);
-        })
+        }).AuditSale("SaleCompleted", "id")
             .RequireAuthorization(PermissionNames.Sales.Manage);
 
         group.MapPost("/{id:guid}/cancel", async (Guid id,
-            HttpContext http, [FromServices] ISaleService sales,
-            [FromServices] IAuditTrail audit, CancellationToken ct) =>
+            [FromServices] ISaleService sales, CancellationToken ct) =>
         {
-            var before = await sales.GetByIdAsync(id, ct);
             await sales.CancelAsync(id, ct);
-            await BusinessAudit.RecordAsync(audit, http, "SaleCancelled", "Sale", id,
-                new Dictionary<string, object?> { ["status"] = before.Status,
-                    ["saleNumber"] = before.SaleNumber },
-                new Dictionary<string, object?> { ["status"] = "Cancelled" }, ct);
             return Results.NoContent();
-        }).RequireAudit().RequireAuthorization(PermissionNames.Sales.Manage);
+        }).RequireAudit().AuditSale("SaleCancelled", "id").RequireAuthorization(PermissionNames.Sales.Manage);
 
         return app;
     }
@@ -163,7 +176,7 @@ public static class SaleEndpoints
     }
 }
 
-public sealed record CreateSaleRequest(Guid LocationId, Guid? CustomerId, Guid PriceListId);
+public sealed record CreateSaleRequest(Guid LocationId, Guid? CustomerId, Guid PriceListId, string? Code);
 public sealed record AddSaleLineRequest(string? Sku, string? Barcode, int Quantity,
     decimal DiscountAmount);
 public sealed record ApplySaleDiscountRequest(string Type, decimal Value);

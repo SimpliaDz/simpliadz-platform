@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.UseCases.Services;
@@ -33,6 +35,27 @@ public static class StockEndpoints
             [FromServices] IStockService stock, CancellationToken ct) =>
             Results.Ok(await stock.GetByLocationAsync(locationId, ct)))
             .RequireAuthorization(PermissionNames.Stock.View);
+
+        group.MapGet("/overview", async ([FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var balances = await db.StockBalances.AsNoTracking().Select(x => new
+            {
+                ProductVariantId = x.VariantId, x.LocationId, x.QuantityOnHand, x.UpdatedAt
+            }).ToListAsync(ct);
+            var prices = await (from item in db.PriceListItems.AsNoTracking()
+                join list in db.PriceLists.AsNoTracking() on item.PriceListId equals list.Id
+                where list.IsActive
+                orderby list.Name
+                select new { item.ProductVariantId, PriceListName = list.Name, list.CurrencyCode, item.Price })
+                .ToListAsync(ct);
+            var attributes = await db.ProductVariants.AsNoTracking().Select(variant => new
+            {
+                ProductVariantId = variant.Id,
+                Values = variant.AttributeValues.Select(value => value.AttributeValue.Value)
+                    .OrderBy(value => value).ToList(),
+            }).ToListAsync(ct);
+            return Results.Ok(new { balances, prices, attributes });
+        }).RequireAuthorization(PermissionNames.Stock.View);
 
         group.MapGet("/movements", async (Guid? productVariantId, Guid? locationId,
             int? page, int? pageSize, [FromServices] IStockService stock, CancellationToken ct) =>

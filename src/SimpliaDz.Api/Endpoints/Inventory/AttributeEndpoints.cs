@@ -1,5 +1,8 @@
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SimpliaDz.BuildingBlocks.Exceptions;
+using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.Contracts.Attributes;
@@ -43,6 +46,39 @@ public static class AttributeEndpoints
             Results.Ok(await sender.Send(new SetAttributeValueOrderCommand(id, valueId, request.DisplayOrder), ct)))
             .RequireAuthorization(PermissionNames.Attributes.Manage);
 
+        group.MapPut("/{id:guid}/values/{valueId:guid}", async (Guid id, Guid valueId,
+            [FromBody] RenameAttributeValueRequest request, [FromServices] InventoryDbContext db,
+            CancellationToken ct) =>
+        {
+            var current = await db.AttributeValues.SingleOrDefaultAsync(x => x.Id == valueId && x.AttributeId == id, ct)
+                ?? throw new NotFoundException("Attribute value", valueId);
+            current.Rename(request.Value);
+            if (await db.AttributeValues.AnyAsync(x => x.AttributeId == id && x.Id != valueId &&
+                    x.Value == current.Value, ct))
+                throw new ConflictException("This attribute already contains that value.");
+            await db.SaveChangesAsync(ct);
+            return Results.NoContent();
+        }).RequireAuthorization(PermissionNames.Attributes.Manage);
+
+        group.MapDelete("/{id:guid}/values/{valueId:guid}", async (Guid id, Guid valueId,
+            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var current = await db.AttributeValues.SingleOrDefaultAsync(x => x.Id == valueId && x.AttributeId == id, ct)
+                ?? throw new NotFoundException("Attribute value", valueId);
+            if (await db.ProductVariants.AnyAsync(variant => variant.AttributeValues
+                .Any(value => value.AttributeValueId == valueId), ct))
+                throw new ConflictException("This value is used by product variants. Replace it on those variants before deleting it.");
+            db.AttributeValues.Remove(current);
+            try { await db.SaveChangesAsync(ct); }
+            catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 547 })
+            {
+                throw new ConflictException("This value is used by product variants. Replace it before deleting it.");
+            }
+            return Results.NoContent();
+        }).RequireAuthorization(PermissionNames.Attributes.Manage);
+
         return app;
     }
 }
+
+public sealed record RenameAttributeValueRequest(string Value);

@@ -6,6 +6,8 @@ public interface ISaleService
 {
     Task<SaleDto> CreateDraftAsync(Guid locationId, Guid? customerId, Guid cashierId,
         Guid priceListId, CancellationToken ct);
+    Task<SaleDto> StartWithItemAsync(Guid locationId, Guid? customerId, Guid cashierId,
+        Guid priceListId, string code, CancellationToken ct, bool checkStock = true);
     Task<SaleDto> AddLineAsync(Guid saleId, string? sku, string? barcode, int quantity,
         decimal discountAmount, CancellationToken ct, bool checkStock = false);
     Task<SaleDto> SetCustomerAsync(Guid saleId, Guid? customerId, CancellationToken ct);
@@ -17,12 +19,16 @@ public interface ISaleService
         decimal value, CancellationToken ct);
     Task<SaleDto> ApplyLineDiscountAsync(Guid saleId, Guid lineId,
         SaleDiscountType type, decimal value, CancellationToken ct);
-    Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct);
+    Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct, bool adjustShortfall = false);
     Task CancelAsync(Guid saleId, CancellationToken ct);
     Task<SaleDto> GetByIdAsync(Guid saleId, CancellationToken ct);
     Task<IReadOnlyList<SaleDto>> ListAsync(Guid? locationId, Guid? customerId,
         string? status, string? search, int page, int pageSize, CancellationToken ct);
+    Task<SaleHistoryDto> HistoryAsync(Guid? locationId, Guid? customerId, string? status,
+        string? search, DateTimeOffset? from, DateTimeOffset? until, int page, int pageSize, CancellationToken ct);
 }
+
+public sealed record SaleHistoryDto(IReadOnlyList<SaleDto> Items, long Count, decimal Total);
 
 public sealed record SaleLineDto(Guid Id, Guid ProductVariantId, int Quantity,
     decimal UnitPrice, decimal UnitCostSnapshot, decimal DiscountAmount, decimal LineTotal,

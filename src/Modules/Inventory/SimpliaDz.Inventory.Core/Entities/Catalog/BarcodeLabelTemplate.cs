@@ -52,6 +52,7 @@ public sealed class BarcodeLabelTemplate
     }
 
     public void Deactivate() { IsActive = false; UpdatedAt = DateTimeOffset.UtcNow; }
+    public void Activate() { IsActive = true; UpdatedAt = DateTimeOffset.UtcNow; }
 
     private static bool TwoDecimals(decimal value) => decimal.Round(value, 2) == value;
 }

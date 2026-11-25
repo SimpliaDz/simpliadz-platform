@@ -70,7 +70,8 @@ public sealed class SalesDbContext : DbContext
                     entry.State == EntityState.Modified &&
                     entry.Property(x => x.Revision).IsModified &&
                     entry.Property(x => x.Status).OriginalValue == SaleStatus.Draft &&
-                    entry.Entity.Status == SaleStatus.Draft))
+                    (entry.Entity.Status == SaleStatus.Draft ||
+                     (entry.Entity.Status == SaleStatus.Cancelled && entry.Entity.Lines.Count == 0))))
                 throw new InvalidOperationException("Sale history cannot be deleted.");
         }
         if (ChangeTracker.Entries<Payment>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
@@ -54,7 +55,7 @@ public static class SaleReturnEndpoints
                 }
             }
             return Results.Created($"/returns/{result.Id}", result);
-        }).RequireAuthorization(PermissionNames.Sales.Manage,
+        }).AuditSale("SaleReturned").RequireAuthorization(PermissionNames.Sales.Manage,
             PermissionNames.SaleReturns.Manage);
 
         group.MapGet("/{saleId:guid}/returns", async (Guid saleId,

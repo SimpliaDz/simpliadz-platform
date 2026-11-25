@@ -75,18 +75,23 @@ public sealed class SaleIntegrationTests
             await sales.SaveChangesAsync();
             var cashier = Guid.NewGuid();
             var service = new SaleService(sales, inventory, purchasing, tenant);
-            var posDraft = await service.CreateDraftAsync(location.Id, null, cashier,
-                priceList.Id, CancellationToken.None);
-            posDraft = await service.AddLineAsync(posDraft.Id, "SALE-TEST", null, 2, 0m,
+            await Assert.ThrowsAsync<NotFoundException>(() => service.StartWithItemAsync(
+                location.Id, null, cashier, priceList.Id, "UNKNOWN-ITEM", CancellationToken.None));
+            Assert.False(await sales.Sales.AnyAsync());
+            var posDraft = await service.StartWithItemAsync(location.Id, null, cashier,
+                priceList.Id, "SALE-TEST", CancellationToken.None);
+            posDraft = await service.AddLineAsync(posDraft.Id, "SALE-TEST", null, 1, 0m,
                 CancellationToken.None, checkStock: true);
             var lineId = posDraft.Lines.Single().Id;
-            await Assert.ThrowsAsync<ConflictException>(() => service.SetLineQuantityAsync(
+            await Assert.ThrowsAsync<InsufficientStockException>(() => service.SetLineQuantityAsync(
                 posDraft.Id, lineId, 11, CancellationToken.None, checkStock: true));
-            await Assert.ThrowsAsync<ConflictException>(() => service.AddLineAsync(
+            await Assert.ThrowsAsync<InsufficientStockException>(() => service.AddLineAsync(
                 posDraft.Id, "SALE-TEST", null, 9, 0m, CancellationToken.None, checkStock: true));
             var removed = await service.RemoveLineAsync(posDraft.Id, lineId, CancellationToken.None);
             Assert.Empty(removed.Lines);
             Assert.Equal(0m, removed.Total);
+            Assert.Equal("Cancelled", removed.Status);
+            Assert.Empty(await service.ListAsync(null, null, null, null, 1, 50, CancellationToken.None));
             Assert.False(await sales.SaleLines.AsNoTracking().AnyAsync(line => line.Id == lineId));
 
             var first = await service.CreateDraftAsync(location.Id, customer.Id, cashier,
@@ -236,6 +241,24 @@ public sealed class SaleIntegrationTests
             Assert.Equal(2, (await returns.ListBySaleAsync(first.Id, CancellationToken.None)).Count);
             Assert.Equal(partial.Id, (await returns.GetByIdAsync(partialId,
                 CancellationToken.None)).Id);
+
+            var discrepancy = await service.StartWithItemAsync(location.Id, null, cashier,
+                priceList.Id, "SALE-TEST", CancellationToken.None);
+            await service.SetLineQuantityAsync(discrepancy.Id, discrepancy.Lines.Single().Id, 10,
+                CancellationToken.None);
+            await service.CompleteAsync(discrepancy.Id, cashier, CancellationToken.None, adjustShortfall: true);
+            Assert.Equal(0, await inventory.StockBalances.Select(x => x.QuantityOnHand).SingleAsync());
+
+            await Assert.ThrowsAsync<InsufficientStockException>(() => service.StartWithItemAsync(
+                location.Id, null, cashier, priceList.Id, "SALE-TEST", CancellationToken.None));
+            var zeroStock = await service.StartWithItemAsync(location.Id, null, cashier,
+                priceList.Id, "SALE-TEST", CancellationToken.None, checkStock: false);
+            await service.CompleteAsync(zeroStock.Id, cashier, CancellationToken.None, adjustShortfall: true);
+            Assert.Equal(0, await inventory.StockBalances.Select(x => x.QuantityOnHand).SingleAsync());
+            var correction = await inventory.StockMovements.SingleAsync(x =>
+                x.ReferenceId == zeroStock.Id && x.ReferenceType == "PosStockDiscrepancy");
+            Assert.Equal(StockMovementType.Adjustment, correction.MovementType);
+            Assert.Equal(1, correction.QuantityDelta);
         }
         finally
         {

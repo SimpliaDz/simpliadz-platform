@@ -61,9 +61,16 @@ internal static class DemoDataSeeder
 
         Guid? completedSaleId = null;
         if (tenant.IsModuleEnabled("Sales"))
+        {
             completedSaleId = await SeedSalesAsync(services.GetRequiredService<SalesDbContext>(),
                 tenant.ConnectionString, mainId, Variant("TSHIRT-BLK-M"),
                 users.CashierId, inventory, ct);
+            var secondShop = await EnsureHistoryShopAsync(inventory, ct);
+            await SeedSalesHistoryAsync(tenant.ConnectionString, [mainId, secondShop], users.CashierId, ct);
+            if (tenant.IsModuleEnabled("Accounting"))
+                await SeedHistoricalExpensesAsync(services.GetRequiredService<AccountingDbContext>(),
+                    [mainId, secondShop], users.ManagerId, ct);
+        }
 
         if (tenant.IsModuleEnabled("Crm") && tenant.IsModuleEnabled("Sales"))
             await SeedCrmAsync(services.GetRequiredService<CrmDbContext>(),
@@ -212,6 +219,42 @@ internal static class DemoDataSeeder
             var count = new InventoryCount(mainId, Actor);
             count.AddLine(transferVariantId, expected);
             db.InventoryCounts.Add(count);
+        }
+        if (!await db.StockTransfers.AnyAsync(x => x.CreatedBy == "demo-cancelled-transfer", ct))
+        {
+            var transfer = new StockTransfer(mainId, warehouseId, "demo-cancelled-transfer");
+            transfer.AddLine(transferVariantId, 1);
+            transfer.Cancel();
+            db.StockTransfers.Add(transfer);
+        }
+        if (!await db.InventoryCounts.AnyAsync(x => x.CreatedBy == "demo-count-difference", ct))
+        {
+            var expected = await db.StockBalances.Where(x => x.VariantId == transferVariantId &&
+                x.LocationId == mainId).Select(x => x.QuantityOnHand).SingleAsync(ct);
+            var count = new InventoryCount(mainId, "demo-count-difference");
+            count.AddLine(transferVariantId, expected);
+            count.SetCountedQuantity(transferVariantId, expected + 1);
+            db.InventoryCounts.Add(count);
+        }
+        if (!await db.BarcodeLabelTemplates.AnyAsync(x => x.Name == "Demo Archived Label", ct))
+        {
+            var template = new BarcodeLabelTemplate("Demo Archived Label", 210, 297, 65, 30, 8, 3, true, true);
+            template.Deactivate();
+            db.BarcodeLabelTemplates.Add(template);
+        }
+        if (!await db.InventoryDocumentTemplates.AnyAsync(x => x.Name == "Demo Archived Stock List", ct))
+        {
+            var template = new InventoryDocumentTemplate("Demo Archived Stock List", InventoryDocumentType.StockList,
+                "Demo stock levels", ["Product", "Sku", "Quantity"], "A4", false, null);
+            template.Deactivate();
+            db.InventoryDocumentTemplates.Add(template);
+        }
+        if (!await db.ProductAttributes.AnyAsync(x => x.Name == "Demo Packaging", ct))
+        {
+            var attribute = new ProductAttribute("Demo Packaging");
+            attribute.AddValue("Single pack", 1);
+            attribute.AddValue("Gift box", 2);
+            db.ProductAttributes.Add(attribute);
         }
         await db.SaveChangesAsync(ct);
         await SeedUnlabelledProductAsync(db, ct);
@@ -427,6 +470,139 @@ internal static class DemoDataSeeder
         await stock.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return completed.Id;
+    }
+
+    private static async Task<Guid> EnsureHistoryShopAsync(InventoryDbContext db, CancellationToken ct)
+    {
+        var shop = await db.Locations.SingleOrDefaultAsync(x => x.Code == "DEMO-EAST", ct);
+        if (shop is not null) return shop.Id;
+        shop = new InventoryLocation("Demo East Shop", "DEMO-EAST");
+        db.Locations.Add(shop);
+        var inactive = new InventoryLocation("Demo Closed Shop", "DEMO-CLOSED");
+        inactive.Deactivate();
+        if (!await db.Locations.AnyAsync(x => x.Code == "DEMO-CLOSED", ct)) db.Locations.Add(inactive);
+        await db.SaveChangesAsync(ct);
+        return shop.Id;
+    }
+
+    private static Guid HistoryId(string key) => new(System.Security.Cryptography.SHA256.HashData(
+        System.Text.Encoding.UTF8.GetBytes($"{Marker}:{key}"))[..16]);
+
+    private static async Task SeedSalesHistoryAsync(string connectionString, Guid[] shops,
+        Guid cashierId, CancellationToken ct)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(ct);
+        await using var sales = new SalesDbContext(new DbContextOptionsBuilder<SalesDbContext>()
+            .UseSqlServer(connection).Options);
+        await using var stock = new InventoryDbContext(new DbContextOptionsBuilder<InventoryDbContext>()
+            .UseSqlServer(connection).Options);
+        await using var transaction = await sales.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        await stock.Database.UseTransactionAsync(transaction.GetDbTransaction(), ct);
+
+        var priceList = await stock.PriceLists.SingleAsync(list => list.Name == "Retail" &&
+            list.CurrencyCode == "DZD", ct);
+        var variants = await stock.PriceListItems.AsNoTracking()
+            .Where(item => item.PriceListId == priceList.Id && item.Price > 0)
+            .OrderBy(item => item.ProductVariantId)
+            .Select(item => new { item.ProductVariantId, item.Price }).Take(12).ToListAsync(ct);
+        if (variants.Count == 0) return;
+        var customerIds = await sales.Customers.Where(customer => customer.IsActive &&
+            (customer.Email == "retail.demo@local.test" || customer.Email == "wholesale.demo@local.test"))
+            .OrderBy(customer => customer.Email).Select(customer => customer.Id).ToListAsync(ct);
+        var variantIds = variants.Select(item => item.ProductVariantId).ToArray();
+        var balances = await stock.StockBalances.Where(balance =>
+                shops.Contains(balance.LocationId) && variantIds.Contains(balance.VariantId))
+            .ToDictionaryAsync(balance => (balance.LocationId, balance.VariantId), ct);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var dates = Enumerable.Range(0, 84).Select(offset => today.AddDays(-offset)).Reverse();
+        var fixtures = (from day in dates
+            from shop in shops
+            from slot in Enumerable.Range(0, 2)
+            let id = HistoryId($"history:{shop:N}:{day:yyyy-MM-dd}:{slot}")
+            select (day, shop, slot, id)).ToArray();
+        var paymentIds = fixtures.Select(fixture => fixture.id).ToArray();
+        var existing = (await sales.Payments.Where(payment => paymentIds.Contains(payment.Id))
+            .Select(payment => payment.Id).ToListAsync(ct)).ToHashSet();
+        foreach (var (day, shop, slot, id) in fixtures)
+        {
+            if (existing.Contains(id)) continue;
+            var ordinal = day.DayNumber + slot + Array.IndexOf(shops, shop);
+            var item = variants[ordinal % variants.Count];
+            var quantity = 1 + ordinal % 4;
+            var timestamp = new DateTimeOffset(day.ToDateTime(new TimeOnly(10 + slot * 5, ordinal % 60)), TimeSpan.Zero);
+            Guid? customer = ordinal % 3 == 0 || customerIds.Count == 0 ? null : customerIds[ordinal % customerIds.Count];
+            var sale = new Sale(shop, customer, cashierId, priceList.Id);
+            var saleLine = sale.AddLine(item.ProductVariantId, quantity, item.Price, decimal.Round(item.Price * .55m, 2));
+            if (ordinal % 4 == 0) sale.ApplySaleDiscount(SaleDiscountType.Percentage, 10m);
+            sale.Complete(cashierId, timestamp);
+            sale.RecordPayment(sale.Total);
+            sales.Sales.Add(sale);
+            sales.Payments.Add(new Payment(id, sale.Id, sale.Total,
+                ordinal % 2 == 0 ? PaymentMethod.Cash : PaymentMethod.Card, cashierId, paidAt: timestamp));
+            if (ordinal % 11 == 0 && day < today)
+            {
+                var returnQuantity = ordinal % 22 == 0 ? quantity : 1;
+                var unitRefund = decimal.Round(sale.Total / quantity, 4, MidpointRounding.ToZero);
+                var refund = new SaleReturn(HistoryId($"refund:{id:N}"), sale.Id, shop,
+                    "Historical demo return: item not resellable", cashierId,
+                    [new SaleReturnLineItem(saleLine.Id, item.ProductVariantId, returnQuantity, unitRefund, false)]);
+                sale.RecordReturn(saleLine.Id, returnQuantity);
+                sales.SaleReturns.Add(refund);
+                sales.Entry(refund).Property(x => x.ReturnDate).CurrentValue = timestamp.AddDays(1);
+            }
+
+            if (!balances.TryGetValue((shop, item.ProductVariantId), out var balance))
+            {
+                balance = new StockBalance(item.ProductVariantId, shop);
+                stock.StockBalances.Add(balance);
+                balances.Add((shop, item.ProductVariantId), balance);
+                var opening = new StockMovement(item.ProductVariantId, shop, StockMovementType.OpeningBalance,
+                    0, Actor, reason: "Opening balance for demo history");
+                stock.StockMovements.Add(opening);
+                stock.Entry(opening).Property(x => x.OccurredAt).CurrentValue = timestamp.AddHours(-2);
+            }
+            // Add dedicated demo supply for each historical sale, preserving current operational balances.
+            var supply = new StockMovement(item.ProductVariantId, shop, StockMovementType.Receipt,
+                quantity, Actor, reference: sale.SaleNumber, reason: "Historical demo supply",
+                referenceType: "DemoHistorySupply", referenceId: sale.Id, sourceLineNumber: 1);
+            stock.StockMovements.Add(supply);
+            stock.Entry(supply).Property(x => x.OccurredAt).CurrentValue = timestamp.AddHours(-1);
+            var movement = new StockMovement(item.ProductVariantId, shop, StockMovementType.Sale,
+                -quantity, Actor, reference: sale.SaleNumber, referenceType: "Sale", referenceId: sale.Id, sourceLineNumber: 1);
+            stock.StockMovements.Add(movement);
+            stock.Entry(movement).Property(x => x.OccurredAt).CurrentValue = timestamp;
+        }
+        await sales.SaveChangesAsync(ct);
+        await stock.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
+    private static async Task SeedHistoricalExpensesAsync(AccountingDbContext db, Guid[] shops,
+        Guid managerId, CancellationToken ct)
+    {
+        var category = await db.ExpenseCategories.SingleOrDefaultAsync(x => x.Name == "Demo Operations", ct);
+        if (category is null)
+        {
+            category = new ExpenseCategory("Demo Operations");
+            db.ExpenseCategories.Add(category);
+        }
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var existing = (await db.Expenses.Where(expense => expense.Description != null && expense.Description.StartsWith(Marker + " History"))
+            .Select(expense => expense.Description).ToListAsync(ct)).ToHashSet();
+        foreach (var shop in shops)
+        {
+            for (var offset = 0; offset < 84; offset++)
+            {
+                var day = today.AddDays(-offset);
+                if (day.DayNumber % 7 != 0) continue;
+                var description = $"{Marker} History {shop:N} {day:yyyy-MM-dd}";
+                if (existing.Contains(description)) continue;
+                db.Expenses.Add(new Expense(category.Id, shop, 2500m + day.DayNumber % 5 * 350m,
+                    day, description, managerId));
+            }
+        }
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task SeedAccountingAsync(AccountingDbContext db,

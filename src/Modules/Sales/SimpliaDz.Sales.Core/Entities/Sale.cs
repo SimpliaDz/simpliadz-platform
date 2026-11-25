@@ -160,7 +160,7 @@ public sealed class Sale
         return amount;
     }
 
-    public void Complete(Guid completedBy)
+    public void Complete(Guid completedBy, DateTimeOffset? completedAt = null)
     {
         EnsureDraft();
         if (_lines.Count == 0) throw new InvalidOperationException("A sale requires at least one line.");
@@ -168,7 +168,7 @@ public sealed class Sale
         Status = SaleStatus.Completed;
         CompletedBy = completedBy;
         SaleNumber = $"SALE-{Id:N}".ToUpperInvariant();
-        SaleDate = DateTimeOffset.UtcNow;
+        SaleDate = completedAt ?? DateTimeOffset.UtcNow;
         Revision = checked(Revision + 1);
     }
 

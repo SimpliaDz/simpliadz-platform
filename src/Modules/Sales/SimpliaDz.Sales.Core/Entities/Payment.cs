@@ -23,7 +23,7 @@ public sealed class Payment
     private Payment() { }
 
     public Payment(Guid id, Guid saleId, decimal amount, PaymentMethod paymentMethod,
-        Guid receivedBy, Guid? cashSessionId = null)
+        Guid receivedBy, Guid? cashSessionId = null, DateTimeOffset? paidAt = null)
     {
         if (id == Guid.Empty) throw new ArgumentException("Payment ID is required.", nameof(id));
         if (saleId == Guid.Empty) throw new ArgumentException("Sale is required.", nameof(saleId));
@@ -42,5 +42,6 @@ public sealed class Payment
         PaymentMethod = paymentMethod;
         ReceivedBy = receivedBy;
         CashSessionId = cashSessionId;
+        PaidAt = paidAt ?? PaidAt;
     }
 }

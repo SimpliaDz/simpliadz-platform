@@ -21,6 +21,32 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
     public async Task<SaleDto> CreateDraftAsync(Guid locationId, Guid? customerId,
         Guid cashierId, Guid priceListId, CancellationToken ct)
     {
+        var sale = await PrepareDraftAsync(locationId, customerId, cashierId, priceListId, ct);
+        sales.Sales.Add(sale);
+        await SaveAsync(ct);
+        return Map(sale);
+    }
+
+    public async Task<SaleDto> StartWithItemAsync(Guid locationId, Guid? customerId, Guid cashierId,
+        Guid priceListId, string code, CancellationToken ct, bool checkStock = true)
+    {
+        var sale = await PrepareDraftAsync(locationId, customerId, cashierId, priceListId, ct);
+        try
+        {
+            await AddLineCoreAsync(sale, null, code, 1, 0, ct, checkStock);
+        }
+        catch (NotFoundException)
+        {
+            await AddLineCoreAsync(sale, code, null, 1, 0, ct, checkStock);
+        }
+        sales.Sales.Add(sale);
+        await SaveAsync(ct);
+        return await MapWithProductNamesAsync(sale, ct);
+    }
+
+    private async Task<Sale> PrepareDraftAsync(Guid locationId, Guid? customerId,
+        Guid cashierId, Guid priceListId, CancellationToken ct)
+    {
         if (!tenant.IsModuleEnabled("Inventory"))
             throw new ConflictException("Inventory must be enabled for sales.");
         if (!await inventory.Locations.AnyAsync(x => x.Id == locationId && x.IsActive, ct))
@@ -30,20 +56,28 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         if (customerId.HasValue && !await sales.Customers.AnyAsync(x =>
                 x.Id == customerId && x.IsActive, ct))
             throw new NotFoundException("Active customer", customerId.Value);
-        var sale = new Sale(locationId, customerId, cashierId, priceListId);
-        sales.Sales.Add(sale);
-        await sales.SaveChangesAsync(ct);
-        return Map(sale);
+        return new Sale(locationId, customerId, cashierId, priceListId);
     }
 
     public async Task<SaleDto> AddLineAsync(Guid saleId, string? sku, string? barcode,
         int quantity, decimal discountAmount, CancellationToken ct, bool checkStock = false)
     {
+        var sale = await LoadAsync(saleId, ct);
+        var existingIds = sale.Lines.Select(item => item.Id).ToHashSet();
+        var line = await AddLineCoreAsync(sale, sku, barcode, quantity, discountAmount, ct, checkStock);
+        if (!existingIds.Contains(line.Id))
+            sales.SaleLines.Add(line);
+        await SaveAsync(ct);
+        return await MapWithProductNamesAsync(sale, ct);
+    }
+
+    private async Task<SaleLine> AddLineCoreAsync(Sale sale, string? sku, string? barcode,
+        int quantity, decimal discountAmount, CancellationToken ct, bool checkStock)
+    {
         if (string.IsNullOrWhiteSpace(sku) == string.IsNullOrWhiteSpace(barcode))
             throw new ArgumentException("Provide exactly one SKU or barcode.");
         if (!tenant.IsModuleEnabled("Inventory"))
             throw new ConflictException("Inventory must be enabled for sales.");
-        var sale = await LoadAsync(saleId, ct);
         EnsureDraft(sale);
         var variant = !string.IsNullOrWhiteSpace(sku)
             ? await inventory.ProductVariants.AsNoTracking().FirstOrDefaultAsync(
@@ -70,11 +104,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                 .OrderByDescending(x => x.GoodsReceipt.ReceivedAt).ThenByDescending(x => x.Id)
                 .Select(x => (decimal?)x.UnitCost).FirstOrDefaultAsync(ct) ?? 0m
             : 0m;
-        var line = sale.AddLine(variant.Id, quantity, price.Value, cost, discountAmount);
-        if (existingLine is null)
-            sales.SaleLines.Add(line);
-        await SaveAsync(ct);
-        return await MapWithProductNamesAsync(sale, ct);
+        return sale.AddLine(variant.Id, quantity, price.Value, cost, discountAmount);
     }
 
     public async Task<SaleDto> SetCustomerAsync(Guid saleId, Guid? customerId,
@@ -113,6 +143,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         // Mark the dependent deleted before severing its required relationship.
         sales.Entry(line).State = EntityState.Deleted;
         sale.RemoveLine(line);
+        if (sale.Lines.Count == 0) sale.Cancel();
         await SaveAsync(ct);
         return await MapWithProductNamesAsync(sale, ct);
     }
@@ -144,7 +175,8 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         return await MapWithProductNamesAsync(sale, ct);
     }
 
-    public async Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct)
+    public async Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct,
+        bool adjustShortfall = false)
     {
         if (!tenant.IsModuleEnabled("Inventory"))
             throw new ConflictException("Inventory must be enabled for sales.");
@@ -171,7 +203,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                 var balances = await stock.StockBalances
                     .Where(x => x.LocationId == sale.LocationId && ids.Contains(x.VariantId))
                     .ToDictionaryAsync(x => x.VariantId, ct);
-                if (lines.Any(x => !balances.TryGetValue(x.ProductVariantId, out var balance) ||
+                if (!adjustShortfall && lines.Any(x => !balances.TryGetValue(x.ProductVariantId, out var balance) ||
                     balance.QuantityOnHand < x.Quantity))
                     throw new InsufficientStockException();
 
@@ -179,7 +211,24 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                 for (var index = 0; index < lines.Count; index++)
                 {
                     var line = lines[index];
-                    balances[line.ProductVariantId].ApplyDelta(-line.Quantity);
+                    if (!balances.TryGetValue(line.ProductVariantId, out var balance))
+                    {
+                        balance = new StockBalance(line.ProductVariantId, sale.LocationId);
+                        stock.StockBalances.Add(balance);
+                        stock.StockMovements.Add(new StockMovement(line.ProductVariantId, sale.LocationId,
+                            StockMovementType.OpeningBalance, 0, completedBy.ToString(),
+                            reason: "Initial balance for POS reconciliation."));
+                    }
+                    var shortfall = line.Quantity - balance.QuantityOnHand;
+                    if (shortfall > 0)
+                    {
+                        stock.StockMovements.Add(new StockMovement(line.ProductVariantId,
+                            sale.LocationId, StockMovementType.Adjustment, shortfall, completedBy.ToString(),
+                            reference: sale.SaleNumber, reason: "POS stock discrepancy: physical units confirmed; recount recommended.",
+                            referenceType: "PosStockDiscrepancy", referenceId: sale.Id, sourceLineNumber: index + 1));
+                    }
+                    var decrease = Math.Min(line.Quantity, balance.QuantityOnHand);
+                    if (decrease > 0) balance.ApplyDelta(-decrease);
                     stock.StockMovements.Add(new StockMovement(line.ProductVariantId,
                         sale.LocationId, StockMovementType.Sale, -line.Quantity,
                         completedBy.ToString(), reference: sale.SaleNumber,
@@ -229,7 +278,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
             .Where(x => x.LocationId == locationId && x.VariantId == variantId)
             .Select(x => (int?)x.QuantityOnHand).SingleOrDefaultAsync(ct) ?? 0;
         if (requested > available)
-            throw new ConflictException($"Only {available} in stock at this shop.");
+            throw new InsufficientStockException(available);
     }
 
     private async Task<SaleDto> MapWithProductNamesAsync(Sale sale, CancellationToken ct)
@@ -272,10 +321,24 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
 
     public async Task<IReadOnlyList<SaleDto>> ListAsync(Guid? locationId, Guid? customerId,
         string? status, string? search, int page, int pageSize, CancellationToken ct)
+        => await ReadPageAsync(FilterSales(locationId, customerId, status, search), page, pageSize, ct);
+
+    public async Task<SaleHistoryDto> HistoryAsync(Guid? locationId, Guid? customerId, string? status,
+        string? search, DateTimeOffset? from, DateTimeOffset? until, int page, int pageSize, CancellationToken ct)
     {
-        if (page < 1 || pageSize is < 1 or > 100 || page > int.MaxValue / pageSize)
-            throw new ArgumentOutOfRangeException(nameof(page));
-        var query = sales.Sales.AsNoTracking().Include(x => x.Lines).Include(x => x.Customer).AsQueryable();
+        var query = FilterSales(locationId, customerId, status, search);
+        if (from.HasValue) query = query.Where(x => x.SaleDate >= from.Value);
+        if (until.HasValue) query = query.Where(x => x.SaleDate < until.Value);
+        var summary = await query.GroupBy(_ => 1)
+            .Select(group => new { Count = group.LongCount(), Total = group.Sum(x => x.Total) })
+            .SingleOrDefaultAsync(ct);
+        var items = await ReadPageAsync(query, page, pageSize, ct);
+        return new SaleHistoryDto(items, summary?.Count ?? 0, summary?.Total ?? 0);
+    }
+
+    private IQueryable<Sale> FilterSales(Guid? locationId, Guid? customerId, string? status, string? search)
+    {
+        var query = sales.Sales.AsNoTracking().Where(sale => sale.Lines.Any());
         if (locationId.HasValue) query = query.Where(x => x.LocationId == locationId.Value);
         if (customerId.HasValue) query = query.Where(x => x.CustomerId == customerId.Value);
         if (!string.IsNullOrWhiteSpace(status))
@@ -295,7 +358,15 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                     (x.Customer.Phone != null && x.Customer.Phone.Contains(term)) ||
                     (x.Customer.Email != null && x.Customer.Email.Contains(term)))));
         }
-        var result = await query.OrderByDescending(x => x.SaleDate).ThenByDescending(x => x.Id)
+        return query;
+    }
+
+    private static async Task<IReadOnlyList<SaleDto>> ReadPageAsync(
+        IQueryable<Sale> query, int page, int pageSize, CancellationToken ct)
+    {
+        if (page < 1 || pageSize is < 1 or > 100 || page > int.MaxValue / pageSize)
+            throw new ArgumentOutOfRangeException(nameof(page));
+        var result = await query.Include(x => x.Lines).OrderByDescending(x => x.SaleDate).ThenByDescending(x => x.Id)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
         return result.Select(Map).ToList();
     }

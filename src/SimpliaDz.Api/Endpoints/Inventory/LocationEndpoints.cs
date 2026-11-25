@@ -1,5 +1,8 @@
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
+using SimpliaDz.Api.Modules;
+using SimpliaDz.BuildingBlocks.Exceptions;
+using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Inventory.Contracts.Locations;
@@ -65,14 +68,30 @@ public static class LocationEndpoints
             return Results.Ok(location);
         }).RequireAuthorization(PermissionNames.Locations.Edit);
 
+        group.MapPut("/{id:guid}/activate", async (Guid id, HttpContext http,
+            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var location = await db.Locations.FindAsync([id], ct)
+                ?? throw new NotFoundException("Location", id);
+            if (location.IsActive) return Results.NoContent();
+            location.Activate();
+            await db.SaveChangesAsync(ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "LocationActivated", "Location", id,
+                new Dictionary<string, object?> { ["name"] = location.Name, ["isActive"] = true }, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.Locations.Edit);
+
         group.MapPut("/{id:guid}/deactivate", async (
             Guid id,
+            HttpContext http,
             [FromServices] ISender sender,
             CancellationToken ct) =>
         {
             await sender.Send(new DeactivateLocationCommand(id), ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "LocationDeactivated", "Location", id,
+                new Dictionary<string, object?> { ["isActive"] = false }, ct);
             return Results.NoContent();
-        }).RequireAuthorization(PermissionNames.Locations.Edit);
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.Locations.Edit);
 
         return app;
     }

@@ -13,12 +13,18 @@ public sealed class AttributeValue
     public AttributeValue(Guid attributeId, string value, int displayOrder)
     {
         if (attributeId == Guid.Empty) throw new ArgumentException("Attribute is required.", nameof(attributeId));
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Value is required.", nameof(value));
-        if (value.Trim().Length > 150) throw new ArgumentException("Value cannot exceed 150 characters.", nameof(value));
         if (displayOrder < 0) throw new ArgumentOutOfRangeException(nameof(displayOrder));
         AttributeId = attributeId;
-        Value = value.Trim();
+        Rename(value);
         DisplayOrder = displayOrder;
+    }
+
+    public void Rename(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Value is required.", nameof(value));
+        var normalized = value.Trim();
+        if (normalized.Length > 150) throw new ArgumentException("Value cannot exceed 150 characters.", nameof(value));
+        Value = normalized;
     }
 
     public void SetDisplayOrder(int displayOrder)

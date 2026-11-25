@@ -1,4 +1,6 @@
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.Audit.UseCases;
 using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Exceptions;
@@ -31,6 +33,35 @@ public static class PriceListEndpoints
             return Results.Created($"/price-lists/{list.Id}", list);
         }).RequireAuthorization(PermissionNames.PriceLists.Manage);
 
+        group.MapPut("/{id:guid}", async (Guid id, [FromBody] RenamePriceListRequest request, HttpContext http,
+            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var list = await db.PriceLists.FindAsync([id], ct) ?? throw new NotFoundException("Price list", id);
+            var before = list.Name;
+            list.Rename(request.Name);
+            try { await db.SaveChangesAsync(ct); }
+            catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+            {
+                throw new ConflictException("A price list already uses that name and currency.");
+            }
+            if (before != list.Name)
+                await BusinessAudit.RecordIfEnabledAsync(http, "PriceListRenamed", "PriceList", id,
+                    new Dictionary<string, object?> { ["previousName"] = before, ["name"] = list.Name }, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.PriceLists.Manage);
+
+        group.MapPut("/{id:guid}/deactivate", async (Guid id, HttpContext http,
+            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+        {
+            var list = await db.PriceLists.FindAsync([id], ct) ?? throw new NotFoundException("Price list", id);
+            if (!list.IsActive) return Results.NoContent();
+            list.Deactivate();
+            await db.SaveChangesAsync(ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "PriceListDeactivated", "PriceList", id,
+                new Dictionary<string, object?> { ["name"] = list.Name, ["isActive"] = false }, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.PriceLists.Manage);
+
         group.MapPut("/{id:guid}/variants/{variantId:guid}", async (Guid id, Guid variantId,
             [FromBody] SetVariantPriceRequest request, HttpContext http,
             [FromServices] ISender sender, [FromServices] IAuditTrail audit,
@@ -59,3 +90,5 @@ public static class PriceListEndpoints
         return app;
     }
 }
+
+public sealed record RenamePriceListRequest(string Name);

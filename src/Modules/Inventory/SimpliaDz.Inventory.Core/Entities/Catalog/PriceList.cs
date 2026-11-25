@@ -13,18 +13,23 @@ public sealed class PriceList
     private PriceList() { }
     public PriceList(string name, string currencyCode, PriceListType type)
     {
-        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150)
-            throw new ArgumentException("Price list name must contain 1 to 150 characters.", nameof(name));
         if (string.IsNullOrWhiteSpace(currencyCode) || currencyCode.Trim().Length != 3 ||
             !currencyCode.Trim().All(char.IsLetter))
             throw new ArgumentException("Currency must be a three-letter code.", nameof(currencyCode));
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
-        Name = name.Trim();
+        Rename(name);
         CurrencyCode = currencyCode.Trim().ToUpperInvariant();
         Type = type;
     }
 
     public void Deactivate() => IsActive = false;
+
+    public void Rename(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150)
+            throw new ArgumentException("Price list name must contain 1 to 150 characters.", nameof(name));
+        Name = name.Trim();
+    }
 
     public PriceListItem SetPrice(Guid variantId, decimal price)
     {

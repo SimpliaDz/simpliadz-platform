@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.Sales.Core.Entities;
@@ -36,7 +37,7 @@ public static class PaymentEndpoints
                 Enum.Parse<PaymentMethod>(request.PaymentMethod.Trim(), true),
                 RequireActor(principal), ct, request.CashSessionId);
             return Results.Created($"/payments/{result.Id}", result);
-        }).RequireAuthorization(PermissionNames.Sales.Manage,
+        }).AuditSale("SalePaymentRecorded").RequireAuthorization(PermissionNames.Sales.Manage,
             PermissionNames.SalePayments.Manage);
 
         group.MapGet("/{saleId:guid}/payments", async (Guid saleId,
