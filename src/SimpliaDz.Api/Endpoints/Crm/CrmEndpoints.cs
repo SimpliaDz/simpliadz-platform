@@ -1,5 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.DataProtection;
+using SimpliaDz.Api.Modules;
+using SimpliaDz.BuildingBlocks.Exceptions;
+using SimpliaDz.Organization.Infrastructure.Data;
+using SimpliaDz.Sales.UseCases.Services;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
 using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
@@ -58,6 +63,36 @@ public static class CrmEndpoints
             [FromServices] ILoyaltyService service, CancellationToken ct) =>
             Results.Ok(await service.GetCardByCustomerAsync(customerId, ct)))
             .RequireAuthorization(PermissionNames.Crm.View);
+
+        group.MapGet("/customers/{customerId:guid}/card/{format:regex(^(pdf|svg)$)}", async (Guid customerId, string format,
+            [FromServices] ILoyaltyService loyalty, [FromServices] ICustomerService customers,
+            [FromServices] OrganizationDbContext organization, CancellationToken ct) =>
+        {
+            var card = await loyalty.GetCardByCustomerAsync(customerId, ct);
+            var customer = await customers.GetByIdAsync(customerId, ct);
+            var name = await LoyaltyCardDocument.OrganizationNameAsync(organization, ct);
+            if (string.Equals(format, "svg", StringComparison.OrdinalIgnoreCase))
+                return Results.Content(LoyaltyCardDocument.Artwork(customer.Name, customer.Id, card.CardNumber, name),
+                    "image/svg+xml", System.Text.Encoding.UTF8);
+            return Results.File(LoyaltyCardDocument.Render(customer.Name, customer.Id, card.CardNumber, name),
+                "application/pdf", "carte-fidelite.pdf");
+        }).RequireAuthorization(PermissionNames.Crm.Manage);
+
+        group.MapPost("/customers/{customerId:guid}/card/email", async (Guid customerId,
+            HttpContext http, [FromServices] ILoyaltyService loyalty, [FromServices] ICustomerService customers,
+            [FromServices] OrganizationDbContext organization, [FromServices] IDataProtectionProvider protection,
+            CancellationToken ct) =>
+        {
+            var card = await loyalty.GetCardByCustomerAsync(customerId, ct);
+            var customer = await customers.GetByIdAsync(customerId, ct);
+            if (!card.IsActive || !customer.IsActive || string.IsNullOrWhiteSpace(customer.Email))
+                throw new ConflictException("Email requires an active customer and card and a customer email address.");
+            await LoyaltyCardDocument.SendAsync(organization, protection, customer.Email,
+                LoyaltyCardDocument.Render(customer.Name, customer.Id, card.CardNumber,
+                    await LoyaltyCardDocument.OrganizationNameAsync(organization, ct)), ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "LoyaltyCardEmailed", "LoyaltyCard", card.Id, null, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization(PermissionNames.Crm.Manage);
 
         group.MapGet("/cards/{cardId:guid}", async (Guid cardId,
             [FromServices] ILoyaltyService service, CancellationToken ct) =>

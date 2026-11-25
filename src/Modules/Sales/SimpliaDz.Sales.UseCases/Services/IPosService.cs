@@ -12,7 +12,7 @@ public interface IPosService
 {
     Task<PosContextDto> GetContextAsync(Guid userId, CancellationToken ct);
     Task<PosContextDto> AssignAsync(Guid userId, Guid registerId, CancellationToken ct);
-    Task ReleaseAsync(Guid userId, CancellationToken ct);
+    Task<PosRegisterDto?> ReleaseAsync(Guid userId, CancellationToken ct);
     Task<(Guid LocationId, Guid CashSessionId, Guid PriceListId)> RequireContextAsync(
         Guid userId, CancellationToken ct);
 }

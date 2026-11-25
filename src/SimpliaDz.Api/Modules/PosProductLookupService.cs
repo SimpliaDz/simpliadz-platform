@@ -75,6 +75,7 @@ public sealed class PosProductLookupService(InventoryDbContext inventory, ITenan
             WHERE p.Name LIKE {prefix} ESCAPE '\'
               AND item.PriceListId = {priceListId}
               AND p.IsActive = 1 AND v.IsActive = 1 AND list.IsActive = 1
+              AND ({locationId} IS NULL OR balance.QuantityOnHand > 0)
             ORDER BY p.Name, v.Sku
             OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY
             """).ToListAsync(ct);

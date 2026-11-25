@@ -59,9 +59,20 @@ public sealed class SalesDbContext : DbContext
         ChangeTracker.DetectChanges();
         if (ChangeTracker.Entries<Customer>().Any(entry => entry.State == EntityState.Deleted))
             throw new InvalidOperationException("Customers must be deactivated, not deleted.");
-        if (ChangeTracker.Entries<Sale>().Any(entry => entry.State == EntityState.Deleted) ||
-            ChangeTracker.Entries<SaleLine>().Any(entry => entry.State == EntityState.Deleted))
+        var sales = ChangeTracker.Entries<Sale>().ToArray();
+        if (sales.Any(entry => entry.State == EntityState.Deleted))
             throw new InvalidOperationException("Sale history cannot be deleted.");
+        foreach (var line in ChangeTracker.Entries<SaleLine>().Where(entry => entry.State == EntityState.Deleted))
+        {
+            var saleId = line.Property(x => x.SaleId).OriginalValue;
+            // Saving the parent revision also checks its row version against concurrent checkout.
+            if (!sales.Any(entry => entry.Entity.Id == saleId &&
+                    entry.State == EntityState.Modified &&
+                    entry.Property(x => x.Revision).IsModified &&
+                    entry.Property(x => x.Status).OriginalValue == SaleStatus.Draft &&
+                    entry.Entity.Status == SaleStatus.Draft))
+                throw new InvalidOperationException("Sale history cannot be deleted.");
+        }
         if (ChangeTracker.Entries<Payment>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
             throw new InvalidOperationException("Payment history is immutable.");
         if (ChangeTracker.Entries<SaleReturn>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted) ||

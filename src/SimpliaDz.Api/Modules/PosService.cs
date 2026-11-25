@@ -47,9 +47,13 @@ public sealed class PosService(SalesDbContext sales, InventoryDbContext inventor
                 x.UserId == userId && x.ReleasedAt == null, ct);
             if (current is not null && current.CashRegisterId != registerId)
                 current.Release();
-            if (current is null)
+            if (current?.CashRegisterId != registerId)
+            {
+                if (current is not null)
+                    await sales.SaveChangesAsync(ct);
                 sales.CashRegisterAssignments.Add(new CashRegisterAssignment(registerId, cashSession.Id,
                     userId, work.Id));
+            }
             await sales.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         }
@@ -62,13 +66,16 @@ public sealed class PosService(SalesDbContext sales, InventoryDbContext inventor
         return await GetContextAsync(userId, ct);
     }
 
-    public async Task ReleaseAsync(Guid userId, CancellationToken ct)
+    public async Task<PosRegisterDto?> ReleaseAsync(Guid userId, CancellationToken ct)
     {
-        var assignment = await sales.CashRegisterAssignments.FirstOrDefaultAsync(x =>
+        var assignment = await sales.CashRegisterAssignments.Include(x => x.CashRegister).FirstOrDefaultAsync(x =>
             x.UserId == userId && x.ReleasedAt == null, ct);
-        if (assignment is null) return;
+        if (assignment is null) return null;
         assignment.Release();
         await sales.SaveChangesAsync(ct);
+        var register = assignment.CashRegister;
+        return new PosRegisterDto(register.Id, register.LocationId, register.Code, register.Name,
+            assignment.CashSessionId, null, register.IsActive);
     }
 
     public async Task<(Guid LocationId, Guid CashSessionId, Guid PriceListId)> RequireContextAsync(

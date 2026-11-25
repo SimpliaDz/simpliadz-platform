@@ -38,6 +38,8 @@ public sealed class AuditTrail(AuditDbContext db, ITenantContext tenant) : IAudi
         if (!string.IsNullOrWhiteSpace(action)) query = query.Where(x => x.Action == action.Trim());
         if (!string.IsNullOrWhiteSpace(entityType))
             query = query.Where(x => x.EntityType == entityType.Trim());
+        else
+            query = query.Where(x => x.EntityType != "ApiMutation");
         if (entityId.HasValue) query = query.Where(x => x.EntityId == entityId.Value);
         if (from.HasValue) query = query.Where(x => x.Timestamp >= from.Value);
         if (to.HasValue) query = query.Where(x => x.Timestamp <= to.Value);

@@ -75,6 +75,20 @@ public sealed class SaleIntegrationTests
             await sales.SaveChangesAsync();
             var cashier = Guid.NewGuid();
             var service = new SaleService(sales, inventory, purchasing, tenant);
+            var posDraft = await service.CreateDraftAsync(location.Id, null, cashier,
+                priceList.Id, CancellationToken.None);
+            posDraft = await service.AddLineAsync(posDraft.Id, "SALE-TEST", null, 2, 0m,
+                CancellationToken.None, checkStock: true);
+            var lineId = posDraft.Lines.Single().Id;
+            await Assert.ThrowsAsync<ConflictException>(() => service.SetLineQuantityAsync(
+                posDraft.Id, lineId, 11, CancellationToken.None, checkStock: true));
+            await Assert.ThrowsAsync<ConflictException>(() => service.AddLineAsync(
+                posDraft.Id, "SALE-TEST", null, 9, 0m, CancellationToken.None, checkStock: true));
+            var removed = await service.RemoveLineAsync(posDraft.Id, lineId, CancellationToken.None);
+            Assert.Empty(removed.Lines);
+            Assert.Equal(0m, removed.Total);
+            Assert.False(await sales.SaleLines.AsNoTracking().AnyAsync(line => line.Id == lineId));
+
             var first = await service.CreateDraftAsync(location.Id, customer.Id, cashier,
                 priceList.Id, CancellationToken.None);
             first = await service.AddLineAsync(first.Id, "SALE-TEST", null, 2, 1m,

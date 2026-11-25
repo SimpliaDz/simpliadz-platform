@@ -2,7 +2,10 @@ namespace SimpliaDz.Audit.UseCases;
 
 public sealed record AuditEntryDto(Guid Id, Guid UserId, string Action,
     string EntityType, Guid EntityId, string? OldValues, string? NewValues,
-    DateTimeOffset Timestamp, string? CorrelationId);
+    DateTimeOffset Timestamp, string? CorrelationId)
+{
+    public string? ActorName { get; init; }
+}
 
 public sealed record AuditHistoryDto(long TotalItems, IReadOnlyList<AuditEntryDto> Items);
 

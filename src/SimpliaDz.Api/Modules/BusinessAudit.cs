@@ -6,6 +6,17 @@ namespace SimpliaDz.Api.Modules;
 
 public static class BusinessAudit
 {
+    public static Task RecordIfEnabledAsync(HttpContext context, string action,
+        string entityType, Guid entityId, IReadOnlyDictionary<string, object?>? values,
+        CancellationToken ct)
+    {
+        var services = context.RequestServices;
+        return services.GetRequiredService<ITenantContext>().IsModuleEnabled("Audit")
+            ? RecordAsync(services.GetRequiredService<IAuditTrail>(), context,
+                action, entityType, entityId, null, values, ct)
+            : Task.CompletedTask;
+    }
+
     public static RouteHandlerBuilder RequireAudit(this RouteHandlerBuilder route) =>
         route.WithMetadata(new ExplicitAuditMetadata()).AddEndpointFilter(async (context, next) =>
         {

@@ -136,6 +136,15 @@ public sealed class Sale
         Revision = checked(Revision + 1);
     }
 
+    public void RemoveLine(SaleLine line)
+    {
+        EnsureDraft();
+        if (!_lines.Remove(line))
+            throw new ArgumentException("Line does not belong to this sale.", nameof(line));
+        RecalculateTotals();
+        Revision = checked(Revision + 1);
+    }
+
     internal static decimal CalculateDiscount(decimal baseAmount, SaleDiscountType type, decimal value)
     {
         if (!Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
@@ -207,6 +216,8 @@ public sealed class Sale
         if (DiscountType == SaleDiscountType.Percentage)
             DiscountAmount = CalculateDiscount(afterLineDiscounts,
                 SaleDiscountType.Percentage, DiscountValue!.Value);
+        else if (DiscountType == SaleDiscountType.FixedAmount)
+            DiscountAmount = Math.Min(afterLineDiscounts, DiscountValue!.Value);
         Total = afterLineDiscounts - DiscountAmount;
     }
 }

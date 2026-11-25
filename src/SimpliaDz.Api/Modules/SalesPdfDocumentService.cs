@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -8,6 +9,8 @@ using SimpliaDz.Inventory.Infrastructure.Data;
 using SimpliaDz.Organization.Infrastructure.Data;
 using SimpliaDz.Sales.Core.Entities;
 using SimpliaDz.Sales.Infrastructure.Data;
+using ZXing;
+using ZXing.OneD;
 
 namespace SimpliaDz.Api.Modules;
 
@@ -29,7 +32,7 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
         var model = await LoadAsync(saleId, ct);
         if (model.Status is not ("Completed" or "PartiallyReturned" or "Returned"))
             throw new ConflictException("A receipt can only be generated for a completed sale.");
-        return new($"receipt-{model.DocumentNumber}.pdf", BuildReceipt(model));
+        return new($"receipt-{model.DocumentNumber}.pdf", BuildReceipt(model, saleId));
     }
 
     private async Task<SalesDocumentModel> LoadAsync(Guid saleId, CancellationToken ct)
@@ -160,21 +163,62 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
         });
     }).WithMetadata(new DocumentMetadata { Title = $"Pro forma {model.DocumentNumber}", Author = model.OrganizationName, Creator = "SimpliaDz" }).GeneratePdf();
 
-    private static byte[] BuildReceipt(SalesDocumentModel model) => Document.Create(doc =>
+    private static byte[] BuildReceipt(SalesDocumentModel model, Guid saleId) => Document.Create(doc =>
     {
         doc.Page(page =>
         {
-            page.ContinuousSize(226); page.Margin(12); page.DefaultTextStyle(x => x.FontSize(8));
+            page.ContinuousSize(80, Unit.Millimetre);
+            page.Margin(4, Unit.Millimetre);
+            page.DefaultTextStyle(x => x.FontSize(9));
             page.Content().Column(c =>
             {
-                c.Spacing(5); c.Item().AlignCenter().Text(model.OrganizationName).Bold().FontSize(12); c.Item().AlignCenter().Text(model.LocationName); c.Item().LineHorizontal(1);
-                c.Item().Text($"Receipt: {model.DocumentNumber}"); c.Item().Text(model.Date.ToString("yyyy-MM-dd HH:mm")); c.Item().Text($"Customer: {model.CustomerName}"); c.Item().LineHorizontal(1);
-                foreach (var line in model.Lines) c.Item().Row(r => { r.RelativeItem().Text($"{line.ProductName}\n{line.Quantity} × {Money(line.UnitPrice, model.Currency)}"); r.ConstantItem(65).AlignRight().Text(Money(line.LineTotal, model.Currency)); });
-                c.Item().LineHorizontal(1); c.Item().Row(r => { r.RelativeItem().Text("TOTAL").Bold(); r.ConstantItem(70).AlignRight().Text(Money(model.Total, model.Currency)).Bold(); });
-                c.Item().AlignCenter().PaddingTop(8).Text("Thank you for your purchase");
+                c.Spacing(5);
+                c.Item().AlignCenter().Text(model.OrganizationName).Bold().FontSize(15);
+                c.Item().AlignCenter().Text(model.LocationName);
+                var address = model.LocationAddress ?? model.OrganizationAddress;
+                if (!string.IsNullOrWhiteSpace(address)) c.Item().AlignCenter().Text(address);
+                if (!string.IsNullOrWhiteSpace(model.OrganizationPhone)) c.Item().AlignCenter().Text(model.OrganizationPhone);
+                c.Item().PaddingVertical(3).LineHorizontal(1);
+                c.Item().AlignCenter().Text("TICKET DE CAISSE").Bold().FontSize(12);
+                c.Item().Text($"Ticket : {model.DocumentNumber}");
+                c.Item().Text($"Date : {model.Date:dd/MM/yyyy HH:mm zzz}");
+                c.Item().Text($"Client : {model.CustomerName}");
+                c.Item().PaddingVertical(3).LineHorizontal(1);
+                foreach (var line in model.Lines)
+                {
+                    c.Item().Text(line.ProductName).SemiBold();
+                    ReceiptAmount(c, $"{line.Quantity} × {Money(line.UnitPrice, model.Currency)}",
+                        line.LineTotal, model.Currency);
+                }
+                c.Item().PaddingVertical(3).LineHorizontal(1);
+                if (model.DiscountAmount > 0)
+                    ReceiptAmount(c, "Remise", -model.DiscountAmount, model.Currency);
+                ReceiptAmount(c, "TOTAL", model.Total, model.Currency, emphasized: true);
+                ReceiptAmount(c, "Montant payé", model.PaidAmount, model.Currency);
+                c.Item().PaddingTop(8).AlignCenter().Text("Merci pour votre achat !").SemiBold();
+                c.Item().PaddingTop(5).Height(30).Svg(ReceiptBarcode(saleId)).FitArea();
+                c.Item().AlignCenter().Text(saleId.ToString("N")).FontSize(7);
             });
         });
     }).WithMetadata(new DocumentMetadata { Title = $"Receipt {model.DocumentNumber}", Author = model.OrganizationName, Creator = "SimpliaDz" }).GeneratePdf();
+
+    private static void ReceiptAmount(ColumnDescriptor column, string label, decimal amount, string currency,
+        bool emphasized = false) => column.Item().Row(row =>
+    {
+        var title = row.RelativeItem().Text(label);
+        var value = row.AutoItem().PaddingLeft(6).Text(Money(amount, currency));
+        if (emphasized) { title.Bold().FontSize(12); value.Bold().FontSize(12); }
+    });
+
+    private static string ReceiptBarcode(Guid saleId)
+    {
+        var matrix = new Code128Writer().encode(saleId.ToString("N"), BarcodeFormat.CODE_128, 0, 1);
+        var width = matrix.Width + 20;
+        var bars = new StringBuilder();
+        for (var x = 0; x < matrix.Width; x++)
+            if (matrix[x, 0]) bars.Append(FormattableString.Invariant($"<rect x='{x + 10}' width='1' height='60'/>"));
+        return FormattableString.Invariant($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {width} 60' preserveAspectRatio='none'>{bars}</svg>");
+    }
 
     private static IContainer Card(IContainer container) => container.Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10);
     private static void Header(IContainer cell, string value) => cell.Background(Colors.Blue.Darken2).Padding(6).Text(value).FontColor(Colors.White).SemiBold();

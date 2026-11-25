@@ -18,16 +18,22 @@ public static class WorkSessionEndpoints
             .WithMetadata(new ModuleEndpointMetadata("Organization"));
 
         group.MapPost("/clock-in", async (ClaimsPrincipal principal,
-            [FromServices] WorkSessionService work, CancellationToken ct) =>
+            HttpContext http, [FromServices] WorkSessionService work, CancellationToken ct) =>
         {
             var session = await work.ClockInAsync(Actor(principal), ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "WorkSessionClockedIn",
+                "WorkSession", session.Id, null, ct);
             return Results.Created($"/work-sessions/{session.Id}", session);
-        }).RequireAuthorization();
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization();
 
         group.MapPost("/{id:guid}/clock-out", async (Guid id, ClaimsPrincipal principal,
-            [FromServices] WorkSessionService work, CancellationToken ct) =>
-            Results.Ok(await work.ClockOutAsync(id, Actor(principal), ct)))
-            .RequireAuthorization();
+            HttpContext http, [FromServices] WorkSessionService work, CancellationToken ct) =>
+        {
+            var session = await work.ClockOutAsync(id, Actor(principal), ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "WorkSessionClockedOut",
+                "WorkSession", session.Id, null, ct);
+            return Results.Ok(session);
+        }).WithMetadata(new ExplicitAuditMetadata()).RequireAuthorization();
 
         group.MapGet("/me", async (ClaimsPrincipal principal, DateOnly? fromDate,
             DateOnly? toDate, int? page, int? pageSize,

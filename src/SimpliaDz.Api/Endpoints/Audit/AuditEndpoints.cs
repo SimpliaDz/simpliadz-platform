@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SimpliaDz.Identity.Infrastructure.Data;
 using SimpliaDz.Audit.UseCases;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
@@ -13,7 +15,7 @@ public static class AuditEndpoints
         app.MapGet("/audit/entries", async (Guid? userId, string? action,
             string? entityType, Guid? entityId, DateTimeOffset? from,
             DateTimeOffset? to, int? page, int? pageSize,
-            [FromServices] IAuditTrail audit, CancellationToken ct) =>
+            [FromServices] IAuditTrail audit, [FromServices] IdentityDbContext identity, CancellationToken ct) =>
         {
             var selectedPage = page ?? 1;
             var selectedSize = pageSize ?? 50;
@@ -25,8 +27,23 @@ public static class AuditEndpoints
                 selectedPage > int.MaxValue / selectedSize)
                 errors["pagination"] = ["Page must be positive and pageSize must be between 1 and 100."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
-            return Results.Ok(await audit.QueryAsync(userId, action, entityType,
-                entityId, from, to, selectedPage, selectedSize, ct));
+            var history = await audit.QueryAsync(userId, action, entityType,
+                entityId, from, to, selectedPage, selectedSize, ct);
+            if (history.Items.Count == 0) return Results.Ok(history);
+
+            var actorIds = history.Items.Select(entry => entry.UserId).Distinct().ToArray();
+            var actors = await identity.Users.AsNoTracking().Where(user => actorIds.Contains(user.Id))
+                .Select(user => new { user.Id, user.FirstName, user.LastName, user.UserName })
+                .ToDictionaryAsync(user => user.Id, ct);
+            return Results.Ok(history with
+            {
+                Items = history.Items.Select(entry =>
+                {
+                    if (!actors.TryGetValue(entry.UserId, out var actor)) return entry;
+                    var name = $"{actor.FirstName} {actor.LastName}".Trim();
+                    return entry with { ActorName = name.Length > 0 ? name : actor.UserName };
+                }).ToArray()
+            });
         })
         .WithTags("Audit")
         .WithMetadata(new TenantRequiredMetadata())

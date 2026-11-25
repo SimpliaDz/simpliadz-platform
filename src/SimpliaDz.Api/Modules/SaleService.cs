@@ -37,7 +37,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
     }
 
     public async Task<SaleDto> AddLineAsync(Guid saleId, string? sku, string? barcode,
-        int quantity, decimal discountAmount, CancellationToken ct)
+        int quantity, decimal discountAmount, CancellationToken ct, bool checkStock = false)
     {
         if (string.IsNullOrWhiteSpace(sku) == string.IsNullOrWhiteSpace(barcode))
             throw new ArgumentException("Provide exactly one SKU or barcode.");
@@ -54,6 +54,9 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         if (!variant.IsActive || !await inventory.Products.AnyAsync(x =>
                 x.Id == variant.ProductId && x.IsActive, ct))
             throw new ConflictException("Product variant must be active.");
+        var existingLine = sale.Lines.FirstOrDefault(x => x.ProductVariantId == variant.Id);
+        if (checkStock)
+            await EnsureStockAsync(sale.LocationId, variant.Id, (long)(existingLine?.Quantity ?? 0) + quantity, ct);
         if (!await inventory.PriceLists.AnyAsync(x => x.Id == sale.PriceListId && x.IsActive, ct))
             throw new ConflictException("Price list must be active.");
         var price = await inventory.PriceListItems.AsNoTracking()
@@ -67,12 +70,11 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                 .OrderByDescending(x => x.GoodsReceipt.ReceivedAt).ThenByDescending(x => x.Id)
                 .Select(x => (decimal?)x.UnitCost).FirstOrDefaultAsync(ct) ?? 0m
             : 0m;
-        var hasExistingLine = sale.Lines.Any(x => x.ProductVariantId == variant.Id);
         var line = sale.AddLine(variant.Id, quantity, price.Value, cost, discountAmount);
-        if (!hasExistingLine)
+        if (existingLine is null)
             sales.SaleLines.Add(line);
         await SaveAsync(ct);
-        return Map(sale);
+        return await MapWithProductNamesAsync(sale, ct);
     }
 
     public async Task<SaleDto> SetCustomerAsync(Guid saleId, Guid? customerId,
@@ -85,19 +87,34 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
             throw new NotFoundException("Active customer", customerId.Value);
         sale.SetCustomer(customerId);
         await SaveAsync(ct);
-        return Map(sale);
+        return await MapWithProductNamesAsync(sale, ct);
     }
 
     public async Task<SaleDto> SetLineQuantityAsync(Guid saleId, Guid lineId, int quantity,
-        CancellationToken ct)
+        CancellationToken ct, bool checkStock = false)
     {
         var sale = await LoadAsync(saleId, ct);
         EnsureDraft(sale);
-        if (!sale.Lines.Any(x => x.Id == lineId))
-            throw new NotFoundException("Sale line", lineId);
+        var line = sale.Lines.FirstOrDefault(x => x.Id == lineId)
+            ?? throw new NotFoundException("Sale line", lineId);
+        if (checkStock)
+            await EnsureStockAsync(sale.LocationId, line.ProductVariantId, quantity, ct);
         sale.SetLineQuantity(lineId, quantity);
         await SaveAsync(ct);
-        return Map(sale);
+        return await MapWithProductNamesAsync(sale, ct);
+    }
+
+    public async Task<SaleDto> RemoveLineAsync(Guid saleId, Guid lineId, CancellationToken ct)
+    {
+        var sale = await LoadAsync(saleId, ct);
+        EnsureDraft(sale);
+        var line = sale.Lines.FirstOrDefault(item => item.Id == lineId)
+            ?? throw new NotFoundException("Sale line", lineId);
+        // Mark the dependent deleted before severing its required relationship.
+        sales.Entry(line).State = EntityState.Deleted;
+        sale.RemoveLine(line);
+        await SaveAsync(ct);
+        return await MapWithProductNamesAsync(sale, ct);
     }
 
     public async Task<SaleDto> SetDiscountAsync(Guid saleId, decimal discountAmount,
@@ -112,7 +129,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
         EnsureDraft(sale);
         sale.ApplySaleDiscount(type, value);
         await SaveAsync(ct);
-        return Map(sale);
+        return await MapWithProductNamesAsync(sale, ct);
     }
 
     public async Task<SaleDto> ApplyLineDiscountAsync(Guid saleId, Guid lineId,
@@ -124,7 +141,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
             throw new NotFoundException("Sale line", lineId);
         sale.ApplyLineDiscount(lineId, type, value);
         await SaveAsync(ct);
-        return Map(sale);
+        return await MapWithProductNamesAsync(sale, ct);
     }
 
     public async Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct)
@@ -204,7 +221,54 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
     }
 
     public async Task<SaleDto> GetByIdAsync(Guid saleId, CancellationToken ct) =>
-        Map(await LoadAsync(saleId, ct));
+        await MapWithProductNamesAsync(await LoadAsync(saleId, ct), ct);
+
+    private async Task EnsureStockAsync(Guid locationId, Guid variantId, long requested, CancellationToken ct)
+    {
+        var available = await inventory.StockBalances.AsNoTracking()
+            .Where(x => x.LocationId == locationId && x.VariantId == variantId)
+            .Select(x => (int?)x.QuantityOnHand).SingleOrDefaultAsync(ct) ?? 0;
+        if (requested > available)
+            throw new ConflictException($"Only {available} in stock at this shop.");
+    }
+
+    private async Task<SaleDto> MapWithProductNamesAsync(Sale sale, CancellationToken ct)
+    {
+        var dto = Map(sale);
+        if (dto.Lines.Count == 0 || !tenant.IsModuleEnabled("Inventory")) return dto;
+
+        var ids = dto.Lines.Select(line => line.ProductVariantId).Distinct().ToArray();
+        var stock = await inventory.StockBalances.AsNoTracking()
+            .Where(x => x.LocationId == sale.LocationId && ids.Contains(x.VariantId))
+            .ToDictionaryAsync(x => x.VariantId, x => x.QuantityOnHand, ct);
+        var variants = await inventory.ProductVariants.AsNoTracking()
+            .Where(variant => ids.Contains(variant.Id))
+            .Select(variant => new
+            {
+                variant.Id,
+                ProductName = variant.Product.Name,
+                variant.Sku,
+                variant.Color,
+                variant.Size,
+                Attributes = variant.AttributeValues.Select(value => value.AttributeValue.Value)
+                    .OrderBy(value => value).ToList()
+            })
+            .ToDictionaryAsync(variant => variant.Id, ct);
+
+        return dto with
+        {
+            Lines = dto.Lines.Select(line =>
+            {
+                if (!variants.TryGetValue(line.ProductVariantId, out var variant)) return line;
+                IEnumerable<string?> descriptors = variant.Attributes.Count > 0
+                    ? variant.Attributes
+                    : new[] { variant.Color, variant.Size };
+                var name = string.Join(" / ", descriptors.Where(value => !string.IsNullOrWhiteSpace(value)).Distinct());
+                return line with { ProductName = variant.ProductName, VariantName = name, Sku = variant.Sku.Value,
+                    AvailableQuantity = stock.GetValueOrDefault(line.ProductVariantId) };
+            }).ToArray()
+        };
+    }
 
     public async Task<IReadOnlyList<SaleDto>> ListAsync(Guid? locationId, Guid? customerId,
         string? status, string? search, int page, int pageSize, CancellationToken ct)

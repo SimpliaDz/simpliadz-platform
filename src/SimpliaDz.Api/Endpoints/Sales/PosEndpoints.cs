@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
@@ -13,6 +14,9 @@ namespace SimpliaDz.Api.Endpoints.Sales;
 
 public static class PosEndpoints
 {
+    private static Dictionary<string, object?> RegisterValues(string? code, string? name) =>
+        new() { ["registerCode"] = code, ["registerName"] = name };
+
     public static IEndpointRouteBuilder MapPosEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/pos")
@@ -25,15 +29,25 @@ public static class PosEndpoints
             CancellationToken ct) => Results.Ok(await pos.GetContextAsync(Actor(principal), ct)));
 
         group.MapPost("/registers/{registerId:guid}/assign", async (Guid registerId,
-            ClaimsPrincipal principal, [FromServices] IPosService pos, CancellationToken ct) =>
-            Results.Ok(await pos.AssignAsync(Actor(principal), registerId, ct)));
+            ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
+            CancellationToken ct) =>
+        {
+            var context = await pos.AssignAsync(Actor(principal), registerId, ct);
+            if (context.CashRegisterId == registerId)
+                await BusinessAudit.RecordIfEnabledAsync(http, "CashRegisterSelected", "CashRegister",
+                    registerId, RegisterValues(context.CashRegisterCode, context.CashRegisterName), ct);
+            return Results.Ok(context);
+        }).WithMetadata(new ExplicitAuditMetadata());
 
         group.MapDelete("/register-assignment", async (ClaimsPrincipal principal,
-            [FromServices] IPosService pos, CancellationToken ct) =>
+            HttpContext http, [FromServices] IPosService pos, CancellationToken ct) =>
         {
-            await pos.ReleaseAsync(Actor(principal), ct);
+            var register = await pos.ReleaseAsync(Actor(principal), ct);
+            if (register is not null)
+                await BusinessAudit.RecordIfEnabledAsync(http, "CashRegisterReleased", "CashRegister",
+                    register.Id, RegisterValues(register.Code, register.Name), ct);
             return Results.NoContent();
-        });
+        }).WithMetadata(new ExplicitAuditMetadata());
 
         group.MapPost("/sales", async ([FromBody] PosCreateSaleRequest request,
             ClaimsPrincipal principal, [FromServices] IPosService pos, [FromServices] ISaleService sales,
@@ -45,6 +59,47 @@ public static class PosEndpoints
                 context.PriceListId, ct);
             return Results.Created($"/sales/{sale.Id}", sale);
         });
+
+        group.MapGet("/sales/{saleId:guid}", async (Guid saleId, ClaimsPrincipal principal,
+            [FromServices] IPosService pos, [FromServices] ISaleService sales, CancellationToken ct) =>
+        {
+            var actor = Actor(principal);
+            var context = await pos.RequireContextAsync(actor, ct);
+            var sale = await sales.GetByIdAsync(saleId, ct);
+            if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
+                return Results.NotFound();
+            return Results.Ok(sale);
+        });
+
+        group.MapDelete("/sales/{saleId:guid}/lines/{lineId:guid}", async (Guid saleId, Guid lineId,
+            ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
+            [FromServices] ISaleService sales, CancellationToken ct) =>
+        {
+            var actor = Actor(principal);
+            var context = await pos.RequireContextAsync(actor, ct);
+            var sale = await sales.GetByIdAsync(saleId, ct);
+            if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
+                return Results.NotFound();
+            var updated = await sales.RemoveLineAsync(saleId, lineId, ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "SaleLineRemoved", "Sale",
+                saleId, new Dictionary<string, object?> { ["lineId"] = lineId }, ct);
+            return Results.Ok(updated);
+        }).WithMetadata(new ExplicitAuditMetadata());
+
+        group.MapPost("/sales/{saleId:guid}/cancel", async (Guid saleId,
+            ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
+            [FromServices] ISaleService sales, CancellationToken ct) =>
+        {
+            var actor = Actor(principal);
+            var context = await pos.RequireContextAsync(actor, ct);
+            var sale = await sales.GetByIdAsync(saleId, ct);
+            if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
+                return Results.NotFound();
+            await sales.CancelAsync(saleId, ct);
+            await BusinessAudit.RecordIfEnabledAsync(http, "SaleCancelled", "Sale",
+                saleId, new Dictionary<string, object?> { ["status"] = "Cancelled" }, ct);
+            return Results.NoContent();
+        }).WithMetadata(new ExplicitAuditMetadata());
 
         group.MapPost("/sales/{saleId:guid}/scan", async (Guid saleId,
             [FromBody] PosScanRequest request, ClaimsPrincipal principal, [FromServices] IPosService pos,
@@ -60,11 +115,11 @@ public static class PosEndpoints
                 return Results.Conflict("This ticket is not available at the current register.");
             try
             {
-                return Results.Ok(await sales.AddLineAsync(saleId, null, request.Code.Trim(), 1, 0, ct));
+                return Results.Ok(await sales.AddLineAsync(saleId, null, request.Code.Trim(), 1, 0, ct, checkStock: true));
             }
             catch (SimpliaDz.BuildingBlocks.Exceptions.NotFoundException)
             {
-                return Results.Ok(await sales.AddLineAsync(saleId, request.Code.Trim(), null, 1, 0, ct));
+                return Results.Ok(await sales.AddLineAsync(saleId, request.Code.Trim(), null, 1, 0, ct, checkStock: true));
             }
         });
 
@@ -81,7 +136,7 @@ public static class PosEndpoints
             var sale = await sales.GetByIdAsync(saleId, ct);
             if (sale.CashierId != actor || sale.LocationId != context.LocationId || sale.Status != "Draft")
                 return Results.Conflict("This ticket is not available at the current register.");
-            return Results.Ok(await sales.SetLineQuantityAsync(saleId, lineId, request.Quantity, ct));
+            return Results.Ok(await sales.SetLineQuantityAsync(saleId, lineId, request.Quantity, ct, checkStock: true));
         });
 
         group.MapPut("/sales/{saleId:guid}/customer", async (Guid saleId,
@@ -111,9 +166,13 @@ public static class PosEndpoints
             var results = (await customers.SearchAsync(search.Trim(), null, true, 1, 20, ct)).ToList();
             try
             {
-                if (!tenant.IsModuleEnabled("Crm"))
+                if (!tenant.IsModuleEnabled("Crm") || search.Trim().Length > 35)
                     return Results.Ok(results.Select(x => new PosCustomerDto(x.Id, x.Name, x.Phone, x.Email)));
-                var card = await loyalty.GetCardByNumberAsync(search.Trim(), ct);
+                var card = Guid.TryParseExact(search.Trim(), "N", out var customerId)
+                    ? await loyalty.GetCardByCustomerAsync(customerId, ct)
+                    : await loyalty.GetCardByNumberAsync(search.Trim(), ct);
+                if (!card.IsActive)
+                    return Results.Ok(results.Select(x => new PosCustomerDto(x.Id, x.Name, x.Phone, x.Email)));
                 var cardCustomer = await customers.GetByIdAsync(card.CustomerId, ct);
                 if (cardCustomer.IsActive && results.All(x => x.Id != cardCustomer.Id))
                     results.Insert(0, cardCustomer);
@@ -121,6 +180,16 @@ public static class PosEndpoints
             catch (NotFoundException) { }
             catch (ConflictException) { }
             return Results.Ok(results.Select(x => new PosCustomerDto(x.Id, x.Name, x.Phone, x.Email)));
+        });
+
+        group.MapGet("/sales/{saleId:guid}/receipt.pdf", async (Guid saleId, ClaimsPrincipal principal,
+            [FromServices] ISaleService sales, [FromServices] SalesPdfDocumentService documents,
+            CancellationToken ct) =>
+        {
+            var sale = await sales.GetByIdAsync(saleId, ct);
+            if (sale.CashierId != Actor(principal)) return Results.NotFound();
+            var pdf = await documents.ReceiptAsync(saleId, ct);
+            return Results.File(pdf.Content, "application/pdf", pdf.FileName);
         });
 
         group.MapPost("/sales/{saleId:guid}/pay", async (Guid saleId,
