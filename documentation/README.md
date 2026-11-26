@@ -33,6 +33,8 @@ The product name is **Simplia**. Existing .NET project paths, database names, an
 
 ## Purchasing
 
+- [Purchasing and customer credit workflows](getting-started/PURCHASING_AND_CREDIT.md)
+
 - [Suppliers](purchasing/SUPPLIERS.md)
 - [Purchase orders](purchasing/PURCHASE_ORDERS.md)
 - [Goods receipts](purchasing/GOODS_RECEIPTS.md)

@@ -69,6 +69,8 @@ public sealed class PurchaseOrderService(PurchasingDbContext db,
         var order = await LoadAsync(orderId, ct);
         if (order.Status is not (PurchaseOrderStatus.Draft or PurchaseOrderStatus.Ordered))
             throw new ConflictException("Only an unreceived purchase order can be cancelled.");
+        if (await db.SupplierPayments.AnyAsync(x => x.PurchaseOrderId == orderId, ct))
+            throw new ConflictException("Purchase orders with posted payments cannot be cancelled.");
         order.Cancel();
         await SaveAsync(ct);
     }

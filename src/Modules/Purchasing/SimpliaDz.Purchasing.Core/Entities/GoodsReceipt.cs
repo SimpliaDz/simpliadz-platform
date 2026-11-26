@@ -13,12 +13,13 @@ public sealed class GoodsReceipt
     public Guid LocationId { get; private set; }
     public DateTimeOffset ReceivedAt { get; private set; } = DateTimeOffset.UtcNow;
     public string ReceivedBy { get; private set; } = string.Empty;
+    public string? DeliveryReference { get; private set; }
     public IReadOnlyCollection<GoodsReceiptLine> Lines => _lines;
 
     private GoodsReceipt() { }
 
     public GoodsReceipt(Guid id, Guid purchaseOrderId, Guid locationId, string receivedBy,
-        IEnumerable<GoodsReceiptLineItem> lines)
+        IEnumerable<GoodsReceiptLineItem> lines, string? deliveryReference = null)
     {
         if (id == Guid.Empty) throw new ArgumentException("Receipt ID is required.", nameof(id));
         if (purchaseOrderId == Guid.Empty)
@@ -41,6 +42,9 @@ public sealed class GoodsReceipt
         PurchaseOrderId = purchaseOrderId;
         LocationId = locationId;
         ReceivedBy = receivedBy.Trim();
+        DeliveryReference = string.IsNullOrWhiteSpace(deliveryReference) ? null : deliveryReference.Trim();
+        if (DeliveryReference?.Length > 500)
+            throw new ArgumentException("Delivery reference cannot exceed 500 characters.", nameof(deliveryReference));
         _lines.AddRange(items.Select(x => new GoodsReceiptLine(id, x)));
     }
 }

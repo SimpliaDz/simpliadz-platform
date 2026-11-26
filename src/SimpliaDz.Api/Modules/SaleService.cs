@@ -195,7 +195,7 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
     }
 
     public async Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct,
-        bool adjustShortfall = false)
+        bool adjustShortfall = false, PosCheckout? checkout = null)
     {
         if (!tenant.IsModuleEnabled("Inventory"))
             throw new ConflictException("Inventory must be enabled for sales.");
@@ -226,7 +226,30 @@ public sealed class SaleService(SalesDbContext sales, InventoryDbContext invento
                     balance.QuantityOnHand < x.Quantity))
                     throw new InsufficientStockException();
 
+                if (checkout is not null)
+                {
+                    if (sale.CashierId != completedBy || sale.PriceListId != checkout.PriceListId ||
+                        !await sales.CashRegisterAssignments.AnyAsync(x => x.UserId == completedBy &&
+                            x.CashSessionId == checkout.CashSessionId && x.ReleasedAt == null, ct) ||
+                        !await sales.CashSessions.AnyAsync(x => x.Id == checkout.CashSessionId &&
+                            x.Status == CashSessionStatus.Open && x.CashRegister.LocationId == sale.LocationId, ct))
+                        throw new ConflictException("Checkout requires the assigned open register and current retail price list.");
+                    var tenderTotal = checkout.Tenders.Sum(x => x.Amount);
+                    if ((checkout.ExpectedTotal.HasValue && checkout.ExpectedTotal != sale.Total) || tenderTotal > sale.Total)
+                        throw new ConflictException("The ticket total changed. Review payment amounts and retry.");
+                    if (tenderTotal < sale.Total && sale.CustomerId is null)
+                        throw new ConflictException("Select a customer before completing a credit sale.");
+                }
                 sale.Complete(completedBy);
+                if (checkout is not null)
+                {
+                    foreach (var tender in checkout.Tenders)
+                    {
+                        sales.Payments.Add(new Payment(tender.Id, sale.Id, tender.Amount, tender.Method,
+                            completedBy, checkout.CashSessionId));
+                        sale.RecordPayment(tender.Amount);
+                    }
+                }
                 for (var index = 0; index < lines.Count; index++)
                 {
                     var line = lines[index];

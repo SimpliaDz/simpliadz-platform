@@ -16,7 +16,8 @@ public sealed class GoodsReceiptService(PurchasingDbContext purchasing, ITenantC
     : IGoodsReceiptService
 {
     public async Task<GoodsReceiptDto> ReceiveAsync(Guid receiptId, Guid purchaseOrderId,
-        IReadOnlyList<ReceiveGoodsLine> lines, string receivedBy, CancellationToken ct)
+        IReadOnlyList<ReceiveGoodsLine> lines, string receivedBy, CancellationToken ct,
+        string? deliveryReference = null)
     {
         if (receiptId == Guid.Empty || purchaseOrderId == Guid.Empty || lines.Count == 0 ||
             lines.Any(x => x.PurchaseOrderLineId == Guid.Empty || x.QuantityReceived <= 0) ||
@@ -67,7 +68,7 @@ public sealed class GoodsReceiptService(PurchasingDbContext purchasing, ITenantC
                     .Where(x => x.LocationId == order.DestinationLocationId && variantIds.Contains(x.VariantId))
                     .ToDictionaryAsync(x => x.VariantId, ct);
                 var receipt = new GoodsReceipt(receiptId, order.Id, order.DestinationLocationId,
-                    receivedBy, items);
+                    receivedBy, items, deliveryReference);
 
                 for (var index = 0; index < items.Count; index++)
                 {
@@ -142,5 +143,5 @@ public sealed class GoodsReceiptService(PurchasingDbContext purchasing, ITenantC
     private static GoodsReceiptDto Map(GoodsReceipt x) => new(x.Id, x.PurchaseOrderId,
         x.LocationId, x.ReceivedAt, x.ReceivedBy,
         x.Lines.Select(line => new GoodsReceiptLineDto(line.Id, line.PurchaseOrderLineId,
-            line.ProductVariantId, line.QuantityReceived, line.UnitCost)).ToList());
+            line.ProductVariantId, line.QuantityReceived, line.UnitCost)).ToList(), x.DeliveryReference);
 }

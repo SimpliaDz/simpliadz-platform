@@ -38,12 +38,15 @@ public static class GoodsReceiptEndpoints
                 if (request.Lines.Select(x => x.PurchaseOrderLineId).Distinct().Count() != request.Lines.Count)
                     errors["lines"] = ["Purchase order lines cannot be repeated in one receipt."];
             }
+            if (request.DeliveryReference?.Trim().Length > 500)
+                errors["deliveryReference"] = ["Delivery reference cannot exceed 500 characters."];
             if (errors.Count > 0) return Results.ValidationProblem(errors);
             var result = await receipts.ReceiveAsync(request.Id, request.PurchaseOrderId,
-                request.Lines!, RequireActor(principal), ct);
+                request.Lines!, RequireActor(principal), ct, request.DeliveryReference);
             await BusinessAudit.RecordAsync(audit, http, "GoodsReceived", "GoodsReceipt",
                 result.Id, null,
                 new Dictionary<string, object?> { ["purchaseOrderId"] = result.PurchaseOrderId,
+                    ["deliveryReference"] = result.DeliveryReference,
                     ["locationId"] = result.LocationId, ["lineCount"] = result.Lines.Count,
                     ["quantityReceived"] = result.Lines.Sum(x => x.QuantityReceived) }, ct);
             return Results.Created($"/goods-receipts/{result.Id}", result);
@@ -70,4 +73,4 @@ public static class GoodsReceiptEndpoints
 }
 
 public sealed record ReceiveGoodsRequest(Guid Id, Guid PurchaseOrderId,
-    IReadOnlyList<ReceiveGoodsLine>? Lines);
+    IReadOnlyList<ReceiveGoodsLine>? Lines, string? DeliveryReference = null);

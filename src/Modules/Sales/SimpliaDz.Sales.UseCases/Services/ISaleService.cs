@@ -19,7 +19,8 @@ public interface ISaleService
         decimal value, CancellationToken ct);
     Task<SaleDto> ApplyLineDiscountAsync(Guid saleId, Guid lineId,
         SaleDiscountType type, decimal value, CancellationToken ct);
-    Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct, bool adjustShortfall = false);
+    Task<SaleDto> CompleteAsync(Guid saleId, Guid completedBy, CancellationToken ct, bool adjustShortfall = false,
+        PosCheckout? checkout = null);
     Task CancelAsync(Guid saleId, CancellationToken ct);
     Task<SaleDto> GetByIdAsync(Guid saleId, CancellationToken ct);
     Task<IReadOnlyList<SaleDto>> ListAsync(Guid? locationId, Guid? customerId,
@@ -27,6 +28,10 @@ public interface ISaleService
     Task<SaleHistoryDto> HistoryAsync(Guid? locationId, Guid? customerId, string? status,
         string? search, DateTimeOffset? from, DateTimeOffset? until, int page, int pageSize, CancellationToken ct);
 }
+
+public sealed record CheckoutTender(Guid Id, decimal Amount, PaymentMethod Method);
+public sealed record PosCheckout(Guid CashSessionId, Guid PriceListId, decimal? ExpectedTotal,
+    IReadOnlyList<CheckoutTender> Tenders);
 
 public sealed record SaleHistoryDto(IReadOnlyList<SaleDto> Items, long Count, decimal Total);
 

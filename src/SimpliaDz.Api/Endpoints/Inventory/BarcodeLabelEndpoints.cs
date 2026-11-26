@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -5,8 +6,10 @@ using SimpliaDz.Api.Modules;
 using SimpliaDz.BuildingBlocks.Exceptions;
 using SimpliaDz.BuildingBlocks.Modules.Abstractions;
 using SimpliaDz.BuildingBlocks.Tenancy;
+using SimpliaDz.BuildingBlocks.Tenancy.Abstractions;
 using SimpliaDz.Inventory.Core.Entities.Catalog;
 using SimpliaDz.Inventory.Infrastructure.Data;
+using SimpliaDz.Organization.Infrastructure.Data;
 using SimpliaDz.SharedKernel.Authorization;
 
 namespace SimpliaDz.Api.Endpoints.Inventory;
@@ -73,7 +76,8 @@ public static class BarcodeLabelEndpoints
 
         app.MapPost("/barcode-labels/print-document", async (
             [FromBody] BarcodeLabelPrintRequest request, HttpContext http,
-            [FromServices] InventoryDbContext db, CancellationToken ct) =>
+            [FromServices] InventoryDbContext db, [FromServices] OrganizationDbContext organization,
+            [FromServices] ITenantContext tenant, CancellationToken ct) =>
         {
             if (request.TemplateId == Guid.Empty || request.Lines is null ||
                 request.Lines.Count == 0 || request.Lines.Any(x => x.VariantId == Guid.Empty ||
@@ -90,9 +94,13 @@ public static class BarcodeLabelEndpoints
             if (variants.Count != ids.Length || variants.Values.Any(x => !x.IsActive ||
                 !x.Product.IsActive || x.Barcode is null))
                 throw new ConflictException("Every selected variant must be active and have a barcode.");
+            var prices = request.ShowPrice
+                ? await LoadRetailPricesAsync(db, organization, tenant, ids, request.Locale, ct)
+                : new Dictionary<Guid, string>();
             var items = request.Lines.SelectMany(x => Enumerable.Repeat(
                 new BarcodeLabelItem(variants[x.VariantId].Product.Name.Value,
-                    variants[x.VariantId].Sku.Value, variants[x.VariantId].Barcode!),
+                    variants[x.VariantId].Sku.Value, variants[x.VariantId].Barcode!,
+                    prices.GetValueOrDefault(x.VariantId)),
                 x.Quantity)).ToArray();
             var html = BarcodeLabelDocumentRenderer.Render(template, items);
             http.Response.Headers.ContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'";
@@ -104,6 +112,33 @@ public static class BarcodeLabelEndpoints
             .RequireAuthorization(PermissionNames.BarcodeLabels.Print);
 
         return app;
+    }
+
+    private static async Task<Dictionary<Guid, string>> LoadRetailPricesAsync(
+        InventoryDbContext db, OrganizationDbContext organization, ITenantContext tenant,
+        Guid[] variantIds, string? locale, CancellationToken ct)
+    {
+        if (!tenant.IsModuleEnabled("Organization"))
+            throw new ConflictException("Organization must be enabled to print prices.");
+        var currency = await organization.Organizations.AsNoTracking().OrderBy(x => x.Id)
+            .Select(x => x.CurrencyCode).FirstOrDefaultAsync(ct)
+            ?? throw new ConflictException("Configure the organization currency before printing prices.");
+        var priceListId = await db.PriceLists.AsNoTracking()
+            .Where(x => x.IsActive && x.Type == PriceListType.Retail && x.CurrencyCode == currency)
+            .OrderBy(x => x.Name).ThenBy(x => x.Id).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct)
+            ?? throw new ConflictException("Create an active Retail price list in the organization currency.");
+        var prices = await db.PriceListItems.AsNoTracking()
+            .Where(x => x.PriceListId == priceListId && variantIds.Contains(x.ProductVariantId))
+            .ToDictionaryAsync(x => x.ProductVariantId, x => x.Price, ct);
+        if (prices.Count != variantIds.Length)
+            throw new ConflictException("Each selected variant must have a retail price to print priced labels.");
+        var culture = locale switch
+        {
+            "fr" => CultureInfo.GetCultureInfo("fr-DZ"),
+            "ar" => CultureInfo.GetCultureInfo("ar-DZ"),
+            _ => CultureInfo.GetCultureInfo("en-US")
+        };
+        return prices.ToDictionary(x => x.Key, x => $"{x.Value.ToString("N2", culture)} {currency}");
     }
 
     private static BarcodeLabelTemplate NewTemplate(BarcodeLabelTemplateRequest request) =>
@@ -128,4 +163,4 @@ public sealed record BarcodeLabelTemplateRequest(string Name, decimal PageWidthM
     decimal MarginMm, decimal GapMm, bool ShowName, bool ShowSku);
 public sealed record BarcodeLabelPrintLine(Guid VariantId, int Quantity);
 public sealed record BarcodeLabelPrintRequest(Guid TemplateId,
-    IReadOnlyList<BarcodeLabelPrintLine> Lines);
+    IReadOnlyList<BarcodeLabelPrintLine> Lines, bool ShowPrice = false, string? Locale = null);

@@ -32,7 +32,10 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
         var model = await LoadAsync(saleId, ct);
         if (model.Status is not ("Completed" or "PartiallyReturned" or "Returned"))
             throw new ConflictException("A receipt can only be generated for a completed sale.");
-        return new($"receipt-{model.DocumentNumber}.pdf", BuildReceipt(model, saleId));
+        var methods = await sales.Payments.AsNoTracking().Where(x => x.SaleId == saleId)
+            .GroupBy(x => x.PaymentMethod).Select(g => new ReceiptPayment(g.Key, g.Sum(x => x.Amount)))
+            .ToListAsync(ct);
+        return new($"receipt-{model.DocumentNumber}.pdf", BuildReceipt(model, saleId, methods));
     }
 
     private async Task<SalesDocumentModel> LoadAsync(Guid saleId, CancellationToken ct)
@@ -163,7 +166,7 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
         });
     }).WithMetadata(new DocumentMetadata { Title = $"Pro forma {model.DocumentNumber}", Author = model.OrganizationName, Creator = "Simplia" }).GeneratePdf();
 
-    private static byte[] BuildReceipt(SalesDocumentModel model, Guid saleId) => Document.Create(doc =>
+    private static byte[] BuildReceipt(SalesDocumentModel model, Guid saleId, IReadOnlyList<ReceiptPayment> payments) => Document.Create(doc =>
     {
         doc.Page(page =>
         {
@@ -195,6 +198,24 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
                     ReceiptAmount(c, "Remise", -model.DiscountAmount, model.Currency);
                 ReceiptAmount(c, "TOTAL", model.Total, model.Currency, emphasized: true);
                 ReceiptAmount(c, "Montant payé", model.PaidAmount, model.Currency);
+                foreach (var payment in payments)
+                {
+                    var method = payment.Method switch
+                    {
+                        PaymentMethod.Cash => "Espèces",
+                        PaymentMethod.Card => "Carte",
+                        PaymentMethod.BankTransfer => "Virement",
+                        _ => "Autre"
+                    };
+                    ReceiptAmount(c, method, payment.Amount, model.Currency);
+                }
+                if (model.PaidAmount < model.Total)
+                {
+                    ReceiptAmount(c, "Solde restant", model.Total - model.PaidAmount, model.Currency, emphasized: true);
+                    c.Item().Text(model.PaidAmount == 0 ? "À crédit" : "Partiellement payé").SemiBold();
+                    if (!string.IsNullOrWhiteSpace(model.CustomerPhone))
+                        c.Item().Text(model.CustomerPhone);
+                }
                 c.Item().PaddingTop(8).AlignCenter().Text("Merci pour votre achat !").SemiBold();
                 c.Item().PaddingTop(5).Height(30).Svg(ReceiptBarcode(saleId)).FitArea();
                 c.Item().AlignCenter().Text(saleId.ToString("N")).FontSize(7);
@@ -230,5 +251,6 @@ public sealed class SalesPdfDocumentService(SalesDbContext sales, InventoryDbCon
     private static void Total(ColumnDescriptor column, string name, decimal value, string currency) => column.Item().Row(r => { r.RelativeItem().Text(name); r.ConstantItem(110).AlignRight().Text(Money(value, currency)); });
     private static string Money(decimal value, string currency) => $"{value:N2} {currency}";
     private sealed record SalesDocumentModel(string OrganizationName, string? OrganizationLegalName, string? OrganizationAddress, string? OrganizationPhone, string? OrganizationEmail, string Currency, string LocationName, string? LocationAddress, string CustomerName, string? CustomerPhone, string? CustomerAddress, string DocumentNumber, string Status, DateTimeOffset Date, decimal Subtotal, decimal DiscountAmount, decimal Total, decimal PaidAmount, IReadOnlyList<SalesDocumentLine> Lines);
+    private sealed record ReceiptPayment(PaymentMethod Method, decimal Amount);
     private sealed record SalesDocumentLine(string ProductName, string Sku, int Quantity, decimal UnitPrice, decimal DiscountAmount, decimal LineTotal);
 }

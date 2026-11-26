@@ -11,6 +11,7 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         b.ToTable("Payments", table =>
             table.HasCheckConstraint("CK_Payments_Amount_Positive", "[Amount] > 0"));
         b.HasKey(x => x.Id);
+        b.Property(x => x.Reference).HasMaxLength(100);
         b.Property(x => x.Amount).HasPrecision(18, 4).IsRequired();
         b.Property(x => x.PaymentMethod).HasConversion<string>().HasMaxLength(20).IsRequired();
         b.Property(x => x.PaidAt).IsRequired();

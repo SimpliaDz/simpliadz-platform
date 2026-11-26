@@ -71,22 +71,31 @@ public sealed class CashSessionIntegrationTests
             var payments = new PaymentService(sales);
             await Assert.ThrowsAsync<ConflictException>(() => payments.RecordAsync(Guid.NewGuid(),
                 sale.Id, 10m, PaymentMethod.Cash, cashier1, CancellationToken.None));
-            await using (var cashier1Db = new SalesDbContext(
-                new DbContextOptionsBuilder<SalesDbContext>().UseSqlServer(connectionString).Options))
-            await using (var cashier2Db = new SalesDbContext(
-                new DbContextOptionsBuilder<SalesDbContext>().UseSqlServer(connectionString).Options))
-            {
-                await Task.WhenAll(
-                    new PaymentService(cashier1Db).RecordAsync(Guid.NewGuid(), sale.Id, 10m,
-                        PaymentMethod.Cash, cashier1, CancellationToken.None, firstSession.Id),
-                    new PaymentService(cashier2Db).RecordAsync(Guid.NewGuid(), sale.Id, 15m,
-                        PaymentMethod.Cash, cashier2, CancellationToken.None, firstSession.Id));
-            }
-            sales.ChangeTracker.Clear();
+            var assignment = new CashRegisterAssignment(first.Id, firstSession.Id, cashier1, Guid.NewGuid());
+            sales.CashRegisterAssignments.Add(assignment);
+            await sales.SaveChangesAsync();
+            await Assert.ThrowsAsync<ConflictException>(() => payments.RecordAsync(Guid.NewGuid(),
+                sale.Id, 15m, PaymentMethod.Cash, cashier2, CancellationToken.None, firstSession.Id));
+            await payments.RecordAsync(Guid.NewGuid(), sale.Id, 10m, PaymentMethod.Cash,
+                cashier1, CancellationToken.None, firstSession.Id);
+            assignment = await sales.CashRegisterAssignments.SingleAsync(x => x.Id == assignment.Id);
+            assignment.Release();
+            await sales.SaveChangesAsync();
+            sales.CashRegisterAssignments.Add(new CashRegisterAssignment(first.Id, firstSession.Id,
+                cashier2, Guid.NewGuid()));
+            await sales.SaveChangesAsync();
+            await payments.RecordAsync(Guid.NewGuid(), sale.Id, 15m, PaymentMethod.Cash,
+                cashier2, CancellationToken.None, firstSession.Id);
             await payments.RecordAsync(Guid.NewGuid(), sale.Id, 5m, PaymentMethod.Card,
                 cashier2, CancellationToken.None, firstSession.Id);
             await sessions.AddMovementAsync(firstSession.Id, -5m, "Petty cash",
                 cashier1, CancellationToken.None);
+            await Assert.ThrowsAsync<ConflictException>(() => sessions.CloseAsync(firstSession.Id,
+                119m, cashier2, CancellationToken.None));
+            var activeAssignment = await sales.CashRegisterAssignments.SingleAsync(x =>
+                x.CashSessionId == firstSession.Id && x.ReleasedAt == null);
+            activeAssignment.Release();
+            await sales.SaveChangesAsync();
             var closed = await sessions.CloseAsync(firstSession.Id, 119m, cashier2,
                 CancellationToken.None);
             Assert.Equal(120m, closed.ExpectedCash);

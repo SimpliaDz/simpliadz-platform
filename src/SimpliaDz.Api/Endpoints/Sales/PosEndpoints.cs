@@ -201,31 +201,48 @@ public static class PosEndpoints
             [FromBody] PosPaymentRequest request, ClaimsPrincipal principal, HttpContext http, [FromServices] IPosService pos,
             [FromServices] ISaleService sales, [FromServices] IPaymentService payments, CancellationToken ct) =>
         {
-            if (request.Amount < 0 || request.Id == Guid.Empty || !Enum.TryParse<PaymentMethod>(
-                    request.PaymentMethod, true, out var method))
+            var inputs = request.Tenders ?? (request.Amount == 0
+                ? [] : [new PosTenderRequest(request.Id, request.Amount, request.PaymentMethod)]);
+            if (request.Id == Guid.Empty || request.Amount < 0 || inputs.Count > 10 ||
+                inputs.Select(x => x.Id).Distinct().Count() != inputs.Count ||
+                inputs.Any(x => x.Id == Guid.Empty || x.Amount <= 0 || x.Amount > 99999999999999.9999m ||
+                    decimal.Round(x.Amount, 4) != x.Amount ||
+                    !Enum.TryParse<PaymentMethod>(x.Method, true, out var parsed) || !Enum.IsDefined(parsed)))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
-                { ["payment"] = ["A valid payment ID, method, and non-negative amount are required."] });
+                    { ["payment"] = ["Enter up to ten valid payment amounts and methods."] });
             if (!CanUseStockOverride(principal, request.ConfirmPhysicalStock)) return Results.Forbid();
             var actor = Actor(principal);
             var context = await pos.RequireContextAsync(actor, ct);
             var current = await sales.GetByIdAsync(saleId, ct);
             if (current.CashierId != actor || current.LocationId != context.LocationId)
                 return Results.Conflict("This ticket is not available at the current register.");
-            if (current.Status == "Draft" && current.PriceListId != context.PriceListId)
-                return Results.Conflict("This ticket does not use the current retail price list. Start a new POS ticket.");
-            if (request.Amount == 0 && current.Total != 0)
-                return Results.Conflict("Only a zero-total ticket can be completed without payment.");
-            var completed = current.Status == "Draft"
-                ? await sales.CompleteAsync(saleId, actor, ct, adjustShortfall: request.ConfirmPhysicalStock)
-                : current;
-            if (current.Status == "Draft")
-                await SaleAudit.RecordAsync(http, "SaleCompleted", current, completed with { Lines = current.Lines });
-            if (request.Amount == 0) return Results.Ok(new PosPaymentResult(completed, null));
-            var payment = await payments.RecordAsync(request.Id, saleId, request.Amount, method, actor, ct,
-                context.CashSessionId);
-            await SaleAudit.RecordAsync(http, "SalePaymentRecorded", completed,
-                await sales.GetByIdAsync(saleId, CancellationToken.None), payment);
-            return Results.Ok(new PosPaymentResult(completed, payment));
+            if (current.Status != "Draft")
+            {
+                if (current.Status != "Completed") return Results.Conflict("This ticket cannot be checked out.");
+                var recorded = await payments.ListBySaleAsync(saleId, ct);
+                if (inputs.Any(input => !recorded.Any(payment => payment.Id == input.Id &&
+                    payment.Amount == input.Amount &&
+                    string.Equals(payment.PaymentMethod, input.Method, StringComparison.OrdinalIgnoreCase))))
+                    return Results.Conflict("This ticket was already completed. Use the sale details to record later payments.");
+                return Results.Ok(new PosPaymentResult(current,
+                    recorded.FirstOrDefault(payment => inputs.Any(input => input.Id == payment.Id))));
+            }
+
+            var tenders = inputs.Select(x => new CheckoutTender(x.Id, x.Amount,
+                Enum.Parse<PaymentMethod>(x.Method, true))).ToArray();
+            var completed = await sales.CompleteAsync(saleId, actor, ct, request.ConfirmPhysicalStock,
+                new PosCheckout(context.CashSessionId, context.PriceListId, request.ExpectedTotal, tenders));
+            await SaleAudit.RecordAsync(http, "SaleCompleted", current, completed with { Lines = current.Lines });
+            var posted = tenders.Length == 0 ? [] : await payments.ListBySaleAsync(saleId, CancellationToken.None);
+            var paymentState = completed with { PaidAmount = 0, BalanceDue = completed.Total };
+            foreach (var payment in posted.Where(x => tenders.Any(t => t.Id == x.Id)))
+            {
+                var paid = paymentState.PaidAmount + payment.Amount;
+                var next = paymentState with { PaidAmount = paid, BalanceDue = completed.Total - paid };
+                await SaleAudit.RecordAsync(http, "SalePaymentRecorded", paymentState, next, payment);
+                paymentState = next;
+            }
+            return Results.Ok(new PosPaymentResult(completed, posted.FirstOrDefault()));
         }).WithMetadata(new ExplicitAuditMetadata());
 
         return app;
@@ -244,5 +261,7 @@ public sealed record PosScanRequest(string Code, bool ConfirmPhysicalStock = fal
 public sealed record PosSetLineQuantityRequest(int Quantity, bool ConfirmPhysicalStock = false);
 public sealed record PosSetCustomerRequest(Guid? CustomerId);
 public sealed record PosCustomerDto(Guid Id, string Name, string? Phone, string? Email);
-public sealed record PosPaymentRequest(Guid Id, decimal Amount, string PaymentMethod, bool ConfirmPhysicalStock = false);
+public sealed record PosTenderRequest(Guid Id, decimal Amount, string Method);
+public sealed record PosPaymentRequest(Guid Id, decimal Amount, string PaymentMethod, bool ConfirmPhysicalStock = false,
+    decimal? ExpectedTotal = null, IReadOnlyList<PosTenderRequest>? Tenders = null);
 public sealed record PosPaymentResult(SaleDto Sale, PaymentDto? Payment);

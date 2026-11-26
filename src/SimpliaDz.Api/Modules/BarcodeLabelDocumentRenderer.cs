@@ -7,7 +7,7 @@ using ZXing.OneD;
 
 namespace SimpliaDz.Api.Modules;
 
-public sealed record BarcodeLabelItem(string Name, string Sku, string Barcode);
+public sealed record BarcodeLabelItem(string Name, string Sku, string Barcode, string? Price = null);
 
 public static class BarcodeLabelDocumentRenderer
 {
@@ -65,12 +65,16 @@ public static class BarcodeLabelDocumentRenderer
             AppendText(html, item.Name, 4m, template.LabelWidthMm);
         var top = template.ShowName ? 7m : 2m;
         var bottom = template.ShowSku ? 8m : 5m;
+        if (item.Price is not null)
+            bottom += 4m;
         var barHeight = template.LabelHeightMm - top - bottom;
         var moduleWidth = (template.LabelWidthMm - 4m) / matrix.Width;
         for (var i = 0; i < matrix.Width; i++)
             if (matrix[i, 0])
                 html.Append(FormattableString.Invariant(
                     $"<rect x=\"{2m + i * moduleWidth:0.####}\" y=\"{top}\" width=\"{moduleWidth:0.####}\" height=\"{barHeight}\"/>"));
+        if (item.Price is not null)
+            AppendText(html, item.Price, template.LabelHeightMm - bottom + 3m, template.LabelWidthMm);
         if (template.ShowSku)
             AppendText(html, item.Sku, template.LabelHeightMm - 4.5m, template.LabelWidthMm);
         AppendText(html, item.Barcode, template.LabelHeightMm - 1m, template.LabelWidthMm);
@@ -83,7 +87,7 @@ public static class BarcodeLabelDocumentRenderer
         var escaped = WebUtility.HtmlEncode(value);
         html.Append(FormattableString.Invariant(
             $"<text x=\"2\" y=\"{baseline}\" font-family=\"Arial,sans-serif\" font-size=\"2.5\""));
-        if (value.Length > 30)
+        if (value.Length * 1.6m > labelWidth - 4m)
             html.Append(FormattableString.Invariant(
                 $" textLength=\"{labelWidth - 4m}\" lengthAdjust=\"spacingAndGlyphs\""));
         html.Append('>');

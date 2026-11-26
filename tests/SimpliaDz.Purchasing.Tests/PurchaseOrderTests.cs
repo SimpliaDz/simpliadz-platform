@@ -8,6 +8,21 @@ namespace SimpliaDz.Purchasing.Tests;
 public sealed class PurchaseOrderTests
 {
     [Fact]
+    public void Supplier_payments_require_confirmed_orders_and_cannot_exceed_balance()
+    {
+        var order = new PurchaseOrder(Guid.NewGuid(), Guid.NewGuid(), "buyer");
+        order.AddLine(Guid.NewGuid(), 3, 2000m);
+        Assert.Throws<InvalidOperationException>(() => order.ValidateSupplierPayment(2000m, 0m));
+        order.PlaceOrder();
+
+        order.ValidateSupplierPayment(2000m, 0m);
+        Assert.Equal(4000m, order.Total - 2000m);
+        Assert.Throws<InvalidOperationException>(() => order.ValidateSupplierPayment(4000.01m, 2000m));
+        order.ValidateSupplierPayment(4000m, 2000m);
+        Assert.Throws<InvalidOperationException>(() => order.ValidateSupplierPayment(1m, order.Total));
+    }
+
+    [Fact]
     public void Draft_lines_calculate_total_without_receiving_stock()
     {
         var order = NewOrder();

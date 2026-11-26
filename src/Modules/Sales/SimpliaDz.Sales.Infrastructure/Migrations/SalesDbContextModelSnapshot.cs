@@ -274,6 +274,10 @@ namespace SimpliaDz.Sales.Infrastructure.Migrations
                     b.Property<Guid>("ReceivedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uniqueidentifier");
 

@@ -292,6 +292,44 @@ public sealed class SaleIntegrationTests
                 "SALE-TEST", CancellationToken.None, checkStock: false);
             Assert.Equal(broad.Id, subsequent.Lines.Single().PromotionId);
             Assert.Equal(10.8m, subsequent.Total);
+
+            var register = new CashRegister(location.Id, "CREDIT", "Credit checkout register");
+            var cashSession = new CashSession(register.Id, cashier, 0);
+            sales.AddRange(register, cashSession,
+                new CashRegisterAssignment(register.Id, cashSession.Id, cashier, Guid.NewGuid()));
+            await sales.SaveChangesAsync();
+            var checkout = new PosCheckout(cashSession.Id, priceList.Id, subsequent.Total,
+                [new CheckoutTender(Guid.NewGuid(), 3m, PaymentMethod.Cash),
+                    new CheckoutTender(Guid.NewGuid(), 2m, PaymentMethod.Card)]);
+            await Assert.ThrowsAsync<ConflictException>(() => service.CompleteAsync(subsequent.Id, cashier,
+                CancellationToken.None, adjustShortfall: true, checkout));
+            Assert.Equal("Draft", (await service.GetByIdAsync(subsequent.Id, CancellationToken.None)).Status);
+            var creditCustomer = new Customer("Checkout credit customer", null, null, null,
+                CustomerType.Retail, null);
+            sales.Customers.Add(creditCustomer);
+            await sales.SaveChangesAsync();
+            await service.SetCustomerAsync(subsequent.Id, creditCustomer.Id, CancellationToken.None);
+            await sales.Database.ExecuteSqlRawAsync("""
+                CREATE TRIGGER sales.RejectCheckoutTenderTest ON sales.Payments
+                AFTER INSERT AS BEGIN THROW 51005, 'Test checkout tender write failure', 1; END
+                """);
+            await Assert.ThrowsAnyAsync<Exception>(() => service.CompleteAsync(subsequent.Id, cashier,
+                CancellationToken.None, adjustShortfall: true, checkout));
+            await sales.Database.ExecuteSqlRawAsync("DROP TRIGGER sales.RejectCheckoutTenderTest");
+            Assert.Equal("Draft", (await service.GetByIdAsync(subsequent.Id, CancellationToken.None)).Status);
+            Assert.Empty(await payments.ListBySaleAsync(subsequent.Id, CancellationToken.None));
+            Assert.False(await inventory.StockMovements.AnyAsync(x => x.ReferenceId == subsequent.Id));
+            var paid = await service.CompleteAsync(subsequent.Id, cashier,
+                CancellationToken.None, adjustShortfall: true, checkout);
+            Assert.Equal("Completed", paid.Status);
+            Assert.Equal(5m, paid.PaidAmount);
+            Assert.Equal(5.8m, paid.BalanceDue);
+            Assert.Equal(2, (await payments.ListBySaleAsync(paid.Id, CancellationToken.None)).Count);
+            await payments.RecordAsync(Guid.NewGuid(), paid.Id, 5.8m, PaymentMethod.Card,
+                cashier, CancellationToken.None, cashSession.Id, "Collection reference");
+            Assert.Equal(0m, (await service.GetByIdAsync(paid.Id, CancellationToken.None)).BalanceDue);
+            Assert.Contains(await payments.ListBySaleAsync(paid.Id, CancellationToken.None),
+                payment => payment.Reference == "Collection reference");
         }
         finally
         {

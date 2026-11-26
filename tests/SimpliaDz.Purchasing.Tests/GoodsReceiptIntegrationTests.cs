@@ -65,7 +65,8 @@ public sealed class GoodsReceiptIntegrationTests
             var service = new GoodsReceiptService(purchasing, new TestTenant(connectionString));
             var firstId = Guid.NewGuid();
             var first = await service.ReceiveAsync(firstId, order.Id,
-                [new ReceiveGoodsLine(line.Id, 70)], "receiver", CancellationToken.None);
+                [new ReceiveGoodsLine(line.Id, 70)], "receiver", CancellationToken.None, "  Delivery #70  ");
+            Assert.Equal("Delivery #70", (await service.GetByIdAsync(firstId, CancellationToken.None)).DeliveryReference);
             Assert.Equal(70, first.Lines.Single().QuantityReceived);
             await Assert.ThrowsAsync<ConflictException>(() => service.ReceiveAsync(firstId, order.Id,
                 [new ReceiveGoodsLine(line.Id, 70)], "receiver", CancellationToken.None));
@@ -105,6 +106,25 @@ public sealed class GoodsReceiptIntegrationTests
             Assert.All(movements, x => Assert.Equal(StockMovementType.PurchaseReceipt, x.MovementType));
             Assert.Contains(movements, x => x.ReferenceId == firstId && x.QuantityDelta == 70);
             Assert.Contains(movements, x => x.ReferenceId == secondId && x.QuantityDelta == 30);
+
+            var paymentId = Guid.NewGuid();
+            var payDate = new DateOnly(2026, 11, 25);
+            complete.ValidateSupplierPayment(200m, 0m);
+            purchasing.SupplierPayments.Add(new SupplierPayment(paymentId, complete.Id, 200m,
+                SupplierPaymentMethod.Cash, payDate, Guid.NewGuid(), "Deposit", null));
+            await purchasing.SaveChangesAsync();
+            var paid = await purchasing.SupplierPayments.Where(x => x.PurchaseOrderId == complete.Id)
+                .SumAsync(x => x.Amount);
+            Assert.Equal(200m, paid);
+            complete.ValidateSupplierPayment(complete.Total - paid, paid);
+            purchasing.SupplierPayments.Add(new SupplierPayment(Guid.NewGuid(), complete.Id,
+                complete.Total - paid, SupplierPaymentMethod.BankTransfer, payDate, Guid.NewGuid(), null, null));
+            await purchasing.SaveChangesAsync();
+            purchasing.ChangeTracker.Clear();
+            var posted = await purchasing.SupplierPayments.AsNoTracking()
+                .Where(x => x.PurchaseOrderId == complete.Id).ToListAsync();
+            Assert.Equal(complete.Total, posted.Sum(x => x.Amount));
+            Assert.Equal("Deposit", posted.Single(x => x.Id == paymentId).Reference);
 
             purchasing.ChangeTracker.Clear();
             var cancelled = await orders.CreateDraftAsync(supplier.Id, location.Id,

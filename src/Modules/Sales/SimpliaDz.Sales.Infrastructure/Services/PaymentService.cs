@@ -12,7 +12,7 @@ public sealed class PaymentService(SalesDbContext db) : IPaymentService
 {
     public async Task<PaymentDto> RecordAsync(Guid paymentId, Guid saleId, decimal amount,
         PaymentMethod method, Guid receivedBy, CancellationToken ct,
-        Guid? cashSessionId = null)
+        Guid? cashSessionId = null, string? reference = null)
     {
         for (var attempt = 0; attempt < 5; attempt++)
         {
@@ -42,7 +42,7 @@ public sealed class PaymentService(SalesDbContext db) : IPaymentService
                     throw new ConflictException("Select an open cash session for this payment.");
                 if (amount > sale.BalanceDue)
                     throw new ConflictException("Payment exceeds the remaining sale total.");
-                var payment = new Payment(paymentId, saleId, amount, method, receivedBy, cashSessionId);
+                var payment = new Payment(paymentId, saleId, amount, method, receivedBy, cashSessionId, reference: reference);
                 sale.RecordPayment(amount);
                 db.Payments.Add(payment);
                 await db.SaveChangesAsync(ct);
@@ -84,7 +84,7 @@ public sealed class PaymentService(SalesDbContext db) : IPaymentService
     }
 
     private static PaymentDto Map(Payment x) => new(x.Id, x.SaleId, x.Amount,
-        x.PaymentMethod.ToString(), x.PaidAt, x.ReceivedBy, x.CashSessionId);
+        x.PaymentMethod.ToString(), x.PaidAt, x.ReceivedBy, x.CashSessionId, x.Reference);
 
     private static bool IsUniqueConflict(DbUpdateException exception) =>
         exception.InnerException is SqlException { Number: 2601 or 2627 };

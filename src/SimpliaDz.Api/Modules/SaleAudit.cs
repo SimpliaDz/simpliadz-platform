@@ -68,6 +68,8 @@ internal static class SaleAudit
             values["paymentId"] = payment.Id;
             values["paymentAmount"] = payment.Amount;
             values["paymentMethod"] = payment.PaymentMethod;
+            values["paymentReference"] = payment.Reference;
+            values["paidAt"] = payment.PaidAt;
             values["cashSessionId"] = payment.CashSessionId;
         }
         if (saleReturn is not null)

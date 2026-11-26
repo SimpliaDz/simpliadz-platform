@@ -67,6 +67,15 @@ public sealed class PurchaseOrder
         Touch();
     }
 
+    public void ValidateSupplierPayment(decimal amount, decimal alreadyPaid)
+    {
+        if (Status is PurchaseOrderStatus.Draft or PurchaseOrderStatus.Cancelled)
+            throw new InvalidOperationException("Only confirmed orders can receive supplier payments.");
+        if (amount <= 0 || amount > Total - alreadyPaid)
+            throw new InvalidOperationException("Payment exceeds the outstanding order balance or is not positive.");
+        Touch();
+    }
+
     public void PlaceOrder()
     {
         EnsureDraft();

@@ -13,6 +13,7 @@ public sealed class PurchasingDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
     public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
 
@@ -51,6 +52,8 @@ public sealed class PurchasingDbContext : DbContext
     private void EnsureImmutableRecords()
     {
         ChangeTracker.DetectChanges();
+        if (ChangeTracker.Entries<SupplierPayment>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("Supplier payments are immutable after posting.");
         if (ChangeTracker.Entries<Supplier>().Any(entry => entry.State == EntityState.Deleted))
             throw new InvalidOperationException("Suppliers must be deactivated, not deleted.");
         if (ChangeTracker.Entries<GoodsReceipt>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted) ||

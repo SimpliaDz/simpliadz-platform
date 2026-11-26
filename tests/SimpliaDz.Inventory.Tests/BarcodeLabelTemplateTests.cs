@@ -24,6 +24,22 @@ public sealed class BarcodeLabelTemplateTests
     }
 
     [Fact]
+    public void Price_is_optional_and_fits_the_smallest_label_with_name_and_sku()
+    {
+        var template = new BarcodeLabelTemplate("Small", 50, 50, 40, 25, 1, 1, true, true);
+        var label = new BarcodeLabelItem("A long product name for a narrow label", "ABC-M",
+            InternalBarcode.Generate(), "1 234,50 DZD");
+        var priced = BarcodeLabelDocumentRenderer.Render(template, [label, label]);
+        var unpriced = BarcodeLabelDocumentRenderer.Render(template, [label with { Price = null }]);
+
+        Assert.Equal(2, priced.Split("1 234,50 DZD").Length - 1);
+        Assert.Contains("height=\"6\"", priced);
+        Assert.Contains("textLength=\"36\"", priced);
+        Assert.DoesNotContain("DZD", unpriced);
+        Assert.Contains(label.Barcode, unpriced);
+    }
+
+    [Fact]
     public void Generated_ean13_barcode_can_be_printed()
     {
         var template = new BarcodeLabelTemplate("A4 labels", 210, 297,

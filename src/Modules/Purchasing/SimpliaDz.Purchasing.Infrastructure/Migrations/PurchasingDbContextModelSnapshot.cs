@@ -29,6 +29,10 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("DeliveryReference")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -241,6 +245,49 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
                     b.ToTable("Suppliers", "purchasing");
                 });
 
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.SupplierPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateOnly>("PaymentDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("PurchaseOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("RecordedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PurchaseOrderId", "PaymentDate");
+
+                    b.ToTable("SupplierPayments", "purchasing", t =>
+                        {
+                            t.HasCheckConstraint("CK_SupplierPayments_PositiveAmount", "[Amount] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceipt", b =>
                 {
                     b.HasOne("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", "PurchaseOrder")
@@ -291,6 +338,15 @@ namespace SimpliaDz.Purchasing.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.SupplierPayment", b =>
+                {
+                    b.HasOne("SimpliaDz.Purchasing.Core.Entities.PurchaseOrder", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SimpliaDz.Purchasing.Core.Entities.GoodsReceipt", b =>

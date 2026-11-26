@@ -44,6 +44,8 @@ public sealed class SaleReturnService(SalesDbContext sales, ITenantContext tenan
                 var sale = await sales.Sales.Include(x => x.Lines)
                     .FirstOrDefaultAsync(x => x.Id == saleId, ct)
                     ?? throw new NotFoundException("Sale", saleId);
+                if (sale.Status == SaleStatus.Completed && sale.CustomerId.HasValue && sale.BalanceDue > 0)
+                    throw new ConflictException("Settle the customer balance before processing a return.");
                 if (sale.Status is not (SaleStatus.Completed or SaleStatus.PartiallyReturned))
                     throw new ConflictException("Only completed sales with returnable lines can be returned.");
                 if (!await stock.Locations.AnyAsync(x => x.Id == locationId && x.IsActive, ct))

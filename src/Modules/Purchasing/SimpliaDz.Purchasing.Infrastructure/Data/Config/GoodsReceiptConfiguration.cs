@@ -12,6 +12,7 @@ internal sealed class GoodsReceiptConfiguration : IEntityTypeConfiguration<Goods
         b.HasKey(x => x.Id);
         b.Property(x => x.ReceivedBy).HasMaxLength(100).IsRequired();
         b.Property(x => x.ReceivedAt).IsRequired();
+        b.Property(x => x.DeliveryReference).HasMaxLength(500);
         b.HasOne(x => x.PurchaseOrder).WithMany().HasForeignKey(x => x.PurchaseOrderId)
             .OnDelete(DeleteBehavior.Restrict);
         b.HasMany(x => x.Lines).WithOne(x => x.GoodsReceipt)
