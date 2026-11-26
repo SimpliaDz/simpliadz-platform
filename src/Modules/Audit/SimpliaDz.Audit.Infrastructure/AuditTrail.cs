@@ -65,7 +65,8 @@ public sealed class AuditTrail(AuditDbContext db, ITenantContext tenant) : IAudi
                 key.Contains(forbidden, StringComparison.OrdinalIgnoreCase))))
             throw new ArgumentException("Sensitive authentication fields cannot be audited.", nameof(values));
         if (values.Values.Any(value => value is not null and not string and not Guid and
-                not bool and not int and not long and not decimal and not double))
+                not bool and not int and not long and not decimal and not double and
+                not DateOnly and not DateTime and not DateTimeOffset))
             throw new ArgumentException("Audit values must be simple scalar values.", nameof(values));
         return JsonSerializer.Serialize(values);
     }

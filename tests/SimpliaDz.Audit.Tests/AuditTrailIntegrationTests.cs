@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SimpliaDz.Audit.Infrastructure;
@@ -38,12 +39,25 @@ public sealed class AuditTrailIntegrationTests
                 "request-123", CancellationToken.None);
             await audit.AppendAsync(actor, "PriceChanged", "ProductVariant", variant,
                 new Dictionary<string, object?> { ["price"] = 100m },
-                new Dictionary<string, object?> { ["price"] = 120m },
+                new Dictionary<string, object?> { ["price"] = 120m,
+                    ["paymentDate"] = new DateOnly(2026, 11, 25),
+                    ["paidAt"] = new DateTimeOffset(2026, 11, 25, 17, 30, 0, TimeSpan.FromHours(-5)) },
                 "request-456", CancellationToken.None);
             await Assert.ThrowsAsync<ArgumentException>(() => audit.AppendAsync(actor,
                 "UserDeactivated", "User", Guid.NewGuid(), null,
                 new Dictionary<string, object?> { ["passwordHash"] = "secret" },
                 null, CancellationToken.None));
+
+            await Assert.ThrowsAsync<ArgumentException>(() => audit.AppendAsync(actor,
+                "InvalidAudit", "ProductVariant", variant, null,
+                new Dictionary<string, object?> { ["values"] = new[] { 1, 2 } },
+                null, CancellationToken.None));
+            var paymentHistory = await audit.QueryAsync(actor, "PriceChanged", "ProductVariant",
+                variant, null, null, 1, 50, CancellationToken.None);
+            using var paymentValues = System.Text.Json.JsonDocument.Parse(Assert.Single(paymentHistory.Items).NewValues!);
+            Assert.Equal(new DateOnly(2026, 11, 25),
+                paymentValues.RootElement.GetProperty("paymentDate").Deserialize<DateOnly>());
+            Assert.Equal("2026-11-25T17:30:00-05:00", paymentValues.RootElement.GetProperty("paidAt").GetString());
 
             var history = await audit.QueryAsync(actor, "StockAdjusted", "ProductVariant",
                 variant, null, null, 1, 50, CancellationToken.None);
