@@ -11,7 +11,7 @@
   <!-- Module appsettings files are only used for local EF/design-time work.
        Publishing them beside the host creates duplicate output paths and can
        overwrite the host's production configuration. -->
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'SimpliaDz.Api' And '$(MSBuildProjectName)' != 'SimpliaDz.DatabaseMigrator'">
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'SimpliaWear.Api' And '$(MSBuildProjectName)' != 'SimpliaWear.DatabaseMigrator'">
     <Content Update="appsettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
   </ItemGroup>
 </Project>

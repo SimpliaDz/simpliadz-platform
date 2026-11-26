@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$previousIntegrationConnection = [Environment]::GetEnvironmentVariable('SIMPLIADZ_INTEGRATION_CONNECTIONSTRING')
+$previousIntegrationConnection = [Environment]::GetEnvironmentVariable('SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING')
 Push-Location $repositoryRoot
 
 try {
@@ -24,7 +24,7 @@ try {
 
     $ready = $false
     for ($attempt = 0; $attempt -lt 30; $attempt++) {
-        docker exec -e "SQLCMDPASSWORD=$password" simpliadz-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q 'SELECT 1' -b *> $null
+        docker exec -e "SQLCMDPASSWORD=$password" simplia-wear-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q 'SELECT 1' -b *> $null
         if ($LASTEXITCODE -eq 0) {
             $ready = $true
             break
@@ -35,9 +35,9 @@ try {
         throw 'SQL Server did not become ready within 30 seconds.'
     }
 
-    $env:SIMPLIADZ_INTEGRATION_CONNECTIONSTRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True"
+    $env:SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING = "Server=localhost,1433;Database=master;User Id=sa;Password=$password;TrustServerCertificate=True"
 
-    $testArguments = @('test', 'src/SimpliaDz.sln', '-m:1', '--logger', 'console;verbosity=minimal')
+    $testArguments = @('test', 'src/SimpliaWear.sln', '-m:1', '--logger', 'console;verbosity=minimal')
     if ($NoBuild) {
         $testArguments += @('--no-build', '--no-restore')
     }
@@ -48,10 +48,10 @@ try {
 }
 finally {
     if ($null -eq $previousIntegrationConnection) {
-        Remove-Item Env:SIMPLIADZ_INTEGRATION_CONNECTIONSTRING -ErrorAction SilentlyContinue
+        Remove-Item Env:SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING -ErrorAction SilentlyContinue
     }
     else {
-        $env:SIMPLIADZ_INTEGRATION_CONNECTIONSTRING = $previousIntegrationConnection
+        $env:SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING = $previousIntegrationConnection
     }
     Pop-Location
 }

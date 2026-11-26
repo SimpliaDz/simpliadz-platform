@@ -1,7 +1,7 @@
 <Project>
   <!-- Imported after each project file, so this wins over the design-time
        PreserveNewest metadata declared by infrastructure projects. -->
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'SimpliaDz.Api' And '$(MSBuildProjectName)' != 'SimpliaDz.DatabaseMigrator'">
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'SimpliaWear.Api' And '$(MSBuildProjectName)' != 'SimpliaWear.DatabaseMigrator'">
     <None Update="appsettings.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 </Project>

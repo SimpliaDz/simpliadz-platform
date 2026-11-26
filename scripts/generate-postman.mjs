@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const endpointRoot = path.join(root, 'src', 'SimpliaDz.Api', 'Endpoints');
+const endpointRoot = path.join(root, 'src', 'SimpliaWear.Api', 'Endpoints');
 const output = path.join(root, 'postman');
 fs.mkdirSync(output, { recursive: true });
 
@@ -593,7 +593,7 @@ sections.push(deferred, deactivations);
 const collection = {
   info: {
     _postman_id: crypto.randomUUID(),
-    name: 'SimpliaDz API functional actions',
+    name: 'SimpliaWear API functional actions',
     description: 'Generated from all 187 mapped endpoint methods. Run only against a disposable local tenant. Each protected endpoint has authorized and unauthenticated requests; workflows also capture IDs for chained operations.',
     schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
   },
@@ -610,7 +610,7 @@ const collection = {
 };
 
 const environment = {
-  id: crypto.randomUUID(), name: 'SimpliaDz Local API',
+  id: crypto.randomUUID(), name: 'SimpliaWear Local API',
   values: [
     { key: 'baseUrl', value: 'http://localhost:5288', enabled: true },
     { key: 'adminEmail', value: 'admin@dev.local', enabled: true },
@@ -618,9 +618,9 @@ const environment = {
   ],
   _postman_variable_scope: 'environment',
   _postman_exported_at: new Date().toISOString(),
-  _postman_exported_using: 'SimpliaDz generator'
+  _postman_exported_using: 'SimpliaWear generator'
 };
 
-fs.writeFileSync(path.join(output, 'SimpliaDz.postman_collection.json'), JSON.stringify(collection, null, 2) + '\n');
-fs.writeFileSync(path.join(output, 'SimpliaDz.local.postman_environment.json'), JSON.stringify(environment, null, 2) + '\n');
+fs.writeFileSync(path.join(output, 'SimpliaWear.postman_collection.json'), JSON.stringify(collection, null, 2) + '\n');
+fs.writeFileSync(path.join(output, 'SimpliaWear.local.postman_environment.json'), JSON.stringify(environment, null, 2) + '\n');
 console.log(`Generated ${routeList.length} route workflows in ${output}`);

@@ -8,7 +8,7 @@ The Organization module stores the business profile for the current tenant. It i
 
 Each tenant uses its own configured database connection. The Organization module stores one profile row in that tenant database, using the fixed profile ID `00000000-0000-0000-0000-000000000001`. The same ID may exist in every tenant database without sharing data.
 
-The API instance selects its tenant from the runner's private catalog through `SIMPLIADZ_TENANTS_FILE`; callers do not provide a tenant header. The runner's `api.activeTenantId` selects the local API tenant.
+The API instance selects its tenant from the runner's private catalog through `SIMPLIAWEAR_TENANTS_FILE`; callers do not provide a tenant header. The runner's `api.activeTenantId` selects the local API tenant.
 
 The module must also be enabled under `Tenancy:Tenants:<tenant>:Modules:Organization`.
 
@@ -52,8 +52,8 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "name": "Simplia Store",
-  "legalName": "Simplia SARL",
+  "name": "SimpliaWear Store",
+  "legalName": "SimpliaWear SARL",
   "phone": "+213555000000",
   "email": "contact@example.dz",
   "address": "Algiers, Algeria",
@@ -88,4 +88,4 @@ The Identity seeder adds `organization.view` and `organization.manage`; the deve
 
 ## Tests
 
-`tests/SimpliaDz.Organization.Tests` covers the DZD default, currency normalization, invalid name/currency validation, and create-then-update behavior.
+`tests/SimpliaWear.Organization.Tests` covers the DZD default, currency normalization, invalid name/currency validation, and create-then-update behavior.

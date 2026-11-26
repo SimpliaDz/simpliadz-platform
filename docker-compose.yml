@@ -1,7 +1,7 @@
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: simpliadz-sql
+    container_name: simplia-wear-sql
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "Password1"
@@ -11,9 +11,9 @@ services:
       - "${MSSQL_PORT:-1433}:1433"
 
     volumes:
-      - simpliadz_mssql_data:/var/opt/mssql
+      - simplia-wear_mssql_data:/var/opt/mssql
 
     restart: unless-stopped
 
 volumes:
-  simpliadz_mssql_data:
+  simplia-wear_mssql_data:

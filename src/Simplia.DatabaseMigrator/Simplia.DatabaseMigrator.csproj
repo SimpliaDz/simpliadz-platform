@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Inventory\Simplia.Inventory.Infrastructure\Simplia.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\Simplia.SharedKernel\Simplia.SharedKernel.csproj" />
+    <ProjectReference Include="..\Simplia.BuildingBlocks\Simplia.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Simplia.ModuleCatalog\Simplia.ModuleCatalog.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Simplia.Identity.Infrastructure\Simplia.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Sales\Simplia.Sales.Infrastructure\Simplia.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\Simplia.Purchasing.Infrastructure\Simplia.Purchasing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accounting\Simplia.Accounting.Infrastructure\Simplia.Accounting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Simplia.Notifications.Infrastructure\Simplia.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Reporting\Simplia.Reporting.Infrastructure\Simplia.Reporting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Simplia.Audit.Infrastructure\Simplia.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Crm\Simplia.Crm.Infrastructure\Simplia.Crm.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+
+</Project>

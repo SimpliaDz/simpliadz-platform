@@ -5,11 +5,11 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const collection = JSON.parse(fs.readFileSync(path.join(root, 'postman', 'SimpliaDz.postman_collection.json')));
-const environment = JSON.parse(fs.readFileSync(path.join(root, 'postman', 'SimpliaDz.local.postman_environment.json')));
+const collection = JSON.parse(fs.readFileSync(path.join(root, 'postman', 'SimpliaWear.postman_collection.json')));
+const environment = JSON.parse(fs.readFileSync(path.join(root, 'postman', 'SimpliaWear.local.postman_environment.json')));
 const vars = new Map();
 const env = new Map(environment.values.map(x => [x.key, x.value]));
-env.set('adminPassword', process.env.SIMPLIADZ_POSTMAN_ADMIN_PASSWORD ?? 'Admin123!');
+env.set('adminPassword', process.env.SIMPLIAWEAR_POSTMAN_ADMIN_PASSWORD ?? 'Admin123!');
 const expectProxy = new Proxy(() => expectProxy, { get: () => expectProxy, apply: () => expectProxy });
 const replace = input => input.replace(/\{\{(\w+)\}\}/g, (_, key) =>
   String(vars.get(key) ?? env.get(key) ?? `UNSET_${key}`));

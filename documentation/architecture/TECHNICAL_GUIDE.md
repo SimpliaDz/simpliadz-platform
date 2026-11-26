@@ -1,4 +1,4 @@
-# Simplia — Technical Guide
+# SimpliaWear — Technical Guide
 
 > **Purpose of this document:** explain, in plain language, how this solution is put together so contributors can make changes that fit the existing architecture.
 >
@@ -29,7 +29,7 @@
 
 ## 1. Big picture: what kind of app is this
 
-This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaDz.Api`) that is internally split into independent modules. Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit, and CRM have implemented behavior; Notifications remains a scaffold. Each module follows Clean Architecture layers, with CQRS via Mediator where applicable.
+This is a **modular monolith**: a single deployable ASP.NET Core application (`SimpliaWear.Api`) that is internally split into independent modules. Identity, Inventory, Organization, Purchasing, Sales, Accounting, Reporting, Audit, and CRM have implemented behavior; Notifications remains a scaffold. Each module follows Clean Architecture layers, with CQRS via Mediator where applicable.
 
 Why this combination, in plain terms:
 
@@ -45,11 +45,11 @@ If you remember one thing from this section: **every module repeats the same fou
 
 ```
 src/
-├── SimpliaDz.Api/                 # The ONE web application that gets deployed/run.
-├── SimpliaDz.BuildingBlocks/       # Shared plumbing code used by every module (not business logic).
-├── SimpliaDz.SharedKernel/         # Shared types, including authorization permission names.
-├── SimpliaDz.ModuleCatalog/         # Shared installed-module list used by both executable hosts.
-├── SimpliaDz.DatabaseMigrator/     # A separate CLI tool that runs migrations + seed data per tenant.
+├── SimpliaWear.Api/                 # The ONE web application that gets deployed/run.
+├── SimpliaWear.BuildingBlocks/       # Shared plumbing code used by every module (not business logic).
+├── SimpliaWear.SharedKernel/         # Shared types, including authorization permission names.
+├── SimpliaWear.ModuleCatalog/         # Shared installed-module list used by both executable hosts.
+├── SimpliaWear.DatabaseMigrator/     # A separate CLI tool that runs migrations + seed data per tenant.
 └── Modules/
     ├── Identity/                   # ACTIVE — auth, users, roles, permissions.
     ├── Inventory/                  # ACTIVE — product catalog, variants, locations, stock, and low-stock policies.
@@ -63,7 +63,7 @@ src/
 tests/                              # Module integration and unit tests, including Audit and Reporting.
 ```
 
-### `SimpliaDz.Api` — the host
+### `SimpliaWear.Api` — the host
 
 This is the actual web server. It doesn't contain business logic — its job is to **wire everything together** and expose HTTP endpoints.
 
@@ -76,7 +76,7 @@ This is the actual web server. It doesn't contain business logic — its job is 
   app.MapAppEndpoints();
   app.Run();
   ```
-- `Modules/ModuleRegistry.cs` — a thin API wrapper over `SimpliaDz.ModuleCatalog`; the API registers all installed infrastructure at startup, then tenant middleware enables or rejects module endpoints per request (see [Section 3](#3-the-modular-monolith-how-modules-are-organized)).
+- `Modules/ModuleRegistry.cs` — a thin API wrapper over `SimpliaWear.ModuleCatalog`; the API registers all installed infrastructure at startup, then tenant middleware enables or rejects module endpoints per request (see [Section 3](#3-the-modular-monolith-how-modules-are-organized)).
 - `Extensions/DependencyInjectionExtensions.cs` — registers every module's services, Mediator, FluentValidation, and authorization policies.
 - `Extensions/AuthenticationExtensions.cs` — configures JWT Bearer authentication.
 - `Extensions/MiddlewareExtensions.cs` — configures the global exception handler, Swagger, and the auth middleware pipeline.
@@ -84,7 +84,7 @@ This is the actual web server. It doesn't contain business logic — its job is 
 - `Endpoints/Identity/*`, `Endpoints/Inventory/*`, `Endpoints/Organization/*` — the actual Minimal API route definitions (thin — they just call Mediator and return a result, see the walkthroughs below).
 - `Configuration/JwtOptions.cs` — strongly-typed JWT settings bound from `appsettings.json`.
 
-### `SimpliaDz.BuildingBlocks` — shared cross-cutting plumbing
+### `SimpliaWear.BuildingBlocks` — shared cross-cutting plumbing
 
 Code every module can depend on, but which is **not** business logic:
 
@@ -93,15 +93,15 @@ Code every module can depend on, but which is **not** business logic:
 - `Modules/Abstractions/IModuleInstaller.cs` — the contract every module implements to plug itself into the host (details in [Section 3](#3-the-modular-monolith-how-modules-are-organized)).
 - `Tenancy/` — `ITenantContext`, `ITenantResolver`, `ITenantStore`, `TenancyOptions`, `ConfigurationTenantStore`, `TenantContext`, `CliTenantResolver` — the multi-tenancy abstractions (details in [Section 11](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today)).
 
-### `SimpliaDz.SharedKernel`
+### `SimpliaWear.SharedKernel`
 
 Exists as an empty class-library project (just the `.csproj`, no `.cs` files). It's a placeholder for domain primitives that might eventually be shared *between modules* (e.g. a `Money` value object used by both Sales and Accounting). Every module already has a `ProjectReference` to it, so when something genuinely shared shows up, this is where it goes — don't put it inside one module's `Core` and reference it from another module.
 
-### `SimpliaDz.ModuleCatalog`
+### `SimpliaWear.ModuleCatalog`
 
 A small composition project, not a business module. It references every module's Infrastructure project and exposes the authoritative `ModuleCatalog.GetModules()` list of installed `IModuleInstaller` implementations. Both the API and migrator reference it, which prevents them from maintaining separate installer lists. Tenant configuration still decides which entries from that list each host activates. See [Module Catalog](MODULE_CATALOG.md) for its dependency rationale and maintenance steps.
 
-### `SimpliaDz.DatabaseMigrator`
+### `SimpliaWear.DatabaseMigrator`
 
 A separate console app (not the web API) whose only job is: for a given `--tenant <id>`, figure out which modules are enabled for that tenant, and run `MigrateAsync` + `SeedAsync` for each of them. This is the tool you actually run to create/update a tenant's database. See [Section 3](#3-the-modular-monolith-how-modules-are-organized) and [Section 11](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today) for exactly how it decides what to run.
 
@@ -122,7 +122,7 @@ Contains module-level test projects, including Purchasing and Sales tests.
 **How a module plugs into the host — `IModuleInstaller`:**
 
 ```csharp
-// src/SimpliaDz.BuildingBlocks/Modules/Abstractions/IModuleInstaller.cs
+// src/SimpliaWear.BuildingBlocks/Modules/Abstractions/IModuleInstaller.cs
 public interface IModuleInstaller
 {
     string ModuleName { get; }
@@ -136,7 +136,7 @@ Every module has exactly one class implementing this (e.g. `IdentityModuleInstal
 
 **Where modules get listed — one shared catalog:**
 
-`SimpliaDz.ModuleCatalog/ModuleCatalog.cs` is the one place that constructs all ten installed installers (Identity, Inventory, Organization, Sales, Purchasing, Accounting, Notifications, Reporting, Audit, CRM). The API's `ModuleRegistry` delegates to this catalog, and the migrator registers its `IModuleInstaller` instances from the same catalog.
+`SimpliaWear.ModuleCatalog/ModuleCatalog.cs` is the one place that constructs all ten installed installers (Identity, Inventory, Organization, Sales, Purchasing, Accounting, Notifications, Reporting, Audit, CRM). The API's `ModuleRegistry` delegates to this catalog, and the migrator registers its `IModuleInstaller` instances from the same catalog.
 
 Each host then applies its tenant configuration:
 
@@ -147,11 +147,11 @@ This removes installer-list drift. It does **not** make scaffolded modules funct
 
 **How to add a new module** (from `CLAUDE.md`, confirmed against the code):
 
-1. Create the four projects: `SimpliaDz.<Module>.Core`, `.UseCases`, `.Infrastructure`, `.Contracts`.
+1. Create the four projects: `SimpliaWear.<Module>.Core`, `.UseCases`, `.Infrastructure`, `.Contracts`.
 2. In `Infrastructure`, implement `IModuleInstaller`.
-3. Add the Infrastructure project reference and installer to `SimpliaDz.ModuleCatalog/ModuleCatalog.cs`.
+3. Add the Infrastructure project reference and installer to `SimpliaWear.ModuleCatalog/ModuleCatalog.cs`.
 4. Enable the module for the relevant tenant(s) in the runner's private `config/tenants.local.json` catalog under `Tenancy:Tenants:<tenant>:Modules`.
-5. Update `tests/SimpliaDz.ModuleCatalog.Tests` with the expected module name.
+5. Update `tests/SimpliaWear.ModuleCatalog.Tests` with the expected module name.
 6. Add its `UseCases` assembly to the Mediator/FluentValidation assembly-scan list in `DependencyInjectionExtensions.cs`.
 7. Add its endpoint-mapping call in `EndpointExtensions.cs`.
 
@@ -187,13 +187,13 @@ The two walkthroughs below trace one real use case through all four layers each,
 
 This traces a `POST /users` request end-to-end.
 
-**1. Contracts** — plain DTOs, no logic (`src/Modules/Identity/SimpliaDz.Identity.Contracts/Users/CreateUserRequest.cs`):
+**1. Contracts** — plain DTOs, no logic (`src/Modules/Identity/SimpliaWear.Identity.Contracts/Users/CreateUserRequest.cs`):
 ```csharp
 public sealed record CreateUserRequest(
     string Email, string FirstName, string LastName, string Password, IList<string>? Roles = null);
 ```
 
-**2. API endpoint** (`src/SimpliaDz.Api/Endpoints/Identity/UserEndpoints.cs`) — binds the request, sends it through Mediator, returns the result. No business logic here:
+**2. API endpoint** (`src/SimpliaWear.Api/Endpoints/Identity/UserEndpoints.cs`) — binds the request, sends it through Mediator, returns the result. No business logic here:
 ```csharp
 group.MapPost("/", async ([FromBody] CreateUserRequest request, [FromServices] ISender sender, CancellationToken ct) =>
 {
@@ -204,7 +204,7 @@ group.MapPost("/", async ([FromBody] CreateUserRequest request, [FromServices] I
 ```
 `PermissionNames.Users.Create` resolves to `users.create`; that value is both the policy name and the exact JWT claim value it checks for.
 
-**3. UseCases** — the command, handler, and validator (`src/Modules/Identity/SimpliaDz.Identity.UseCases/Users/Commands/CreateUser/`):
+**3. UseCases** — the command, handler, and validator (`src/Modules/Identity/SimpliaWear.Identity.UseCases/Users/Commands/CreateUser/`):
 ```csharp
 public sealed record CreateUserCommand(
     string Email, string FirstName, string LastName, string Password, IList<string>? Roles) : IRequest<Guid>;
@@ -231,7 +231,7 @@ public sealed class CreateUserValidator : AbstractValidator<CreateUserCommand>
 ```
 Notice the handler depends only on `IIdentityUserService` — an interface. It has no idea EF Core or ASP.NET Identity exist.
 
-**4. Infrastructure** — the concrete implementation (`src/Modules/Identity/SimpliaDz.Identity.Infrastructure/Users/IdentityUserService.cs`), which is where ASP.NET Core Identity's `UserManager<AppUser>` actually gets used:
+**4. Infrastructure** — the concrete implementation (`src/Modules/Identity/SimpliaWear.Identity.Infrastructure/Users/IdentityUserService.cs`), which is where ASP.NET Core Identity's `UserManager<AppUser>` actually gets used:
 ```csharp
 internal sealed class IdentityUserService : IIdentityUserService
 {
@@ -249,7 +249,7 @@ internal sealed class IdentityUserService : IIdentityUserService
 ```
 Note it's declared `internal` — code outside this project literally cannot construct it directly; the only way to get one is through the `IIdentityUserService` interface via DI. That's the dependency-inversion boundary enforced by the compiler, not just convention.
 
-**5. Core entities** (`src/Modules/Identity/SimpliaDz.Identity.Core/Entities/`):
+**5. Core entities** (`src/Modules/Identity/SimpliaWear.Identity.Core/Entities/`):
 ```csharp
 public sealed class AppUser : IdentityUser<Guid>
 {
@@ -260,7 +260,7 @@ public sealed class AppUser : IdentityUser<Guid>
 ```
 `AppUser`/`AppRole` extend ASP.NET Core Identity's own base classes (with a `Guid` key instead of the default `string`). `Permission` and `RolePermission` are custom entities layered on top to support fine-grained, permission-string-based authorization (see below).
 
-**6. Database** (`src/Modules/Identity/SimpliaDz.Identity.Infrastructure/Data/IdentityDbContext.cs`):
+**6. Database** (`src/Modules/Identity/SimpliaWear.Identity.Infrastructure/Data/IdentityDbContext.cs`):
 ```csharp
 public sealed class IdentityDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 {
@@ -296,7 +296,7 @@ Dev-seeded admin login: `admin@dev.local` / `Admin123!` (see [Section 12](#12-wh
 
 Same shape, different flavor of abstraction (repository instead of service — see [Section 7](#7-repository-pattern-vs-service-pattern--which-to-use-when)).
 
-**Core entity + value object** (`src/Modules/Inventory/SimpliaDz.Inventory.Core/`):
+**Core entity + value object** (`src/Modules/Inventory/SimpliaWear.Inventory.Core/`):
 ```csharp
 // ValueObjects/ProductName.cs
 public readonly record struct ProductName
@@ -325,7 +325,7 @@ public void AddVariant(string sku, decimal retailPrice, decimal wholesalePrice, 
 }
 ```
 
-**UseCases** — the repository abstraction (`src/Modules/Inventory/SimpliaDz.Inventory.UseCases/Products/Abstractions/IProductRepository.cs`):
+**UseCases** — the repository abstraction (`src/Modules/Inventory/SimpliaWear.Inventory.UseCases/Products/Abstractions/IProductRepository.cs`):
 ```csharp
 public interface IProductRepository
 {
@@ -340,7 +340,7 @@ public interface IProductRepository
 ```
 The create/update handlers depend only on this interface. They enforce code uniqueness, verify that optional brand/category references point to active records, mutate the aggregate, and save the unit of work. There is deliberately no repository delete operation: products are deactivated so transaction and stock history remain valid.
 
-**Infrastructure** — the EF Core implementation (`src/Modules/Inventory/SimpliaDz.Inventory.Infrastructure/Data/Repositories/EfProductRepository.cs`):
+**Infrastructure** — the EF Core implementation (`src/Modules/Inventory/SimpliaWear.Inventory.Infrastructure/Data/Repositories/EfProductRepository.cs`):
 ```csharp
 internal sealed class EfProductRepository : IProductRepository
 {
@@ -350,7 +350,7 @@ internal sealed class EfProductRepository : IProductRepository
 }
 ```
 
-**Value objects mapped to plain columns** (`src/Modules/Inventory/SimpliaDz.Inventory.Infrastructure/Data/Config/Catalog/ProductConfiguration.cs`):
+**Value objects mapped to plain columns** (`src/Modules/Inventory/SimpliaWear.Inventory.Infrastructure/Data/Config/Catalog/ProductConfiguration.cs`):
 ```csharp
 b.Property(x => x.Name)
     .HasConversion(v => v.Value, v => new ProductName(v))
@@ -359,7 +359,7 @@ b.Property(x => x.Name)
 ```
 This is the trick that lets `Product.Name` be a rich `ProductName` value object in C# while the database column stays a plain `nvarchar` — EF converts in both directions, and because it round-trips through the value object's own constructor, validation re-runs even when data is loaded back out of the database.
 
-**API endpoints** (`src/SimpliaDz.Api/Endpoints/Inventory/ProductEndpoints.cs`): `GET /products` supports `search` and `isActive` filters; `GET /products/{id}`, `POST /products`, `PUT /products/{id}`, and `PUT /products/{id}/deactivate` complete the catalog workflow. Read/create/edit operations require the matching `PermissionNames.Products` permission.
+**API endpoints** (`src/SimpliaWear.Api/Endpoints/Inventory/ProductEndpoints.cs`): `GET /products` supports `search` and `isActive` filters; `GET /products/{id}`, `POST /products`, `PUT /products/{id}`, and `PUT /products/{id}/deactivate` complete the catalog workflow. Read/create/edit operations require the matching `PermissionNames.Products` permission.
 
 `Product` contains commercial information and owns `ProductVariant` children, but contains no stock quantity. A variant is the sellable/stockable item. Quantity is stored separately by `StockItem` using `(VariantId, LocationId)`, so the same SKU can hold different quantities in different stores or warehouses. Product hard deletion is not exposed, and the database uses restrictive foreign keys so variants and their transaction/stock history cannot be removed through a cascading product delete. See [Product Catalog](../inventory/PRODUCT_CATALOG.md) for the complete contract and rules.
 
@@ -390,16 +390,16 @@ You'll notice **Identity uses "services"** (`IIdentityUserService`, `IIdentityAu
 
 ## 8. Mediator: how CQRS is wired up
 
-**Registration** (`src/SimpliaDz.Api/Extensions/DependencyInjectionExtensions.cs`):
+**Registration** (`src/SimpliaWear.Api/Extensions/DependencyInjectionExtensions.cs`):
 ```csharp
 services.AddMediator(options =>
 {
     options.ServiceLifetime = ServiceLifetime.Scoped;
     options.Assemblies =
     [
-        typeof(SimpliaDz.Inventory.UseCases.AssemblyMarker),
-        typeof(SimpliaDz.Identity.UseCases.AssemblyMarker),
-        typeof(SimpliaDz.Organization.UseCases.AssemblyMarker)
+        typeof(SimpliaWear.Inventory.UseCases.AssemblyMarker),
+        typeof(SimpliaWear.Identity.UseCases.AssemblyMarker),
+        typeof(SimpliaWear.Organization.UseCases.AssemblyMarker)
     ];
 });
 ```
@@ -425,7 +425,7 @@ var id = await sender.Send(new CreateUserCommand(...), ct);
 ```csharp
 services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 ```
-`ValidationBehavior<TRequest,TResponse>` (`src/SimpliaDz.BuildingBlocks/Mediation/ValidationBehavior.cs`) wraps every `Handle` call: it runs all registered validators for `TRequest` *before* calling the actual handler, and short-circuits with a `FluentValidation.ValidationException` if any fail. If you need cross-cutting behavior like logging or transactions later, this is the place to add another `IPipelineBehavior<,>` — no handler code needs to change.
+`ValidationBehavior<TRequest,TResponse>` (`src/SimpliaWear.BuildingBlocks/Mediation/ValidationBehavior.cs`) wraps every `Handle` call: it runs all registered validators for `TRequest` *before* calling the actual handler, and short-circuits with a `FluentValidation.ValidationException` if any fail. If you need cross-cutting behavior like logging or transactions later, this is the place to add another `IPipelineBehavior<,>` — no handler code needs to change.
 
 ---
 
@@ -437,7 +437,7 @@ services.AddValidatorsFromAssemblies(useCaseAssemblies);
 ```
 This finds every `AbstractValidator<T>` and registers it as `IValidator<T>`.
 
-**How it actually runs** (`src/SimpliaDz.BuildingBlocks/Mediation/ValidationBehavior.cs`):
+**How it actually runs** (`src/SimpliaWear.BuildingBlocks/Mediation/ValidationBehavior.cs`):
 ```csharp
 public async ValueTask<TResponse> Handle(
     TRequest request,
@@ -457,7 +457,7 @@ public async ValueTask<TResponse> Handle(
 All validators for a request run concurrently, their failures get merged into one exception. That exception type is caught centrally:
 
 ```csharp
-// src/SimpliaDz.Api/Extensions/MiddlewareExtensions.cs — inside the global exception handler
+// src/SimpliaWear.Api/Extensions/MiddlewareExtensions.cs — inside the global exception handler
 ValidationException            -> 400, body: { Errors: [{ PropertyName, ErrorMessage }] }
 NotFoundException               -> 404
 UnauthorizedAccessException     -> 401
@@ -482,7 +482,7 @@ app.UseAppMiddleware();                                             // 3
 app.MapAppEndpoints();                                              // 4
 ```
 
-**Step 1 — `AddApplicationServices`** (`src/SimpliaDz.Api/Extensions/DependencyInjectionExtensions.cs`), in order:
+**Step 1 — `AddApplicationServices`** (`src/SimpliaWear.Api/Extensions/DependencyInjectionExtensions.cs`), in order:
 1. Swagger / `EndpointsApiExplorer`.
 2. Read the shared tenant catalog and validate the active tenant selected for this API instance. See [Section 11](#11-multi-tenancy-how-its-supposed-to-work-vs-how-it-works-today).
 3. Register the configuration-backed tenant store, scoped tenant context, and `ConfigurationTenantResolver`.
@@ -491,7 +491,7 @@ app.MapAppEndpoints();                                              // 4
 6. `AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>))`.
 7. `AddAuthorization(...)` — builds one policy per permission string.
 
-**Step 2 — `AddJwtAuthentication`** (`src/SimpliaDz.Api/Extensions/AuthenticationExtensions.cs`): binds+validates `JwtOptions` (fails fast at startup if `SigningKey` is missing or under 32 characters), then `AddAuthentication().AddJwtBearer(...)`.
+**Step 2 — `AddJwtAuthentication`** (`src/SimpliaWear.Api/Extensions/AuthenticationExtensions.cs`): binds+validates `JwtOptions` (fails fast at startup if `SigningKey` is missing or under 32 characters), then `AddAuthentication().AddJwtBearer(...)`.
 
 **Lifetimes used throughout:**
 | Service kind | Lifetime | Why |
@@ -510,19 +510,19 @@ app.MapAppEndpoints();                                              // 4
 
 ## 11. Multi-tenancy: how it's supposed to work vs. how it works today
 
-**The abstractions** (`src/SimpliaDz.BuildingBlocks/Tenancy/`):
+**The abstractions** (`src/SimpliaWear.BuildingBlocks/Tenancy/`):
 ```csharp
 public interface ITenantResolver { string ResolveTenantId(); }
 public interface ITenantStore    { TenantDescriptor GetTenant(string tenantId); }
 public interface ITenantContext  { string TenantId; string Name; string ConnectionString; bool IsModuleEnabled(string moduleName); }
 ```
-Local catalog shape (`simpliadz-runner/config/tenants.local.json`):
+Local catalog shape (`simplia-wear-runner/config/tenants.local.json`):
 ```json
 "Tenancy": {
   "Tenants": {
     "dev": {
       "Name": "Development",
-      "ConnectionString": "Server=localhost,1433;Database=SimpliaDz_Dev;...",
+      "ConnectionString": "Server=localhost,1433;Database=SimpliaWear_Dev;...",
       "Modules": { "Identity": true, "Inventory": true, "Sales": false, "...": false }
     }
   }
@@ -548,7 +548,7 @@ This is genuinely tenant-aware: a different tenant with a different `Modules` ma
 5. Root, health, and Swagger endpoints are system-scoped and do not carry tenant metadata.
 6. Login issues a JWT containing a `tenant_id` claim. JWT validation compares it with the configured API tenant on tenant endpoints, preventing a token issued by one tenant environment from being used by another.
 
-For local testing, the runner's private catalog can hold several descriptors. Set `api.activeTenantId` in the runner's `config/local.json` or pass `-TenantId` to its API script. The runner supplies `SIMPLIADZ_TENANTS_FILE` to both backend processes. The migrator always uses its explicit `--tenant` argument. See [Local Tenancy](../getting-started/LOCAL_TENANCY.md) for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
+For local testing, the runner's private catalog can hold several descriptors. Set `api.activeTenantId` in the runner's `config/local.json` or pass `-TenantId` to its API script. The runner supplies `SIMPLIAWEAR_TENANTS_FILE` to both backend processes. The migrator always uses its explicit `--tenant` argument. See [Local Tenancy](../getting-started/LOCAL_TENANCY.md) for commands and configuration details. Future tenant discovery through subdomains or invitation links can be added at the routing/control-plane boundary without changing module DbContexts or business logic.
 
 ---
 
@@ -556,7 +556,7 @@ For local testing, the runner's private catalog can hold several descriptors. Se
 
 Called out explicitly so you don't copy these patterns by accident, and so you know what to expect if you go looking:
 
-1. **One scaffold module still has no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaDz.ModuleCatalog` and the shared tenant catalog. Notifications remains a scaffold. Audit exposes an authorized business history query and records the sensitive actions listed in [Business Audit Trail](../audit/BUSINESS_AUDIT_TRAIL.md). Reporting exposes sales summary, product performance, inventory, low stock, and dashboard reports; Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
+1. **One scaffold module still has no API behavior.** Installer-list drift is fixed: both hosts use `SimpliaWear.ModuleCatalog` and the shared tenant catalog. Notifications remains a scaffold. Audit exposes an authorized business history query and records the sensitive actions listed in [Business Audit Trail](../audit/BUSINESS_AUDIT_TRAIL.md). Reporting exposes sales summary, product performance, inventory, low stock, and dashboard reports; Accounting exposes expense categories and expenses; Sales exposes customers, sale completion, payments, and returns; Purchasing exposes suppliers, purchase orders, and goods receipts.
 2. **Inventory stock operations have HTTP workflows.** Opening stock, receipts, adjustments, transfers, and physical counts are available through tenant-scoped endpoints.
 3. **Authentication delivery and advanced identity flows are deferred.** Refresh rotation, logout, lockout, and session invalidation work now. Invitation acceptance, password-reset email delivery, email confirmation, MFA, and external identity providers still require product and Notifications/provisioning work. See [Authentication](../identity/AUTHENTICATION.md).
 4. **Dev credentials and secrets are local-only defaults.** The seeded `admin@dev.local` / `Admin123!` account and the local SQL/JWT values must not be reused in production. Production provisioning must provide its own administrator and secrets.
@@ -579,9 +579,9 @@ Distilled from the patterns above — follow these to stay consistent with the r
 - **Endpoints stay thin**: bind and validate request shape, call a module use case through Mediator or a module service, then map the result to an HTTP response. Business rules stay in the module rather than in the route.
 - **New exception types need a home in the global exception handler** (`MiddlewareExtensions.cs`) or they'll fall through to a generic 500 — don't add a new domain exception without checking whether it needs a status-code mapping.
 - **Module-specific DI registrations belong in that module's `IModuleInstaller.Register(...)`**, never added ad hoc to `DependencyInjectionExtensions.cs`.
-- **Register a new module once in `SimpliaDz.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in the private local tenant catalog. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
+- **Register a new module once in `SimpliaWear.ModuleCatalog`, update its catalog test, and enable it explicitly per tenant** in the private local tenant catalog. Then add its API use-case scans and endpoint mappings when it has HTTP behavior.
 - **Every write endpoint that isn't a public entry point (login, register) should carry `.RequireAuthorization(PermissionNames.<Area>.<Action>)`**. Add new constants to `PermissionNames.All` and add their display metadata to `IdentitySeeder`.
-- **Don't create cross-module `ProjectReference`s or `using` statements.** If two modules need to share something, it goes in `SimpliaDz.SharedKernel`, not by referencing one module from another. As of today there is no cross-module communication mechanism (no events, no shared contracts bus) — when a real cross-module workflow is needed (e.g. Sales needing Inventory stock levels), that mechanism will need to be designed; it doesn't exist yet.
+- **Don't create cross-module `ProjectReference`s or `using` statements.** If two modules need to share something, it goes in `SimpliaWear.SharedKernel`, not by referencing one module from another. As of today there is no cross-module communication mechanism (no events, no shared contracts bus) — when a real cross-module workflow is needed (e.g. Sales needing Inventory stock levels), that mechanism will need to be designed; it doesn't exist yet.
 
 ---
 
@@ -610,7 +610,7 @@ Distilled from the patterns above — follow these to stay consistent with the r
 **Modules that exist (scaffold only, no domain logic, not reachable from the running API):** Notifications.
 
 **Partially implemented / worth knowing about:**
-- Purchasing goods receipts update received quantities and Inventory movements in one SQL Server transaction. The optional SQL Server integration test verifies partial/full receipt, duplicate prevention, and rollback after a forced stock write failure; set `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` to run it.
+- Purchasing goods receipts update received quantities and Inventory movements in one SQL Server transaction. The optional SQL Server integration test verifies partial/full receipt, duplicate prevention, and rollback after a forced stock write failure; set `SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING` to run it.
 - Multi-tenancy: each API instance selects one configured tenant database, enforces that tenant's module flags, leaves system endpoints tenant-free, and binds JWTs to their issuing tenant. Local JSON is temporary infrastructure; automated provisioning and a control-plane store do not exist yet.
 - Permission names, display labels, categories, and policy registration are centralized in `PermissionNames`.
 

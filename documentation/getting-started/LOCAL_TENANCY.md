@@ -1,11 +1,11 @@
 # Local tenant configuration
 
-For the full startup sequence, see [Start Simplia locally](LOCAL_START_GUIDE.md).
+For the full startup sequence, see [Start SimpliaWear locally](LOCAL_START_GUIDE.md).
 
-Simplia uses one database per tenant. During local development, the runner's
+SimpliaWear uses one database per tenant. During local development, the runner's
 ignored `config/tenants.local.json` is the single catalog used by both the API and
 the database migrator. The runner passes its absolute path through
-`SIMPLIADZ_TENANTS_FILE`; a deployed process may supply tenant configuration
+`SIMPLIAWEAR_TENANTS_FILE`; a deployed process may supply tenant configuration
 through environment variables or another protected provider.
 
 ## Configuration shape
@@ -16,7 +16,7 @@ through environment variables or another protected provider.
     "Tenants": {
       "dev": {
         "Name": "Development Business",
-        "ConnectionString": "...Database=SimpliaDz_Dev;...",
+        "ConnectionString": "...Database=SimpliaWear_Dev;...",
         "Modules": {
           "Identity": true,
           "Inventory": true,
@@ -89,7 +89,7 @@ never need to know or manually enter a tenant header.
 
 ## Production direction
 
-`SIMPLIADZ_TENANTS_FILE` is optional for processes configured entirely through
+`SIMPLIAWEAR_TENANTS_FILE` is optional for processes configured entirely through
 environment variables. The private catalog is for local development. A deployed
 tenant API should receive the same keys from protected configuration or a secret
 store. Later, `ITenantStore` can be backed by a control-plane database without

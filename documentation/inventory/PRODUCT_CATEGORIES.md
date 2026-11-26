@@ -98,4 +98,4 @@ Hierarchy response shape:
 
 ## Tests
 
-`tests/SimpliaDz.Inventory.Tests/CategoryTests.cs` covers validation, root/child creation, sibling uniqueness, reparenting, indirect-cycle prevention, hierarchical listing, permissions, and history-preserving deactivation. Product tests also verify that an update can retain a category that became inactive after assignment.
+`tests/SimpliaWear.Inventory.Tests/CategoryTests.cs` covers validation, root/child creation, sibling uniqueness, reparenting, indirect-cycle prevention, hierarchical listing, permissions, and history-preserving deactivation. Product tests also verify that an update can retain a category that became inactive after assignment.

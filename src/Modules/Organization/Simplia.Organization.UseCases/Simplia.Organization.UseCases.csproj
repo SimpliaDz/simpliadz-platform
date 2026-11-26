@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Simplia.Organization.Core\Simplia.Organization.Core.csproj" />
+    <ProjectReference Include="..\Simplia.Organization.Contracts\Simplia.Organization.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Simplia.BuildingBlocks\Simplia.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\..\Simplia.SharedKernel\Simplia.SharedKernel.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>

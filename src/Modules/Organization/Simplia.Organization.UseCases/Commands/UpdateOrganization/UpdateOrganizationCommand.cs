@@ -1,0 +1,15 @@
+using Mediator;
+using Simplia.Organization.Contracts;
+
+namespace Simplia.Organization.UseCases.Commands.UpdateOrganization;
+
+public sealed record UpdateOrganizationCommand(
+    string Name,
+    string? LegalName,
+    string? Phone,
+    string? Email,
+    string? Address,
+    string? CurrencyCode,
+    string? DefaultLanguage,
+    bool IsActive,
+    string? TimeZoneId = null) : IRequest<OrganizationResponse>;

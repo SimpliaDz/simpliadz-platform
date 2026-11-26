@@ -10,7 +10,7 @@ From the repository root in PowerShell, with Docker Desktop and the .NET 10 SDK 
 ./scripts/test-functional.ps1
 ```
 
-The script starts the Compose SQL Server, waits for it to accept connections, and runs every test project in `src/SimpliaDz.sln` with `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` set. Each integration test uses a temporary database and deletes it afterward. The script does not delete the development tenant database. If the API is running and its build output is locked, build the changed test project separately and then use:
+The script starts the Compose SQL Server, waits for it to accept connections, and runs every test project in `src/SimpliaWear.sln` with `SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING` set. Each integration test uses a temporary database and deletes it afterward. The script does not delete the development tenant database. If the API is running and its build output is locked, build the changed test project separately and then use:
 
 ```powershell
 ./scripts/test-functional.ps1 -NoBuild

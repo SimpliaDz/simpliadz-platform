@@ -1,0 +1,40 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+using Simplia.BuildingBlocks.Modules.Abstractions;
+using Simplia.BuildingBlocks.Tenancy.Abstractions;
+using Simplia.Sales.Infrastructure.Data;
+using Simplia.Sales.Infrastructure.Services;
+using Simplia.Sales.Contracts.Loyalty;
+using Simplia.Sales.UseCases.Services;
+
+namespace Simplia.Sales.Infrastructure;
+
+public sealed class SalesModuleInstaller : IModuleInstaller
+{
+    public string ModuleName => "Sales";
+
+    public void Register(IServiceCollection services, string connectionString)
+    {
+        services.AddDbContext<SalesDbContext>((sp, options) =>
+            options.UseSqlServer(sp.GetRequiredService<ITenantContext>().ConnectionString, sql =>
+            {
+                sql.MigrationsAssembly(typeof(SalesDbContext).Assembly.FullName);
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", "sales");
+            }));
+        services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<ILoyaltySalesReader, LoyaltySalesReader>();
+        services.AddScoped<IPaymentService, PaymentService>();
+    }
+
+    public async Task MigrateAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
+    {
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+
+        await db.Database.MigrateAsync(cancellationToken);
+    }
+
+    public Task SeedAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
+        => Task.CompletedTask;
+}

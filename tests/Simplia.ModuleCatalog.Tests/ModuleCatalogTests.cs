@@ -1,0 +1,32 @@
+using Simplia.ModuleCatalog;
+using Xunit;
+
+namespace Simplia.ModuleCatalog.Tests;
+
+public sealed class ModuleCatalogTests
+{
+    [Fact]
+    public void GetModules_returns_every_installed_module_once()
+    {
+        var moduleNames = ModuleCatalog.GetModules()
+            .Select(module => module.ModuleName)
+            .ToArray();
+
+        Assert.Equal(
+        [
+            "Identity",
+            "Inventory",
+            "Organization",
+            "Sales",
+            "Purchasing",
+            "Accounting",
+            "Notifications",
+            "Reporting",
+            "Audit",
+            "Crm"
+        ],
+        moduleNames);
+
+        Assert.Equal(moduleNames.Length, moduleNames.Distinct(StringComparer.Ordinal).Count());
+    }
+}

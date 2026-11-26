@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
+    <PackageReference Include="Mediator.SourceGenerator" Version="3.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageReference Include="QuestPDF" Version="2026.9.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Inventory\Simplia.Inventory.UseCases\Simplia.Inventory.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\Simplia.Inventory.Infrastructure\Simplia.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\Simplia.Inventory.Contracts\Simplia.Inventory.Contracts.csproj" />
+    <ProjectReference Include="..\Simplia.SharedKernel\Simplia.SharedKernel.csproj" />
+    <ProjectReference Include="..\Simplia.BuildingBlocks\Simplia.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Simplia.ModuleCatalog\Simplia.ModuleCatalog.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Simplia.Identity.Infrastructure\Simplia.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Simplia.Identity.UseCases\Simplia.Identity.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\Simplia.Purchasing.UseCases\Simplia.Purchasing.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\Simplia.Purchasing.Infrastructure\Simplia.Purchasing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Sales\Simplia.Sales.UseCases\Simplia.Sales.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Sales\Simplia.Sales.Infrastructure\Simplia.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Crm\Simplia.Crm.Contracts\Simplia.Crm.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Crm\Simplia.Crm.UseCases\Simplia.Crm.UseCases.csproj" />
+    <ProjectReference Include="..\Modules\Organization\Simplia.Organization.Contracts\Simplia.Organization.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Organization\Simplia.Organization.UseCases\Simplia.Organization.UseCases.csproj" />
+  </ItemGroup>
+
+</Project>

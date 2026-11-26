@@ -6,7 +6,7 @@ Run the database migrator with `--seed-demo` when you want a populated **local t
 .\scripts\migrate-tenant.ps1 -TenantId dev -SeedDemo
 ```
 
-Run the command from `simpliadz-runner`. Use `-TenantId demo` to populate the separate `demo` database instead. The flag is explicit so ordinary migrations do not add sample customers, sales, or expenses to a tenant. It does not reset the database. The seeder checks existing fixtures and preserves records changed through the API; rerunning it does not add another copy of the same sample sale, receipt, expense, or work session.
+Run the command from `simplia-wear-runner`. Use `-TenantId demo` to populate the separate `demo` database instead. The flag is explicit so ordinary migrations do not add sample customers, sales, or expenses to a tenant. It does not reset the database. The seeder checks existing fixtures and preserves records changed through the API; rerunning it does not add another copy of the same sample sale, receipt, expense, or work session.
 
 ## What the seeder creates
 

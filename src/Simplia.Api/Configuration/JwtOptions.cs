@@ -1,0 +1,18 @@
+/*
+Purpose
+
+strongly typed JWT config instead of reading raw strings everywhere
+*/
+
+namespace Simplia.Api.Configuration;
+
+public sealed class JwtOptions
+{
+    public const string SectionName = "Jwt";
+
+    public string Issuer { get; init; } = "Simplia";
+    public string Audience { get; init; } = "Simplia";
+    public string SigningKey { get; init; } = string.Empty;
+    public int ExpiresMinutes { get; init; } = 60;
+    public int RefreshTokenExpiresDays { get; init; } = 14;
+}

@@ -35,13 +35,13 @@ The earning calculation is `floor(sale.Total / spendAmountPerPoint)`. The rate i
 
 ## Run and verify
 
-The installed module is listed in `SimpliaDz.ModuleCatalog`, mapped by the API, and explicitly enabled by `Crm: true` under the local tenant flags. Run the migrator before starting the updated API:
+The installed module is listed in `SimpliaWear.ModuleCatalog`, mapped by the API, and explicitly enabled by `Crm: true` under the local tenant flags. Run the migrator before starting the updated API:
 
 ```powershell
 .\scripts\migrate-tenant.ps1 -TenantId demo
 .\scripts\start-api.ps1 -TenantId demo
 ```
 
-Run these commands from `simpliadz-runner`. Add `-SeedDemo` to the migrator script to create an example DZD program, one gift reward, and a card for the demo sale customer. The seed is repeatable and does not grant points for sales completed before card enrollment. It also gives the demo cashier view and redemption permissions.
+Run these commands from `simplia-wear-runner`. Add `-SeedDemo` to the migrator script to create an example DZD program, one gift reward, and a card for the demo sale customer. The seed is repeatable and does not grant points for sales completed before card enrollment. It also gives the demo cashier view and redemption permissions.
 
-For the SQL integration test, set `SIMPLIADZ_INTEGRATION_CONNECTIONSTRING` to a local SQL Server connection with database creation permission, then run `dotnet test tests/SimpliaDz.Crm.Tests/SimpliaDz.Crm.Tests.csproj -c Release`. It creates and removes its own database and covers enrollment, sale/return idempotency, redemption retries, negative balances, and append-only history.
+For the SQL integration test, set `SIMPLIAWEAR_INTEGRATION_CONNECTIONSTRING` to a local SQL Server connection with database creation permission, then run `dotnet test tests/SimpliaWear.Crm.Tests/SimpliaWear.Crm.Tests.csproj -c Release`. It creates and removes its own database and covers enrollment, sale/return idempotency, redemption retries, negative balances, and append-only history.

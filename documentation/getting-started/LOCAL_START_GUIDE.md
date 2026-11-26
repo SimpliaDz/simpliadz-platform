@@ -1,11 +1,11 @@
-# Start Simplia locally
+# Start SimpliaWear locally
 
-This guide starts the backend API against a local tenant on Windows PowerShell. Run the commands from the central development runner, `C:\.develop\.projects\SimpliaDz\simpliadz-runner`. You need the .NET 10 SDK and Docker Desktop running.
+This guide starts the backend API against a local tenant on Windows PowerShell. Run the commands from the central development runner, `C:\.develop\.projects\SimpliaWear\simplia-wear-runner`. You need the .NET 10 SDK and Docker Desktop running.
 
 ## 1. Check the tools and tenant
 
 ```powershell
-cd 'C:\.develop\.projects\SimpliaDz\simpliadz-runner'
+cd 'C:\.develop\.projects\SimpliaWear\simplia-wear-runner'
 .\scripts\doctor.ps1
 ```
 
@@ -19,7 +19,7 @@ Start Docker Desktop first, then run:
 .\scripts\start-database.ps1
 ```
 
-The `simpliadz-sql` container should show `Up` and expose port `1433`. Its data is kept in a Docker volume, so ordinary starts do not erase your tenant databases.
+The `simplia-wear-sql` container should show `Up` and expose port `1433`. Its data is kept in a Docker volume, so ordinary starts do not erase your tenant databases.
 
 ## 3. Apply migrations and seed data
 
@@ -44,7 +44,7 @@ See [Local demo data](DEMO_DATA.md) for the records and sign-ins. This option is
 Open a **second PowerShell terminal** in the runner folder and leave it running:
 
 ```powershell
-cd 'C:\.develop\.projects\SimpliaDz\simpliadz-runner'
+cd 'C:\.develop\.projects\SimpliaWear\simplia-wear-runner'
 .\scripts\start-api.ps1 -TenantId dev
 ```
 
@@ -66,7 +66,7 @@ Invoke-RestMethod "$baseUrl/auth/me" -Headers $headers
 
 The health endpoint is system-level and needs no tenant header or token. Login and `/auth/me` use the API instance's active tenant. The seeded credentials are for local development; if this database already existed and its admin password was changed, the seeder does not reset that password. Keep access and refresh tokens out of shared logs.
 
-You can also use [`src/SimpliaDz.Api/SimpliaDz.Api.http`](../../src/SimpliaDz.Api/SimpliaDz.Api.http) or Swagger for manual requests.
+You can also use [`src/SimpliaWear.Api/SimpliaWear.Api.http`](../../src/SimpliaWear.Api/SimpliaWear.Api.http) or Swagger for manual requests.
 
 ## Test another local tenant
 

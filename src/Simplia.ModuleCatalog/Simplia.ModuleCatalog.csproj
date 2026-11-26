@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Simplia.BuildingBlocks\Simplia.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Simplia.Identity.Infrastructure\Simplia.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Organization\Simplia.Organization.Infrastructure\Simplia.Organization.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\Simplia.Inventory.Infrastructure\Simplia.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Sales\Simplia.Sales.Infrastructure\Simplia.Sales.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Purchasing\Simplia.Purchasing.Infrastructure\Simplia.Purchasing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accounting\Simplia.Accounting.Infrastructure\Simplia.Accounting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Simplia.Notifications.Infrastructure\Simplia.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Reporting\Simplia.Reporting.Infrastructure\Simplia.Reporting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Simplia.Audit.Infrastructure\Simplia.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Crm\Simplia.Crm.Infrastructure\Simplia.Crm.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

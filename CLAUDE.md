@@ -13,25 +13,25 @@ docker compose up -d
 
 **Build the solution:**
 ```bash
-dotnet build src/SimpliaDz.sln
+dotnet build src/SimpliaWear.sln
 ```
 
 **Run the API** (http://localhost:5278):
 ```bash
-cd src/SimpliaDz.Api && dotnet run
+cd src/SimpliaWear.Api && dotnet run
 ```
 
 **Run migrations + seed data for a tenant:**
 ```bash
-cd src/SimpliaDz.DatabaseMigrator && dotnet run --tenant dev
+cd src/SimpliaWear.DatabaseMigrator && dotnet run --tenant dev
 ```
 
 **Add an EF Core migration:**
 ```bash
 # Requires dotnet-ef tool: dotnet tool restore
 dotnet ef migrations add <MigrationName> \
-  --project src/Modules/<Module>/SimpliaDz.<Module>.Infrastructure \
-  --startup-project src/SimpliaDz.Api
+  --project src/Modules/<Module>/SimpliaWear.<Module>.Infrastructure \
+  --startup-project src/SimpliaWear.Api
 ```
 
 **Tests:** None yet — `tests/` directory is empty.
@@ -59,7 +59,7 @@ All module projects follow the same dependency rules: `Core` has no NuGet packag
 
 ```
 src/
-├── SimpliaDz.Api/                    # ASP.NET Core host — Minimal API endpoints, DI wiring
+├── SimpliaWear.Api/                    # ASP.NET Core host — Minimal API endpoints, DI wiring
 │   ├── Configuration/JwtOptions.cs
 │   ├── Endpoints/
 │   │   ├── Identity/                 # AuthEndpoints, UserEndpoints, RoleEndpoints, PermissionEndpoints
@@ -72,14 +72,14 @@ src/
 │   ├── Modules/ModuleRegistry.cs
 │   └── Program.cs
 │
-├── SimpliaDz.BuildingBlocks/         # Shared cross-cutting infrastructure
+├── SimpliaWear.BuildingBlocks/         # Shared cross-cutting infrastructure
 │   ├── Exceptions/NotFoundException.cs
 │   ├── Mediation/ValidationBehavior.cs
 │   ├── Modules/Abstractions/IModuleInstaller.cs
 │   └── Tenancy/                      # ITenantContext, ITenantResolver, ITenantStore, TenancyOptions
 │
-├── SimpliaDz.SharedKernel/           # Reserved for shared domain primitives (currently empty)
-├── SimpliaDz.DatabaseMigrator/       # CLI tool — runs EF migrations + seeders per tenant
+├── SimpliaWear.SharedKernel/           # Reserved for shared domain primitives (currently empty)
+├── SimpliaWear.DatabaseMigrator/       # CLI tool — runs EF migrations + seeders per tenant
 │
 └── Modules/
     ├── Identity/                     # ACTIVE — auth, users, roles, permissions
@@ -96,7 +96,7 @@ src/
 
 Each module is fully isolated: it has its own `DbContext`, its own DB schema, its own DI registrations, and its own migrations. No module accesses another module's `DbContext` or tables directly.
 
-Modules are discovered via `ModuleRegistry.GetModules()` which returns a list of `IModuleInstaller` implementations. Both `SimpliaDz.Api` and `SimpliaDz.DatabaseMigrator` consume this registry.
+Modules are discovered via `ModuleRegistry.GetModules()` which returns a list of `IModuleInstaller` implementations. Both `SimpliaWear.Api` and `SimpliaWear.DatabaseMigrator` consume this registry.
 
 Currently active modules in `ModuleRegistry`: **Identity**, **Inventory**.
 
@@ -169,7 +169,7 @@ Endpoints use explicit binding attributes on every parameter (required by .NET 1
 - `ConfigurationTenantStore` reads tenant definitions from `IConfiguration`
 - `DatabaseMigrator` runs with `--tenant <name>` to target the right DB
 
-Dev tenant: `dev` → `SimpliaDz_Dev` database on `localhost,1433`.
+Dev tenant: `dev` → `SimpliaWear_Dev` database on `localhost,1433`.
 
 ### Authentication & Authorization
 
@@ -279,10 +279,10 @@ PUT  /locations/{id}/deactivate  [locations.edit]
 
 ## Adding a New Module
 
-1. Create four projects following existing naming: `SimpliaDz.<Module>.Core`, `.UseCases`, `.Infrastructure`, `.Contracts`
+1. Create four projects following existing naming: `SimpliaWear.<Module>.Core`, `.UseCases`, `.Infrastructure`, `.Contracts`
 2. In `Infrastructure`, implement `IModuleInstaller` — set `ModuleName`, implement `Register()`, `MigrateAsync()`, `SeedAsync()`
-3. Add the installer to `ModuleRegistry.GetModules()` in `SimpliaDz.Api/Modules/ModuleRegistry.cs`
-4. Register the same installer in `SimpliaDz.DatabaseMigrator/Program.cs`
+3. Add the installer to `ModuleRegistry.GetModules()` in `SimpliaWear.Api/Modules/ModuleRegistry.cs`
+4. Register the same installer in `SimpliaWear.DatabaseMigrator/Program.cs`
 5. Enable the module for relevant tenants in `appsettings.json` under `Tenancy.Tenants.<tenant>.Modules`
 6. Add MediatR assembly scanning for the new `UseCases` assembly in `DependencyInjectionExtensions.cs`
 7. Add endpoint mapping in `EndpointExtensions.cs`
@@ -308,8 +308,8 @@ public interface IModuleInstaller
 ```json
 {
   "Jwt": {
-    "Issuer": "SimpliaDz",
-    "Audience": "SimpliaDz",
+    "Issuer": "SimpliaWear",
+    "Audience": "SimpliaWear",
     "SigningKey": "<min 32 chars>",
     "ExpiresMinutes": 60
   },
@@ -317,7 +317,7 @@ public interface IModuleInstaller
     "Tenants": {
       "dev": {
         "Name": "Development",
-        "ConnectionString": "Server=localhost,1433;Database=SimpliaDz_Dev;...",
+        "ConnectionString": "Server=localhost,1433;Database=SimpliaWear_Dev;...",
         "Modules": {
           "Identity": true,
           "Inventory": true,
