@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 using Simplia.Identity.Core.Entities;
 using Simplia.SharedKernel.Authorization;
@@ -19,7 +20,14 @@ internal static class IdentitySeeder
 
         await SeedPermissionsAsync(db, ct);
         await SeedAdminRoleAsync(roleMgr, db, ct);
-        await SeedAdminUserAsync(userMgr, ct);
+        var bootstrap = sp.GetRequiredService<IConfiguration>().GetSection("BootstrapAdmin");
+        var adminEmail = bootstrap["Email"];
+        var adminPassword = bootstrap["Password"];
+        if (string.IsNullOrWhiteSpace(adminEmail) && string.IsNullOrWhiteSpace(adminPassword))
+            return;
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            throw new InvalidOperationException("BootstrapAdmin requires both Email and Password.");
+        await SeedAdminUserAsync(userMgr, adminEmail, adminPassword, ct);
     }
 
     private static async Task SeedPermissionsAsync(IdentityDbContext db, CancellationToken ct)
@@ -66,10 +74,8 @@ internal static class IdentitySeeder
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task SeedAdminUserAsync(UserManager<AppUser> userMgr, CancellationToken ct)
+    private static async Task SeedAdminUserAsync(UserManager<AppUser> userMgr, string adminEmail, string adminPassword, CancellationToken ct)
     {
-        const string adminEmail = "admin@dev.local";
-        const string adminPassword = "Admin123!"; // dev only
 
         var user = await userMgr.FindByEmailAsync(adminEmail);
         if (user is null)

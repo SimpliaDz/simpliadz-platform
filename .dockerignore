@@ -4,3 +4,6 @@
 **/obj
 TestResults
 documentation
+**/appsettings*.json
+**/.env*
+**/*secrets*.json

@@ -1,0 +1,33 @@
+{
+  "Tenancy": {
+    "ActiveTenantId": "REPLACE_TENANT_ID",
+    "Tenants": {
+      "REPLACE_TENANT_ID": {
+        "Name": "REPLACE_TENANT_NAME",
+        "ConnectionString": "REPLACE_APPLICATION_SQL_CONNECTION_STRING",
+        "Modules": {
+          "Identity": true,
+          "Inventory": true,
+          "Organization": true,
+          "Sales": true,
+          "Purchasing": true,
+          "Accounting": true,
+          "Notifications": true,
+          "Reporting": true,
+          "Audit": true,
+          "Crm": true
+        }
+      }
+    }
+  },
+  "Jwt": {
+    "Issuer": "REPLACE_JWT_ISSUER",
+    "Audience": "REPLACE_JWT_AUDIENCE",
+    "SigningKey": "REPLACE_UNIQUE_JWT_SIGNING_KEY",
+    "ExpiresMinutes": 60,
+    "RefreshTokenExpiresDays": 14
+  },
+  "Identity": {
+    "ExposePasswordResetToken": false
+  }
+}

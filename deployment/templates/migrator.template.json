@@ -1,0 +1,26 @@
+{
+  "Tenancy": {
+    "Tenants": {
+      "REPLACE_TENANT_ID": {
+        "Name": "REPLACE_TENANT_NAME",
+        "ConnectionString": "REPLACE_MIGRATOR_SQL_CONNECTION_STRING",
+        "Modules": {
+          "Identity": true,
+          "Inventory": true,
+          "Organization": true,
+          "Sales": true,
+          "Purchasing": true,
+          "Accounting": true,
+          "Notifications": true,
+          "Reporting": true,
+          "Audit": true,
+          "Crm": true
+        }
+      }
+    }
+  },
+  "BootstrapAdmin": {
+    "Email": "REPLACE_INITIAL_ADMIN_EMAIL",
+    "Password": "REPLACE_INITIAL_ADMIN_PASSWORD"
+  }
+}

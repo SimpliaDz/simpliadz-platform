@@ -11,7 +11,7 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
     .UseContentRoot(AppContext.BaseDirectory)
     .ConfigureAppConfiguration(cfg =>
     {
-        cfg.AddJsonFile("appsettings.json", optional: false);
+        cfg.AddJsonFile("appsettings.json", optional: true);
         var tenantCatalogPath = Environment.GetEnvironmentVariable("SIMPLIA_TENANTS_FILE");
         if (!string.IsNullOrWhiteSpace(tenantCatalogPath))
             cfg.AddJsonFile(Path.GetFullPath(tenantCatalogPath), optional: false,
